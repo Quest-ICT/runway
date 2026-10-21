@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>setting row</title></head>
+<body>
+<!-- One setting's row, inserted by the settings form once per field (selected by the .sr-row class, never an
+     id, because the form repeats it). Only the input variant matching the field's inputKind survives. -->
+<div class="sr-row mb-3">
+    <label class="form-label sr-label" for="sr-input">key</label>
+
+    <input class="form-control sr-text" type="text" name="key" value="">
+    <textarea class="form-control sr-area" name="key" rows="3"></textarea>
+    <input class="form-control sr-secret" type="password" name="key" autocomplete="off"
+           placeholder="leave blank to keep">
+    <select class="form-select sr-select" name="key">
+        <option class="sr-opt" value="">value</option>
+    </select>
+    <label class="form-check sr-bool-wrap">
+        <input class="form-check-input sr-bool" type="checkbox" name="key" value="true">
+        <span class="form-check-label sr-bool-label">Enabled</span>
+    </label>
+
+    <div class="alert alert-secondary py-2 px-3 mt-2 mb-0 small sr-locked" role="status">
+        <span class="sr-locked-where">Set on the server.</span>
+        <span class="sr-locked-state">The console holds no value of its own.</span>
+    </div>
+    <!-- Belongs to the separate adopt form (form="…"), so it never becomes the settings form's default button. -->
+    <button type="submit" class="btn btn-sm btn-outline-secondary mt-2 sr-adopt" form="st-adopt-form" name="key"
+            value="key">Use the file's value</button>
+    <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small sr-platform-off" role="status">
+        The platform operator has turned this off.
+    </div>
+    <small class="form-hint sr-help">What this setting does.</small>
+    <small class="form-hint text-secondary sr-facts">
+        <span class="sr-fact-list">One per line.</span>
+        <span class="sr-fact-range">Allowed: 1..10.</span>
+        <span class="sr-fact-default">Default: x.</span>
+        <a class="sr-more" href="#" target="_blank" rel="noopener">Learn more</a>
+    </small>
+</div>
+</body>
+</html>

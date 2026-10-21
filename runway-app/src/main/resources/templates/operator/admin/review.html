@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Review queue</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="rv-pretitle">Site</div>
+                <h2 class="page-title" id="rv-heading">Review queue</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explains the screen; on a site that is not at the reviewed level it also says why the queue is usually
+         empty (anything still listed was submitted before the level changed). -->
+    <p class="text-secondary" id="rv-intro">Pages waiting for an approver.</p>
+    <div class="alert alert-info" role="status" id="rv-not-reviewed">This site does not require review.</div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.review">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="slug" id="rv-h-slug">Page</th>
+                    <th scope="col" data-col-key="path" id="rv-h-path">Path</th>
+                    <th scope="col" data-col-key="kind" id="rv-h-kind">Kind</th>
+                    <th scope="col" data-col-key="by" id="rv-h-by">Submitted by</th>
+                    <th scope="col" data-col-key="at" id="rv-h-at">Submitted</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="rv-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="rv-row">
+                    <td class="r-slug">slug</td>
+                    <td class="r-path text-secondary font-monospace">/path</td>
+                    <td><span class="badge r-kind">kind</span></td>
+                    <td class="r-by">user</td>
+                    <td class="r-at text-secondary">when</td>
+                    <td><a class="btn btn-sm btn-primary r-open" href="#">Review</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body text-secondary text-center" id="rv-empty">Nothing is waiting for review.</div>
+    </div>
+</div>
+</body>
+</html>

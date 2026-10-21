@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Page-editor logic. Decoupled from the HTML (zero th:* in the .html). The per-locale rows iterate on a
+  wrapper element (#pe-loc-row / #pe-lp-row) and bind descendants with the // selector; input names are
+  built by concatenation (title[en], description[es], localizedPath[fr]) so they bind to PageForm's maps.
+-->
+<thlogic>
+    <attr sel="#pe-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#pe-heading" th:text="#{op.pages.edit.heading} + ' · ' + ${page.slug()}"/>
+    <attr sel="#pe-back" th:text="#{op.pages.edit.back}"/>
+    <!-- Editor / preview column-split control: localized tooltips per ratio; the group label names the whole. -->
+    <attr sel="#pe-ratio" th:attr="aria-label=#{op.pages.edit.ratio}"/>
+    <attr sel="#pe-ratio-13" th:attr="title=#{op.pages.edit.ratio.13},aria-label=#{op.pages.edit.ratio.13}"/>
+    <attr sel="#pe-ratio-12" th:attr="title=#{op.pages.edit.ratio.12},aria-label=#{op.pages.edit.ratio.12}"/>
+    <attr sel="#pe-ratio-23" th:attr="title=#{op.pages.edit.ratio.23},aria-label=#{op.pages.edit.ratio.23}"/>
+    <attr sel="#pe-ratio-34" th:attr="title=#{op.pages.edit.ratio.34},aria-label=#{op.pages.edit.ratio.34}"/>
+    <attr sel="#pe-form" th:attr="action='/__admin/pages/' + ${page.slug()}"/>
+    <attr sel="#pe-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-revision-key" th:attr="value=${revisionKey}"/>
+
+    <!-- Editorial banners -->
+    <attr sel="#pe-ed-blocked" th:if="${!blocked.isEmpty()}"/>
+    <attr sel="#pe-ed-blocked-title" th:text="#{op.review.blocked.list}"/>
+    <attr sel="#pe-ed-blocked-item" th:each="b : ${blocked}" th:text="${b.message()}" th:id="${null}"/>
+    <attr sel="#pe-ed-revision" th:if="${editingRevision}"/>
+    <attr sel="#pe-ed-revision-text" th:text="#{op.review.banner.revision}"/>
+    <attr sel="#pe-ed-revision-by" th:if="${review != null and review.isSubmitted()}"
+          th:text="#{op.review.banner.submittedBy(${review.submittedBy()}, ${reviewSubmittedAt})}"/>
+    <attr sel="#pe-ed-liveedit" th:if="${savesAsRevision and !editingRevision}"/>
+    <attr sel="#pe-ed-liveedit-text" th:text="#{op.review.banner.liveEdit}"/>
+    <attr sel="#pe-ed-inreview" th:if="${!editingRevision and review != null and review.isSubmitted()}"/>
+    <attr sel="#pe-ed-inreview-text"
+          th:text="#{op.review.banner.inReview(${review != null ? review.submittedBy() : ''}, ${reviewSubmittedAt})}"/>
+    <attr sel="#pe-ed-returned" th:if="${review != null and review.isReturned()}"/>
+    <attr sel="#pe-ed-returned-title" th:text="#{op.review.banner.returned}"/>
+    <attr sel="#pe-ed-returned-by"
+          th:text="#{op.review.banner.returnedBy(${review != null ? review.returnedBy() : ''}, ${reviewReturnedAt})}"/>
+    <attr sel="#pe-ed-returned-note" th:text="${review != null ? review.note() : ''}"/>
+
+    <!-- Editorial actions -->
+    <attr sel="#pe-publish-form" th:if="${canPublish}" th:attr="action='/__admin/pages/' + ${page.slug()} + '/enable'"/>
+    <attr sel="#pe-publish-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-publish" th:text="#{op.review.publish}" th:attr="title=#{op.review.publish.tip}"/>
+    <attr sel="#pe-submit-form" th:if="${canSubmit}" th:attr="action='/__admin/pages/' + ${page.slug()} + '/submit'"/>
+    <attr sel="#pe-submit-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-submit" th:text="#{op.review.submit}" th:attr="title=#{op.review.submit.tip}"/>
+    <attr sel="#pe-withdraw-form" th:if="${canWithdraw}" th:attr="action='/__admin/pages/' + ${page.slug()} + '/withdraw'"/>
+    <attr sel="#pe-withdraw-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-withdraw" th:text="${status.hasRevision()} ? #{op.review.discard} : #{op.review.withdraw}"
+          th:attr="title=${status.hasRevision()} ? #{op.review.discard.tip} : #{op.review.withdraw.tip}"/>
+    <attr sel="#pe-review-link" th:if="${mayApprove and status.awaitingReview()}"
+          th:text="#{op.review.openInQueue}" th:attr="href='/__admin/review/' + ${page.slug()}"/>
+
+    <!-- Source editors: the raw file bodies as textarea content (CodeMirror mounts over them). -->
+    <attr sel="#pe-l-body" th:text="#{op.pages.edit.body}"/>
+    <attr sel="#pe-body" th:text="${body}"/>
+    <attr sel="#pe-l-logic" th:text="#{op.pages.edit.logic}"/>
+    <attr sel="#pe-cm-hint" th:text="#{op.a11y.codeEditorHint}"/>
+    <attr sel="#pe-logic-help" th:text="#{op.pages.edit.logic.help}"/>
+    <attr sel="#pe-logic" th:text="${logic}"/>
+
+    <!-- Download / upload a copy of each editor. Download filenames are the page's own files (<slug>.html /
+         <slug>.th.xml); the file inputs carry the localized replace-confirmation. -->
+    <!-- Icon-only buttons are named by aria-label, not by their tooltip alone; the hidden file inputs they
+         trigger carry the same name. -->
+    <attr sel="#pe-body-download" th:attr="title=#{op.pages.edit.download},aria-label=#{op.pages.edit.download},data-filename=${page.slug()} + '.html'"/>
+    <attr sel="#pe-body-upload" th:attr="title=#{op.pages.edit.upload},aria-label=#{op.pages.edit.upload}"/>
+    <attr sel="#pe-body-file" th:attr="data-confirm=#{op.pages.edit.upload.confirm},aria-label=#{op.pages.edit.upload}"/>
+    <attr sel="#pe-logic-download" th:attr="title=#{op.pages.edit.download},aria-label=#{op.pages.edit.download},data-filename=${page.slug()} + '.th.xml'"/>
+    <attr sel="#pe-logic-upload" th:attr="title=#{op.pages.edit.upload},aria-label=#{op.pages.edit.upload}"/>
+    <attr sel="#pe-logic-file" th:attr="data-confirm=#{op.pages.edit.upload.confirm},aria-label=#{op.pages.edit.upload}"/>
+
+    <!-- Metadata -->
+    <attr sel="#pe-l-meta" th:text="#{op.pages.edit.meta}"/>
+    <attr sel="#pe-l-path" th:text="#{op.pages.col.path}"/>
+    <attr sel="#pe-path" th:attr="value=${page.path()}"/>
+    <attr sel="#pe-l-template" th:text="#{op.pages.edit.master}"/>
+    <attr sel="#pe-template" th:attr="value=${page.template()}"/>
+    <attr sel="#pe-l-nav" th:text="#{op.pages.edit.nav}"/>
+    <attr sel="#pe-nav" th:attr="value=${page.activeNav()}"/>
+    <attr sel="#pe-l-author" th:text="#{op.pages.edit.author}"/>
+    <attr sel="#pe-author" th:attr="value=${page.author()},placeholder=#{op.pages.edit.author.ph}"/>
+    <attr sel="#pe-author-help" th:text="#{op.pages.edit.author.help}"/>
+    <attr sel="#pe-l-publishedat" th:text="#{op.pages.edit.publishedAt}"/>
+    <attr sel="#pe-publishedat" th:attr="value=${publishedOn}"/>
+    <attr sel="#pe-publishedat-help" th:text="#{op.pages.edit.publishedAt.help}"/>
+    <attr sel="#pe-l-canonical" th:text="#{op.pages.edit.canonical}"/>
+    <attr sel="#pe-canonical" th:attr="value=${page.canonical()},placeholder=#{op.pages.edit.canonical.ph}"/>
+    <attr sel="#pe-canonical-help" th:text="#{op.pages.edit.canonical.help}"/>
+    <attr sel="#pe-l-cachecontrol" th:text="#{op.pages.edit.cacheControl}"/>
+    <attr sel="#pe-cachecontrol" th:attr="value=${page.cacheControl()},placeholder=#{op.pages.edit.cacheControl.ph}"/>
+    <attr sel="#pe-cachecontrol-help" th:text="#{op.pages.edit.cacheControl.help}"/>
+    <attr sel="#pe-nosnippet" th:checked="${page.nosnippet()}"/>
+    <attr sel="#pe-l-nosnippet" th:text="#{op.pages.edit.nosnippet}"/>
+    <attr sel="#pe-nosnippet-help" th:text="#{op.pages.edit.nosnippet.help}"/>
+    <attr sel="#pe-gone" th:checked="${page.gone()}"/>
+    <attr sel="#pe-l-gone" th:text="#{op.pages.edit.gone}"/>
+    <attr sel="#pe-gone-help" th:text="#{op.pages.edit.gone.help}"/>
+    <attr sel="#pe-noindex" th:checked="${page.noindex()}"/>
+    <attr sel="#pe-l-noindex" th:text="#{op.pages.edit.noindex}"/>
+    <attr sel="#pe-noindex-help" th:text="#{op.pages.edit.noindex.help}"/>
+
+    <!-- Locale availability checkboxes (empty selection ⇒ site default only). -->
+    <attr sel="#pe-l-locales" th:text="#{op.pages.col.locales}"/>
+    <attr sel="#pe-loc-row" th:each="loc : ${siteLocales}" th:id="${null}"/>
+    <attr sel="#pe-loc-row//.pe-loc-cb" th:attr="value=${loc.language}"
+          th:checked="${pageLocaleCodes.contains(loc.language)}"/>
+    <attr sel="#pe-loc-row//.pe-loc-label" th:text="${loc.getDisplayLanguage(loc)}"/>
+
+    <!-- Per-locale title / description / localized-path (names build title[<code>] etc. for PageForm). -->
+    <attr sel="#pe-l-perlocale" th:text="#{op.pages.edit.perlocale}"/>
+    <attr sel="#pe-lp-row" th:each="loc : ${siteLocales}" th:id="${null}"/>
+    <attr sel="#pe-lp-row//.pe-lp-heading" th:text="${loc.getDisplayLanguage(loc)}"/>
+    <!-- The per-locale inputs show only placeholders; aria-label names each by field and language. -->
+    <attr sel="#pe-lp-row//.pe-lp-title" th:attr="name='title[' + ${loc.language} + ']',value=${titleMap.get(loc.language)},placeholder=#{op.pages.edit.title.ph},aria-label=#{op.pages.edit.title.ph} + ' (' + ${loc.getDisplayLanguage(loc)} + ')'"/>
+    <attr sel="#pe-lp-row//.pe-lp-desc" th:attr="name='description[' + ${loc.language} + ']',value=${descMap.get(loc.language)},placeholder=#{op.pages.edit.desc.ph},aria-label=#{op.pages.edit.desc.ph} + ' (' + ${loc.getDisplayLanguage(loc)} + ')'"/>
+    <attr sel="#pe-lp-row//.pe-lp-path" th:attr="name='localizedPath[' + ${loc.language} + ']',value=${localizedPathMap.get(loc.language)},placeholder=#{op.pages.edit.locpath.ph},aria-label=#{op.pages.edit.locpath.ph} + ' (' + ${loc.getDisplayLanguage(loc)} + ')'"/>
+
+    <!-- Template parameters: one row per existing entry (key + value bind as the parallel paramKey[]/
+         paramValue[] arrays), then a static blank row for adding one. The // selector reaches the inputs
+         nested inside the row's grid columns. -->
+    <attr sel="#pe-l-params" th:text="#{op.pages.edit.params}"/>
+    <attr sel="#pe-params-help" th:text="#{op.pages.edit.params.help}"/>
+    <attr sel="#pe-param-row" th:each="p : ${paramEntries}" th:id="${null}"/>
+    <attr sel="#pe-param-row//.pe-param-key" th:attr="value=${p.key()},placeholder=#{op.pages.edit.params.key},aria-label=#{op.a11y.paramKey}"/>
+    <attr sel="#pe-param-row//.pe-param-value" th:attr="value=${p.value()},placeholder=#{op.pages.edit.params.value},aria-label=#{op.a11y.paramValue}"/>
+    <!-- The site-level value this page row overrides (absent when the site does not define the key). -->
+    <attr sel="#pe-param-row//.pe-param-site" th:if="${p.siteValue() != null}"
+          th:text="#{op.pages.edit.params.overrides(${p.siteValue()})}"/>
+    <!-- Site params the page does not override: read-only rows (the block is removed when there are none). -->
+    <attr sel="#pe-params-inherited" th:if="${!inheritedParams.isEmpty()}"/>
+    <attr sel="#pe-params-inherited-help" th:text="#{op.pages.edit.params.inherited}"/>
+    <attr sel="#pe-inherited-row" th:each="ip : ${inheritedParams}" th:id="${null}"/>
+    <attr sel="#pe-inherited-row//.pe-inherited-key" th:text="${ip.key}"/>
+    <attr sel="#pe-inherited-row//.pe-inherited-value" th:text="${ip.value}"/>
+    <attr sel="#pe-param-blank//.pe-param-key" th:attr="placeholder=#{op.pages.edit.params.key},aria-label=#{op.a11y.paramKey}"/>
+    <attr sel="#pe-param-blank//.pe-param-value" th:attr="placeholder=#{op.pages.edit.params.value},aria-label=#{op.a11y.paramValue}"/>
+
+    <attr sel="#pe-save" th:text="${savesAsRevision} ? #{op.review.saveAsRevision} : #{op.pages.edit.save}"/>
+
+    <!-- Preview: loads the saved draft; page-editor.js then renders unsaved edits through #pe-live-form (POST to
+         the same preview URL), showing #pe-live-badge while the frame is ahead of what is saved. -->
+    <attr sel="#pe-l-preview" th:text="#{op.pages.edit.preview}"/>
+    <attr sel="#pe-preview" th:attr="src=${previewUrl},title=#{op.pages.edit.preview}"/>
+    <attr sel="#pe-live-badge" th:text="#{op.pages.edit.preview.unsaved}"
+          th:attr="title=#{op.pages.edit.preview.unsaved.tip}"/>
+    <attr sel="#pe-live-form" th:attr="action=${livePreviewUrl},data-saved-src=${previewUrl}"/>
+    <attr sel="#pe-live-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <!-- Pop-out toggle: labels feed the JS state swap; data-popout-url is the clearly-titled host window. -->
+    <attr sel="#pe-popout" th:attr="data-label-out=#{op.pages.edit.popout},data-label-back=#{op.pages.edit.reattach},title=#{op.pages.edit.popout.tip},data-popout-url=${previewWindowUrl}"/>
+    <attr sel="#pe-popout-label" th:text="#{op.pages.edit.popout}"/>
+    <attr sel="#pe-detached-msg" th:text="#{op.pages.edit.detached}"/>
+    <!-- Preview status flag tooltips (the JS picks warn vs error and shows/hides the flag). -->
+    <attr sel="#pe-quality-flag" th:attr="data-title-warn=#{op.pages.quality.flag.warn},data-title-error=#{op.pages.quality.flag.error}"/>
+
+    <!-- Editor expand/collapse toggles: localized tooltips (the JS swaps title between the two). -->
+    <attr sel="#pe-body-expand" th:attr="title=#{op.pages.edit.expand},aria-label=#{op.pages.edit.expand},data-title-expand=#{op.pages.edit.expand},data-title-collapse=#{op.pages.edit.collapse}"/>
+    <attr sel="#pe-logic-expand" th:attr="title=#{op.pages.edit.expand},aria-label=#{op.pages.edit.expand},data-title-expand=#{op.pages.edit.expand},data-title-collapse=#{op.pages.edit.collapse}"/>
+
+    <!-- Advisory quality panel: the clean note shows only when there are no findings. -->
+    <attr sel="#pe-l-quality" th:text="#{op.pages.quality.heading}"/>
+    <attr sel="#pe-clean" th:if="${findings.isEmpty()}" th:text="#{op.pages.quality.clean}"/>
+    <attr sel="#pe-findings" th:if="${!findings.isEmpty()}"/>
+    <!-- data-code / data-severity feed the client ignore-set + the Preview status flag. -->
+    <attr sel="#pe-finding" th:each="f : ${findings}" th:attr="data-code=${f.code()},data-severity=${f.severity()}" th:id="${null}"/>
+    <attr sel="#pe-finding//.pe-f-badge" th:text="${f.severity()}"
+          th:classappend="${f.severity() == 'error' ? 'bg-red-lt' : (f.severity() == 'warning' ? 'bg-yellow-lt' : 'bg-azure-lt')}"/>
+    <attr sel="#pe-finding//.pe-f-msg" th:text="${f.message()}"/>
+    <!-- Ignore toggle: removed entirely for errors (never ignorable); localized tooltip pair the JS swaps. -->
+    <attr sel="#pe-finding//.pe-f-ignore" th:remove="${f.severity() == 'error'} ? 'all' : 'none'"
+          th:attr="title=#{op.pages.quality.ignore},aria-label=#{op.pages.quality.ignore},data-title-ignore=#{op.pages.quality.ignore},data-title-unignore=#{op.pages.quality.unignore}"/>
+
+    <!-- Re-seed action (its own form) -->
+    <attr sel="#pe-reseed-form" th:attr="action='/__admin/pages/' + ${page.slug()} + '/reseed'"/>
+    <attr sel="#pe-reseed-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-reseed" th:text="#{op.pages.reseed}"/>
+    <attr sel="#pe-reseed-hint" th:text="#{op.pages.reseed.hint}"/>
+    <attr sel="#pe-rename-form" th:attr="action='/__admin/pages/' + ${page.slug()} + '/rename'"/>
+    <attr sel="#pe-rename-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-l-rename" th:text="#{op.pages.rename.label}"/>
+    <attr sel="#pe-rename-to" th:attr="value=${page.slug()}"/>
+    <attr sel="#pe-rename" th:text="#{op.pages.rename}"/>
+    <attr sel="#pe-rename-hint" th:text="#{op.pages.rename.hint}"/>
+    <attr sel="#pe-delete-form" th:attr="action='/__admin/pages/' + ${page.slug()} + '/delete'"/>
+    <attr sel="#pe-delete-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pe-delete" th:attr="data-confirm=#{op.pages.delete.confirm(${page.slug()}, ${page.path()})}"/>
+    <attr sel="#pe-delete-label" th:text="#{op.pages.delete}"/>
+    <attr sel="#pe-delete-hint" th:text="#{op.pages.delete.hint}"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#pe-cm-css" th:attr="href='/__assets/vendor/codemirror.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#pe-cm-js" th:src="'/__assets/vendor/codemirror.min.js?v=' + ${assetVersion}"/>
+    <attr sel="#pe-js" th:src="'/__assets/page-editor.js?v=' + ${assetVersion}"/>
+</thlogic>

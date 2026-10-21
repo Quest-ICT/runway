@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The permissions matrix: read-only state tables + action forms. Option lists use shared CLASS selectors
+     (.opt-user/.opt-role/.opt-perm) so every select is populated from the matrix-level list with a single,
+     non-nested th:each. Form actions use ${permBase} so the same template serves both realms. -->
+<thlogic>
+    <attr sel="#pm-pretitle" th:text="#{'op.realm.' + ${matrix.realm().name().toLowerCase()}}"/>
+    <attr sel="#pm-heading" th:text="#{op.permissions.heading}"/>
+    <attr sel="#pm-users-title" th:text="#{op.permissions.users}"/>
+    <attr sel="#pm-roles-title" th:text="#{op.permissions.roles}"/>
+    <attr sel="#pm-actions-title" th:text="#{op.permissions.assign}"/>
+    <attr sel="#pm-a-userrole" th:text="#{op.permissions.userRoles}"/>
+    <attr sel="#pm-a-userperm" th:text="#{op.permissions.userGrants}"/>
+    <attr sel="#pm-a-roleperm" th:text="#{op.permissions.roleDeltas}"/>
+
+    <attr sel="#pm-uh-user" th:text="#{op.permissions.col.user}"/>
+    <attr sel="#pm-uh-roles" th:text="#{op.permissions.col.roles}"/>
+    <attr sel="#pm-uh-grants" th:text="#{op.permissions.col.grants}"/>
+    <attr sel="#pm-rh-role" th:text="#{op.permissions.col.role}"/>
+    <attr sel="#pm-rh-inherits" th:text="#{op.permissions.col.inherits}"/>
+    <attr sel="#pm-rh-perms" th:text="#{op.permissions.col.perms}"/>
+
+    <!-- Users state -->
+    <attr sel="#pm-user-empty" th:if="${matrix.users().isEmpty()}"/>
+    <attr sel="#pm-user-empty-text" th:text="#{op.permissions.noUsers}"/>
+    <attr sel="#pm-user-row" th:each="u : ${matrix.users()}" th:id="${null}"/>
+    <attr sel="#pm-user-row//.u-name" th:text="${u.username()}" th:attr="title=${u.displayName()}"/>
+    <attr sel="#pm-user-row//.u-master" th:if="${u.master()}" th:text="#{op.permissions.master}"/>
+    <attr sel="#pm-user-row//.u-roles"
+          th:text="${u.roles().isEmpty() ? '—' : #strings.listJoin(u.roles(), ', ')}"/>
+    <attr sel="#pm-user-row//.u-grants"
+          th:text="${u.directPermissions().isEmpty() ? '—' : #strings.listJoin(u.directPermissions(), ', ')}"/>
+
+    <!-- Roles state -->
+    <attr sel="#pm-role-row" th:each="role : ${matrix.roles()}" th:id="${null}"/>
+    <attr sel="#pm-role-row//.r-name" th:text="${role.name()}"/>
+    <attr sel="#pm-role-row//.r-custom" th:if="${role.custom()}" th:text="#{op.permissions.custom}"/>
+    <attr sel="#pm-role-row//.r-inherits"
+          th:text="${role.inherits().isEmpty() ? '—' : #strings.listJoin(role.inherits(), ', ')}"/>
+    <attr sel="#pm-role-row//.r-perms"
+          th:text="${role.wildcard()} ? #{op.permissions.allPerms} : ${@permissionLabelResolver.joinHeld(role.heldPermissions(), #locale)}"/>
+
+    <!-- Shared option lists (one th:each per shared class, applied to every matching select) -->
+    <attr sel=".opt-user" th:each="u : ${matrix.users()}" th:value="${u.principalId()}" th:text="${u.username()}"/>
+    <attr sel=".opt-role" th:each="r : ${matrix.assignableRoles()}" th:value="${r}" th:text="${r}"/>
+    <attr sel=".opt-perm" th:each="p : ${matrix.grantablePermissions()}" th:value="${p.key()}"
+          th:text="${@permissionLabelResolver.label(p.key(), #locale)}"/>
+    <!-- Only the editable custom roles are eligible for delete + hierarchy edges. -->
+    <attr sel=".opt-custom-role" th:each="r : ${matrix.customRoles()}" th:value="${r}" th:text="${r}"/>
+
+    <!-- CSRF on every form -->
+    <attr sel=".pm-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Form actions (realm-specific prefix) + button labels -->
+    <attr sel="#pm-assign-role-form" th:attr="action=${permBase} + '/assign-role'"/>
+    <attr sel="#pm-assign-role-btn" th:text="#{op.permissions.assignBtn}"/>
+    <attr sel="#pm-revoke-role-form" th:attr="action=${permBase} + '/revoke-role'"/>
+    <attr sel="#pm-revoke-role-btn" th:text="#{op.permissions.revokeBtn}"/>
+    <attr sel="#pm-grant-perm-form" th:attr="action=${permBase} + '/grant-permission'"/>
+    <attr sel="#pm-grant-perm-btn" th:text="#{op.permissions.grantBtn}"/>
+    <attr sel="#pm-revoke-perm-form" th:attr="action=${permBase} + '/revoke-permission'"/>
+    <attr sel="#pm-revoke-perm-btn" th:text="#{op.permissions.revokeBtn}"/>
+    <attr sel="#pm-role-grant-form" th:attr="action=${permBase} + '/role-grant'"/>
+    <attr sel="#pm-role-grant-btn" th:text="#{op.permissions.roleGrantBtn}"/>
+    <attr sel="#pm-role-revoke-form" th:attr="action=${permBase} + '/role-revoke'"/>
+    <attr sel="#pm-role-revoke-btn" th:text="#{op.permissions.roleRevokeBtn}"/>
+
+    <!-- Manage roles: create / delete / arrange the DAG -->
+    <attr sel="#pm-ra-title" th:text="#{op.permissions.manageRoles}"/>
+    <attr sel="#pm-ra-create" th:text="#{op.permissions.createRole}"/>
+    <attr sel="#pm-ra-delete" th:text="#{op.permissions.deleteRole}"/>
+    <attr sel="#pm-ra-dag" th:text="#{op.permissions.hierarchy}"/>
+    <attr sel="#pm-create-role-name" th:attr="placeholder=#{op.permissions.roleNamePh},title=#{op.permissions.roleNameHint},aria-label=#{op.permissions.a11y.roleName}"/>
+    <attr sel="#pm-create-role-inherits" th:attr="aria-label=#{op.permissions.a11y.inheritsFrom}"/>
+    <!-- Accessible names for the compact action forms' selects: the forms have no visible labels (their card
+         heading says what they do), so each select is named by what it picks. One class selector names them all. -->
+    <attr sel=".pm-sel-user" th:attr="aria-label=#{op.permissions.col.user}"/>
+    <attr sel=".pm-sel-role" th:attr="aria-label=#{op.permissions.col.role}"/>
+    <attr sel=".pm-sel-parent" th:attr="aria-label=#{op.permissions.a11y.parent}"/>
+    <attr sel=".pm-sel-perm" th:attr="aria-label=#{op.permissions.a11y.permission}"/>
+    <attr sel="#pm-create-role-hint" th:text="#{op.permissions.roleNameHint}"/>
+    <attr sel="#pm-inherit-sep" th:text="#{op.permissions.inheritsWord}"/>
+    <attr sel="#pm-inherit-sep2" th:text="#{op.permissions.inheritsWord}"/>
+
+    <attr sel="#pm-create-role-form" th:attr="action=${permBase} + '/create-role'"/>
+    <attr sel="#pm-create-role-btn" th:text="#{op.permissions.createBtn}"/>
+    <attr sel="#pm-delete-role-form" th:attr="action=${permBase} + '/delete-role'"/>
+    <attr sel="#pm-delete-role-btn" th:text="#{op.permissions.deleteBtn}"/>
+    <attr sel="#pm-add-inherit-form" th:attr="action=${permBase} + '/add-inherit'"/>
+    <attr sel="#pm-add-inherit-btn" th:text="#{op.permissions.addEdgeBtn}"/>
+    <attr sel="#pm-remove-inherit-form" th:attr="action=${permBase} + '/remove-inherit'"/>
+    <attr sel="#pm-remove-inherit-btn" th:text="#{op.permissions.removeEdgeBtn}"/>
+</thlogic>

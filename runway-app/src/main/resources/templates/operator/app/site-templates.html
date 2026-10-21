@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>site templates</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="stc-pretitle">Application</div>
+                <h2 class="page-title" id="stc-heading">Site templates</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-12">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <p class="text-secondary mb-0" id="stc-intro">
+                        A catalog of starter presentations a new site can be born from. When you create a site you
+                        pick one. Editing a template affects only sites created afterward — existing sites keep
+                        their own copy.</p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.sitetemplates.catalog">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="name" id="stc-h-name">Template</th>
+                            <th scope="col" data-col-key="id" id="stc-h-id">Id</th>
+                            <th scope="col" data-col-key="desc" id="stc-h-desc">Description</th>
+                            <th scope="col" data-nosort id="stc-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="stc-row">
+                            <td>
+                                <a class="stc-name" href="#">Default</a>
+                                <span class="stc-builtin badge bg-azure-lt ms-1">built-in</span>
+                            </td>
+                            <td><code class="stc-id">default</code></td>
+                            <td class="stc-desc text-secondary">—</td>
+                            <td class="text-nowrap">
+                                <a class="stc-files btn btn-sm btn-outline-primary" href="#">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i><span class="stc-files-label">Edit files</span></a>
+                                <a class="stc-export btn btn-sm btn-outline-secondary ms-1" href="#">
+                                    <i class="fa-solid fa-file-zipper me-1"></i><span class="stc-export-label">Export</span></a>
+                                <form class="stc-delete d-inline m-0 ms-1" method="post" action="#">
+                                    <input class="stc-del-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger stc-del-btn">
+                                        <i class="fa-solid fa-trash me-1"></i><span class="stc-del-label">Delete</span></button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row row-cards">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title" id="stc-new-title">New template</h3></div>
+                        <div class="card-body">
+                            <form method="post" action="/__app/site-templates/new">
+                                <input id="stc-new-csrf" type="hidden" name="_csrf" value="">
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-new-l-id" for="stc-new-id">Id</label>
+                                    <input id="stc-new-id" name="id" class="form-control" autocomplete="off" required>
+                                    <small class="form-hint" id="stc-new-h-id">Letters, digits, dot, underscore, hyphen.</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-new-l-name" for="stc-new-name">Name</label>
+                                    <input id="stc-new-name" name="name" class="form-control" autocomplete="off">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-new-l-desc" for="stc-new-desc">Description</label>
+                                    <input id="stc-new-desc" name="description" class="form-control" autocomplete="off">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-new-l-copy" for="stc-new-copy">Copy from</label>
+                                    <select id="stc-new-copy" name="copyFrom" class="form-select">
+                                        <option id="stc-cf-opt" value="default">Default</option>
+                                    </select>
+                                    <small class="form-hint" id="stc-new-h-copy">The new template starts as a copy of this one.</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa-solid fa-plus me-1"></i><span id="stc-new-btn">Create template</span></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title" id="stc-imp-title">Import template</h3></div>
+                        <div class="card-body">
+                            <form method="post" action="/__app/site-templates/import" enctype="multipart/form-data">
+                                <input id="stc-imp-csrf" type="hidden" name="_csrf" value="">
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-imp-l-id" for="stc-imp-id">Id</label>
+                                    <input id="stc-imp-id" name="id" class="form-control" autocomplete="off" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-imp-l-name" for="stc-imp-name">Name</label>
+                                    <input id="stc-imp-name" name="name" class="form-control" autocomplete="off">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-imp-l-desc" for="stc-imp-desc">Description</label>
+                                    <input id="stc-imp-desc" name="description" class="form-control" autocomplete="off">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" id="stc-imp-l-file" for="stc-imp-file">Archive (.zip)</label>
+                                    <input id="stc-imp-file" name="file" type="file" accept=".zip" class="form-control" required>
+                                    <small class="form-hint" id="stc-imp-h-file">A .zip exported from another template.</small>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fa-solid fa-file-import me-1"></i><span id="stc-imp-btn">Import template</span></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

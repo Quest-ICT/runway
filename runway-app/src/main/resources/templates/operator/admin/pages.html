@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>pages</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="pg-pretitle">Site</div>
+                <h2 class="page-title" id="pg-heading">Pages</h2>
+            </div>
+            <div class="col-auto"><a class="btn btn-primary" id="pg-new" href="/__admin/pages/new">New page</a></div>
+        </div>
+    </div>
+    <!-- URL conflicts panel: rendered ONLY when a page shadows plugin content or two plugins claim one URL
+         (th:if in the decoupled logic). Nothing else on this screen mentions conflicts — most sites never
+         see this card. -->
+    <div class="card mb-3 border-warning" id="pg-conflicts">
+        <div class="card-header"><h3 class="card-title" id="pg-conf-title">URL conflicts</h3></div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                <tr>
+                    <th scope="col" id="pg-conf-h-path">Path</th>
+                    <th scope="col" id="pg-conf-h-locale">Language</th>
+                    <th scope="col" id="pg-conf-h-what">What happens</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="pg-conf-row">
+                    <td class="c-path font-monospace">/path</td>
+                    <td class="c-locale text-secondary">en</td>
+                    <td class="c-what text-secondary">explanation</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.pages">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="slug" id="pg-h-slug">Slug</th>
+                    <th scope="col" data-col-key="path" id="pg-h-path">Path</th>
+                    <th scope="col" data-col-key="locales" id="pg-h-locales">Locales</th>
+                    <th scope="col" data-col-key="status" id="pg-h-status">Status</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="pg-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="pg-empty"><td colspan="5" class="text-secondary text-center" id="pg-empty-text">No pages.</td></tr>
+                <tr id="pg-row">
+                    <td class="p-slug">slug</td>
+                    <td class="p-path text-secondary">—</td>
+                    <td class="p-locales text-secondary">—</td>
+                    <td><span class="badge p-badge">status</span></td>
+                    <td>
+                        <a class="btn btn-sm p-edit" href="#">Edit</a>
+                        <form class="d-inline p-toggle-form" method="post" action="#">
+                            <input class="p-csrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-sm p-toggle">Disable</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

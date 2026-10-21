@@ -1,0 +1,31 @@
+# =============================================================================
+#  Runway Lucene Libraries Provider — descriptor (CODE-LESS library-provider plugin)
+#
+#  This plugin ships NO code and NO mainClass. It carries the Apache Lucene stack
+#  (core + analysis-common + highlighter + memory + queries) under lib/*.jar so it
+#  loads once onto the shared plugin classloader — the SINGLE, deployment-wide
+#  copy of Lucene. Consumer plugins (e.g. `search-lucene`) compile Lucene as
+#  `provided` and declare an EXACT dependency:
+#      requires: [ "lucene-provider == 10.4.0" ]
+#  `==` (exact) because they are compiled against THESE binaries — a Lucene major
+#  can move/rename internal classes, so a consumer must run against the very
+#  version it was built with.
+#
+#  Why a standalone provider: Lucene ships as a first-class shared provider so
+#  any plugin needing full-text search binds to ONE agreed Lucene version, never
+#  its own private (and possibly clashing) copy on the shared classloader.
+#
+#  Version tracks the PRINCIPAL library taken literally: the plugin version IS the
+#  Lucene version (10.4.0). Bump this `version` and the pom's ${lucene.version}
+#  together on a Lucene upgrade, and re-cut every consumer pinned to `== <ver>`.
+#
+#  The install folder name MUST equal this `id`: external/plugins/lucene-provider/.
+# =============================================================================
+id: lucene-provider
+name: Lucene Libraries Provider (Apache Lucene)
+version: 10.4.0
+enabled: true
+
+# No mainClass  → code-less: nothing is registered into the Spring context.
+# No requires   → always loads (it only provides libraries).
+# NOT essential → a normal optional provider; if absent, dependents are skipped.

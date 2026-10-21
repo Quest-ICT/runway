@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm "About Runway" logic (read-only). Each table/list body is a row template replicated by th:each;
+     the loop variable stays in scope for the row's direct-child cells, so single-slash `#row/#cell` selectors
+     reach them (the cells are direct children). Config/runtime row NAMES are message keys resolved
+     with the dynamic-key form #{${nv.name()}}; component names are literal product names. -->
+<thlogic>
+    <attr sel="#ab-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#ab-heading" th:text="#{op.about.heading}"/>
+    <attr sel="#ab-version" th:text="'v' + ${appVersion}"/>
+    <attr sel="#ab-built" th:if="${buildTime != '—'}" th:text="#{op.about.built(${buildTime})}"/>
+
+    <!-- Effective configuration (curated, non-secret) -->
+    <attr sel="#ec-title" th:text="#{op.about.effective}"/>
+    <attr sel="#ec-note" th:text="#{op.about.effective.note}"/>
+    <attr sel="#ec-row" th:each="nv : ${effectiveConfig}" th:id="${null}"/>
+    <attr sel="#ec-row/#ec-name" th:text="#{${nv.name()}}" th:id="${null}"/>
+    <attr sel="#ec-row/#ec-val" th:text="${nv.value()}" th:id="${null}"/>
+
+    <!-- Runtime environment — this node -->
+    <attr sel="#rt-title" th:text="#{op.about.runtime}"/>
+    <attr sel="#rt-note" th:text="#{op.about.runtime.note}"/>
+    <attr sel="#rt-row" th:each="nv : ${runtimeInfo}" th:id="${null}"/>
+    <attr sel="#rt-row/#rt-name" th:text="#{${nv.name()}}" th:id="${null}"/>
+    <attr sel="#rt-row/#rt-val" th:text="${nv.value()}" th:id="${null}"/>
+
+    <!-- Bundled components — its own section -->
+    <attr sel="#cmp-title" th:text="#{op.about.runtime.components}"/>
+    <attr sel="#cmp-note" th:text="#{op.about.components.note}"/>
+    <attr sel="#cmp-row" th:each="nv : ${componentInfo}" th:id="${null}"/>
+    <attr sel="#cmp-row/#cmp-name" th:text="${nv.name()}" th:id="${null}"/>
+    <attr sel="#cmp-row/#cmp-val" th:text="${nv.value()}" th:id="${null}"/>
+</thlogic>

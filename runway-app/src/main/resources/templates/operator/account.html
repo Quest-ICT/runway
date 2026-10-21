@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>account</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ac-pretitle">Account</div>
+                <h2 class="page-title" id="ac-heading">Your account</h2>
+            </div>
+        </div>
+    </div>
+    <div class="row row-cards justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="ac-profile-title">Your profile</h3></div>
+                <div class="card-body">
+                    <form id="ac-profile-form" method="post">
+                        <input id="ac-profile-csrf" type="hidden" name="_csrf" value="">
+                        <div class="mb-3"><span class="form-label" id="ac-l-username">Username</span>
+                            <div class="form-control-plaintext fw-bold" id="ac-username">username</div></div>
+                        <div class="mb-3"><label class="form-label" id="ac-l-name" for="ac-name">Display name</label>
+                            <input id="ac-name" class="form-control" name="displayName" maxlength="128" autocomplete="name">
+                            <small class="form-hint" id="ac-name-hint">Shown in the top bar and in the user lists. Empty uses your username.</small></div>
+                        <div class="mb-3"><label class="form-label" id="ac-l-email" for="ac-email">Recovery email</label>
+                            <input id="ac-email" class="form-control" name="recoveryEmail" type="email" maxlength="254" autocomplete="email">
+                            <small class="form-hint" id="ac-email-hint">Where a "Forgot your password?" link is sent. Empty means you cannot reset your password by email.</small></div>
+                        <div class="mb-3"><label class="form-label" id="ac-l-profile-current" for="ac-profile-current">Current password</label>
+                            <input id="ac-profile-current" class="form-control" name="currentPassword" type="password" autocomplete="current-password">
+                            <small class="form-hint" id="ac-profile-current-hint">Needed only to change the recovery email.</small></div>
+                        <div class="form-footer"><button type="submit" class="btn btn-primary w-100" id="ac-profile-save">Save profile</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="ac-change-title">Change your password</h3></div>
+                <div class="card-body">
+                    <form id="ac-form" method="post" autocomplete="off">
+                        <input id="ac-csrf" type="hidden" name="_csrf" value="">
+                        <div class="mb-3"><label class="form-label" id="ac-l-current" for="ac-current">Current password</label>
+                            <input id="ac-current" class="form-control" name="currentPassword" type="password" required autocomplete="current-password"></div>
+                        <div class="mb-3"><label class="form-label" id="ac-l-new" for="ac-new">New password</label>
+                            <input id="ac-new" class="form-control" name="newPassword" type="password" required autocomplete="new-password"></div>
+                        <div class="mb-3"><label class="form-label" id="ac-l-confirm" for="ac-confirm">Confirm new password</label>
+                            <input id="ac-confirm" class="form-control" name="confirmPassword" type="password" required autocomplete="new-password"></div>
+                        <div class="form-footer"><button type="submit" class="btn btn-primary w-100" id="ac-save">Change password</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

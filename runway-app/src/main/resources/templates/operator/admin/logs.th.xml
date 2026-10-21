@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logs screen. The access viewer shows the tail of the access log as escaped text (th:text, so log content can
+     never inject markup); the audit journal is the shared, filtered and paged operator/audit-journal card (bound by
+     AuditView.populate). The settings form pre-fills the site's anonymize + retention choices. -->
+<thlogic>
+    <attr sel="#lg-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#lg-heading" th:text="#{op.logs.heading}"/>
+
+    <attr sel="#lg-l-access" th:text="#{op.logs.access}"/>
+    <attr sel="#lg-access" th:text="${accessLines}"/>
+    <attr sel="#lg-journal" th:replace="~{operator/audit-journal :: #aj-card}"/>
+
+    <attr sel="#lg-l-settings" th:text="#{op.logs.settings}"/>
+    <attr sel="#lg-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#lg-anon" th:checked="${anonymize}"/>
+    <attr sel="#lg-l-anon" th:text="#{op.logs.anonymize}"/>
+    <attr sel="#lg-l-retention" th:text="#{op.logs.retention}"/>
+    <attr sel="#lg-retention" th:attr="value=${retentionDays},max=${maxRetention}"/>
+    <attr sel="#lg-retention-hint" th:text="#{op.logs.retention.hint(${maxRetention})}"/>
+    <attr sel="#lg-retention-clamped" th:if="${retentionClamped != null}"
+          th:text="#{op.logs.retention.clamped(${retentionClamped},${maxRetention})}"/>
+    <attr sel="#lg-save" th:text="#{op.logs.save}"/>
+    <attr sel="#lg-dropped" th:if="${dropped > 0}" th:text="#{op.logs.dropped(${dropped})}"/>
+</thlogic>

@@ -1,0 +1,23 @@
+# Runway kernel — register the plugin loader before the context refreshes.
+# An ApplicationContextInitializer runs after the Environment is prepared but before refresh(), so a
+# plugin's @Configuration beans wire in the same refresh pass as the kernel's. (ApplicationContextInitializer
+# is still discovered via spring.factories in Spring Boot 4 — the AutoConfiguration.imports change is only for
+# auto-configurations.)
+#
+# DataLayoutInitializer (Ordered.HIGHEST_PRECEDENCE) runs FIRST: it checks external/layout.yml and refuses to
+# start a build older than the data folder's layout before the plugin loader or any bean touches the folder.
+# KernelSettingsInitializer (unordered, so after the test framework's own initializers) loads the console-managed kernel settings (settings: in external/platform.yml) as a
+# property source ranked below everything the host sets, so they bind like any other value.
+org.springframework.context.ApplicationContextInitializer=\
+  mx.quest.runway.storage.DataLayoutInitializer,\
+  mx.quest.runway.platform.KernelSettingsInitializer,\
+  mx.quest.runway.plugin.PluginContextInitializer
+
+# Operator-facing "APPLICATION FAILED TO START" report for a refused data layout (instead of a bare stack trace).
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+  mx.quest.runway.storage.DataLayoutFailureAnalyzer
+
+# The wiring quarantine: a startup failure attributable to one plugin writes
+# external/plugin-quarantine/<id>.yml, so the next boot loads without that plugin (RunwayApplication.main exits 42).
+org.springframework.boot.SpringApplicationRunListener=\
+  mx.quest.runway.plugin.PluginQuarantineListener

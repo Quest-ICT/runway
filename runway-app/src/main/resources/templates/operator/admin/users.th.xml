@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#tu-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#tu-heading" th:text="#{op.nav.users}"/>
+    <!-- Create / reset need MANAGE_USERS (canManage); a DELETE_USERS-only holder sees the list read-only. -->
+    <attr sel="#tu-create-col" th:if="${canManage}"/>
+    <attr sel="#tu-reset-col" th:if="${canManage}"/>
+    <attr sel="#tu-create-title" th:text="#{op.users.create}"/>
+    <attr sel="#tu-create-btn" th:text="#{op.users.createBtn}"/>
+    <attr sel="#tu-reset-title" th:text="#{op.users.reset}"/>
+    <attr sel="#tu-reset-btn" th:text="#{op.users.resetBtn}"/>
+    <attr sel="#tu-l-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#tu-l-pass" th:text="#{op.login.password}"/>
+    <attr sel="#tu-l-tier" th:text="#{op.users.tier}"/>
+    <attr sel="#tu-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#tu-l-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#tu-tier-op" th:text="#{op.users.roleOperator}"/>
+    <!-- Only an administrator may grant the ADMIN tier or layer custom roles (bounded grant; the POST re-checks). -->
+    <attr sel="#tu-tier-admin" th:if="${siteAdmin}" th:text="#{op.users.roleAdmin}"/>
+    <attr sel="#tu-roles-group" th:if="${siteAdmin and !customRoles.isEmpty()}"/>
+    <attr sel="#tu-l-roles" th:text="#{op.users.additionalRoles}"/>
+    <attr sel="#tu-roles-hint" th:text="#{op.users.additionalRolesHint}"/>
+    <attr sel=".tu-opt-role" th:each="r : ${customRoles}" th:value="${r}" th:text="${r}"/>
+    <attr sel=".tu-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#tu-reset-form" th:attr="action='/__admin/users/reset-password'"/>
+    <!-- Only the users this manager may act on (the target bound; the POST re-checks). -->
+    <attr sel=".tu-opt" th:each="u : ${users}" th:if="${manageable.contains(u.principalId())}"
+          th:value="${u.principalId()}" th:text="${u.username()}"/>
+
+    <attr sel="#tu-h-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#tu-h-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#tu-h-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#tu-h-roles" th:text="#{op.users.col.roles}"/>
+    <attr sel="#tu-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <attr sel="#tu-empty" th:if="${users.isEmpty()}"/>
+    <attr sel="#tu-empty-text" th:text="#{op.permissions.noUsers}"/>
+    <attr sel="#tu-row" th:each="u,iter : ${users}" th:id="${null}"/>
+    <attr sel="#tu-row//.t-user" th:text="${u.username()}"/>
+    <attr sel="#tu-row//.t-suspended" th:if="${!u.enabled()}" th:text="#{op.users.suspendedBadge}"/>
+
+    <!-- A row this manager can do nothing with shows a dash instead of buttons. -->
+    <attr sel="#tu-row//.t-readonly"
+          th:if="${!manageable.contains(u.principalId()) or (!canManage and !canDelete)}"/>
+    <!-- Edit (profile + tier) as a per-row modal keyed by row index; no tier select on the manager's own row, nor
+         for a non-administrator (they cannot grant or remove a tier). Edit / suspend / resume need MANAGE_USERS
+         and a row within the manager's authority. -->
+    <attr sel="#tu-row//.t-edit-btn" th:if="${canManage and manageable.contains(u.principalId())}"
+          th:text="#{op.users.edit}"
+          th:attr="data-bs-target='#tu-edit-modal-' + ${iter.index}"/>
+    <attr sel="#tu-row//.t-edit-modal" th:if="${canManage and manageable.contains(u.principalId())}"
+          th:attr="id='tu-edit-modal-' + ${iter.index},aria-labelledby='tu-edit-title-' + ${iter.index}"/>
+    <attr sel="#tu-row//.t-edit-title" th:text="#{op.users.edit.title}" th:attr="id='tu-edit-title-' + ${iter.index}"/>
+    <attr sel="#tu-row//.t-edit-user" th:text="${u.username()}"/>
+    <attr sel="#tu-row//.t-edit-form" th:attr="action='/__admin/users/' + ${u.principalId()} + '/edit'"/>
+    <attr sel="#tu-row//.t-edit-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#tu-row//.t-edit-name" th:attr="value=${u.displayName()}"/>
+    <attr sel="#tu-row//.t-edit-l-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#tu-row//.t-edit-email" th:attr="value=${u.recoveryEmail()}"/>
+    <attr sel="#tu-row//.t-edit-tier-group" th:if="${siteAdmin and u.principalId() != selfId}"/>
+    <attr sel="#tu-row//.t-edit-l-tier" th:text="#{op.users.tier}"/>
+    <attr sel="#tu-row//.t-edit-tier-op" th:text="#{op.users.roleOperator}"
+          th:selected="${u.roles().contains('OPERATOR')}"/>
+    <attr sel="#tu-row//.t-edit-tier-admin" th:text="#{op.users.roleAdmin}"
+          th:selected="${u.roles().contains('ADMIN')}"/>
+    <attr sel="#tu-row//.t-edit-tier-fixed" th:if="${!siteAdmin or u.principalId() == selfId}" th:text="#{op.users.edit.tierFixed}"/>
+    <attr sel="#tu-row//.t-edit-cancel" th:text="#{op.sites.hosts.cancel}"/>
+    <attr sel="#tu-row//.t-edit-save" th:text="#{op.users.edit.save}"/>
+
+    <!-- Suspend / resume: never on your own row. -->
+    <attr sel="#tu-row//.t-suspend"
+          th:if="${canManage and manageable.contains(u.principalId()) and u.enabled() and u.principalId() != selfId}"
+          th:attr="action='/__admin/users/' + ${u.principalId()} + '/suspend'"/>
+    <attr sel="#tu-row//.t-suspend-btn" th:text="#{op.users.suspend}"
+          th:attr="title=#{op.users.suspend.tip},data-confirm=#{op.users.suspend.confirm(${u.username()})}"/>
+    <attr sel="#tu-row//.t-resume" th:if="${canManage and manageable.contains(u.principalId()) and !u.enabled()}"
+          th:attr="action='/__admin/users/' + ${u.principalId()} + '/resume'"/>
+    <attr sel="#tu-row//.t-resume-btn" th:text="#{op.users.resume}"/>
+    <attr sel="#tu-row//.t-name" th:text="${u.displayName()}"/>
+    <attr sel="#tu-row//.t-email" th:text="${u.recoveryEmail() != null and !u.recoveryEmail().isEmpty() ? u.recoveryEmail() : '—'}"/>
+    <attr sel="#tu-row//.t-roles" th:text="${#strings.setJoin(u.roles(), ', ')}"/>
+    <attr sel="#tu-row//.t-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <!-- Delete needs DELETE_USERS and a row within the manager's authority. -->
+    <attr sel="#tu-row//.t-delete" th:if="${canDelete and manageable.contains(u.principalId())}"
+          th:attr="action='/__admin/users/' + ${u.principalId()} + '/delete'"/>
+    <attr sel="#tu-row//.t-del-btn" th:attr="data-confirm='Delete user ' + ${u.username()} + '?'"/>
+    <!-- Accessible names for the reset form's unlabelled fields; the placeholder is localized too. -->
+    <attr sel=".a11y-user" th:attr="aria-label=#{op.a11y.user}"/>
+    <attr sel=".a11y-newpass" th:attr="aria-label=#{op.a11y.newPassword},placeholder=#{op.a11y.newPassword}"/>
+</thlogic>

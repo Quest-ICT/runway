@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maintenance screen. The switch + textarea pre-fill from the site's stored state (${maintenance},
+     ${maintenanceMessage}); the status alert reflects the current mode. -->
+<thlogic>
+    <attr sel="#maint-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#maint-heading" th:text="#{op.maint.heading}"/>
+
+    <attr sel="#maint-status" th:classappend="${maintenance} ? 'alert-warning' : 'alert-success'"/>
+    <attr sel="#maint-status-text"
+          th:text="${maintenance} ? #{op.maint.status.on} : #{op.maint.status.off}"/>
+
+    <attr sel="#maint-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#maint-l-card" th:text="#{op.maint.card}"/>
+    <attr sel="#maint-enabled" th:checked="${maintenance}"/>
+    <attr sel="#maint-l-enabled" th:text="#{op.maint.enabled}"/>
+    <attr sel="#maint-l-message" th:text="#{op.maint.message}"/>
+    <attr sel="#maint-message" th:text="${maintenanceMessage}" th:attr="title=#{op.maint.message.hint}"/>
+    <attr sel="#maint-h-message" th:text="#{op.maint.message.hint}"/>
+
+    <attr sel="#maint-note-text" th:text="#{op.maint.note}"/>
+    <attr sel="#maint-save" th:text="#{op.maint.save}"/>
+</thlogic>

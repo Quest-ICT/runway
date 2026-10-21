@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm platform-settings logic. Option templates carry ids and are replicated by th:each (the same
+     pattern the listing rows use); the id selectors are global so `/` vs `//` doesn't apply. -->
+<thlogic>
+    <attr sel="#ps-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#ps-heading" th:text="#{op.settings.platform.heading}"/>
+    <attr sel="#ps-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#ps-l-default" th:text="#{op.settings.platform.defaultSite}"/>
+    <attr sel="#ps-h-default" th:text="#{op.settings.platform.defaultSite.help}"/>
+    <attr sel="#ps-ds-none" th:text="#{op.settings.platform.defaultSite.none}"
+          th:selected="${#strings.isEmpty(currentDefaultSiteId)}"/>
+    <attr sel="#ps-ds-opt" th:each="site : ${sites}" th:value="${site.id()}"
+          th:text="${site.id() + ' — ' + site.name()}" th:selected="${site.id() == currentDefaultSiteId}" th:id="${null}"/>
+
+    <attr sel="#ps-l-pw" th:text="#{op.settings.platform.pw}"/>
+    <attr sel="#ps-h-pw" th:text="#{op.settings.platform.pw.help}"/>
+    <attr sel="#ps-ps-default" th:text="#{op.settings.platform.pw.default(${configDefaultStrength})}"
+          th:selected="${#strings.isEmpty(currentPasswordStrength)}"/>
+    <attr sel="#ps-ps-opt" th:each="ps : ${passwordStrengths}" th:value="${ps.name()}"
+          th:text="${ps.name()}" th:selected="${ps.name() == currentPasswordStrength}" th:id="${null}"/>
+
+    <attr sel="#ps-l-node" th:text="#{op.settings.platform.node}"/>
+    <attr sel="#ps-node" th:value="${currentNodeName}"/>
+    <attr sel="#ps-h-node" th:text="#{op.settings.platform.node.help}"/>
+
+    <attr sel="#ps-l-comp" th:text="#{op.settings.platform.compression}"/>
+    <attr sel="#ps-h-comp" th:text="#{op.settings.platform.compression.help}"/>
+    <attr sel="#ps-comp" th:checked="${compressionEnabled}" th:disabled="${compLock != null}"/>
+    <attr sel="#ps-comp-lbl" th:text="#{op.settings.platform.compression.enable}"/>
+    <attr sel="#ps-brotli" th:checked="${brotliEnabled}" th:disabled="${brotliLock != null}"/>
+    <attr sel="#ps-brotli-lbl" th:text="#{op.settings.platform.compression.brotli}"/>
+    <attr sel="#ps-gzip" th:checked="${gzipEnabled}" th:disabled="${gzipLock != null}"/>
+    <!-- Set on the server: that value wins and the console does not store one (one home per setting). -->
+    <attr sel="#ps-comp-lock" th:if="${compLock != null or brotliLock != null or gzipLock != null}"
+          th:text="#{op.settings.locked(${compLock ?: (brotliLock ?: gzipLock)})}"/>
+    <attr sel="#ps-gzip-lbl" th:text="#{op.settings.platform.compression.gzip}"/>
+    <attr sel="#ps-brotli-warn" th:if="${brotliEnabled and !brotliNativeAvailable}"
+          th:text="#{op.settings.platform.compression.brotliUnavailable}"/>
+
+    <!-- Platform mail (SMTP). The secret is never sent to the form — only the "keep it" hint when one is stored. -->
+    <attr sel="#ps-l-mail" th:text="#{op.settings.platform.smtp}"/>
+    <attr sel="#ps-h-mail" th:text="#{op.settings.platform.smtp.help}"/>
+    <attr sel="#ps-l-smtp-host" th:text="#{op.settings.platform.smtp.host}"/>
+    <attr sel="#ps-smtp-host" th:value="${smtpHost}"/>
+    <attr sel="#ps-l-smtp-port" th:text="#{op.settings.platform.smtp.port}"/>
+    <attr sel="#ps-smtp-port" th:value="${smtpPort}"/>
+    <attr sel="#ps-l-smtp-from" th:text="#{op.settings.platform.smtp.from}"/>
+    <attr sel="#ps-smtp-from" th:value="${smtpFrom}"/>
+    <attr sel="#ps-smtp-auth" th:checked="${smtpAuth}"/>
+    <attr sel="#ps-smtp-auth-lbl" th:text="#{op.settings.platform.smtp.auth}"/>
+    <attr sel="#ps-l-smtp-user" th:text="#{op.settings.platform.smtp.username}"/>
+    <attr sel="#ps-smtp-user" th:value="${smtpUsername}"/>
+    <attr sel="#ps-l-smtp-pass" th:text="#{op.settings.platform.smtp.password}"/>
+    <attr sel="#ps-smtp-pass-hint" th:if="${smtpPasswordConfigured}"
+          th:text="#{op.settings.platform.smtp.password.keep}"/>
+    <attr sel="#ps-smtp-starttls" th:checked="${smtpStarttls}"/>
+    <attr sel="#ps-smtp-starttls-lbl" th:text="#{op.settings.platform.smtp.starttls}"/>
+    <attr sel="#ps-smtp-ssl" th:checked="${smtpSsl}"/>
+    <attr sel="#ps-smtp-ssl-lbl" th:text="#{op.settings.platform.smtp.ssl}"/>
+
+    <attr sel="#ps-save" th:text="#{op.settings.platform.save}"/>
+
+    <!-- Send-test card (its own form; same app-realm CSRF token). -->
+    <attr sel="#ps-l-test" th:text="#{op.settings.platform.smtp.test}"/>
+    <attr sel="#ps-h-test" th:text="#{op.settings.platform.smtp.test.help}"/>
+    <attr sel="#ps-test-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ps-l-test-to" th:text="#{op.settings.platform.smtp.test.to}"/>
+    <attr sel="#ps-test-btn-lbl" th:text="#{op.settings.platform.smtp.test.send}"/>
+
+    <!-- Clear-template-cache card (its own form; same app-realm CSRF token). -->
+    <attr sel="#ps-l-cache" th:text="#{op.settings.platform.cache}"/>
+    <attr sel="#ps-h-cache" th:text="#{op.settings.platform.cache.help}"/>
+    <attr sel="#ps-cache-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ps-cache-btn-lbl" th:text="#{op.settings.platform.cache.clear}"/>
+</thlogic>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#home-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#home-heading" th:text="#{op.app.home.heading}"/>
+    <!-- VIEW_APP_DASHBOARD decides between the dashboard and the minimal landing (AppHomeController). -->
+    <attr sel="#home-minimal" th:if="${canViewDashboard != true}"/>
+    <attr sel="#home-minimal-text" th:text="#{op.app.home.minimal}"/>
+    <attr sel="#home-dashboard" th:if="${canViewDashboard == true}"/>
+    <!-- A tile links to its screen only when the topbar offers that screen (same gate), so no tile leads to a 403. -->
+    <attr sel="#home-link-sites" th:attr="href=${nav == null or nav['sites'] ? '/__app/sites' : null}"/>
+    <attr sel="#home-link-users" th:attr="href=${nav == null or nav['users'] ? '/__app/users' : null}"/>
+    <attr sel="#home-link-plugins" th:attr="href=${nav == null or nav['plugins'] ? '/__app/plugins' : null}"/>
+    <attr sel="#home-lbl-sites" th:text="#{op.nav.sites}"/>
+    <attr sel="#home-count-sites" th:text="${countSites}"/>
+    <attr sel="#home-lbl-users" th:text="#{op.nav.appusers}"/>
+    <attr sel="#home-count-users" th:text="${countUsers}"/>
+    <attr sel="#home-lbl-plugins" th:text="#{op.nav.plugins}"/>
+    <attr sel="#home-count-plugins" th:text="${countPlugins}"/>
+    <!-- Iterate on the OUTER slot; the INNER child does the replace (th:replace outranks th:each on the same
+         element, so they must be separate). Name from a MODEL VARIABLE — safe for the preprocessing trap. -->
+    <attr sel="#home-card-slot" th:each="card : ${dashboardCards}" th:id="${null}"/>
+    <attr sel="#home-card-slot//.home-card-inner" th:replace="~{${card.template()}}"/>
+</thlogic>

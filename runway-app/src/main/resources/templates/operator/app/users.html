@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>app users</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="us-pretitle">Application</div>
+                <h2 class="page-title" id="us-heading">Application users</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="us-create-title">Create a user</h3></div>
+                <div class="card-body">
+                    <form id="us-create-form" method="post" action="/__app/users/create" class="row g-2">
+                        <input id="us-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-md-4"><label class="form-label" id="us-l-user" for="us-f-user">Username</label>
+                            <input id="us-f-user" class="form-control" name="username" required autocomplete="off"></div>
+                        <div class="col-md-4"><label class="form-label" id="us-l-pass" for="us-f-pass">Password</label>
+                            <input id="us-f-pass" class="form-control" name="password" type="password" required autocomplete="new-password"></div>
+                        <div class="col-md-4"><label class="form-label" id="us-l-tier" for="us-f-tier">Access tier</label>
+                            <select id="us-f-tier" class="form-select" name="tier">
+                                <option value="SYSTEMOPERATOR" id="us-tier-op">Operator</option>
+                                <option value="SYSTEMADMIN" id="us-tier-admin">Administrator</option>
+                            </select></div>
+                        <div class="col-md-6"><label class="form-label" id="us-l-name" for="us-f-name">Display name</label>
+                            <input id="us-f-name" class="form-control" name="displayName"></div>
+                        <div class="col-md-6"><label class="form-label" id="us-l-email" for="us-f-email">Email</label>
+                            <input id="us-f-email" class="form-control" name="email" type="email"></div>
+                        <div class="col-12" id="us-roles-group"><label class="form-label" id="us-l-roles" for="us-f-roles">Additional roles</label>
+                            <select id="us-f-roles" class="form-select" name="roles" multiple size="4">
+                                <option class="us-opt-role" value="">role</option>
+                            </select>
+                            <small class="form-hint" id="us-roles-hint">Optional. Custom roles layered on top of the access tier.</small></div>
+                        <div class="col-12"><button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-user-plus me-1"></i><span id="us-create-btn">Create user</span></button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="us-reset-title">Reset a password</h3></div>
+                <div class="card-body">
+                    <form id="us-reset-form" method="post" class="row g-2">
+                        <input class="us-reset-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-12"><select class="form-select a11y-user" name="principalId" aria-label="User"><option class="us-opt">u</option></select></div>
+                        <div class="col-12"><input class="form-control a11y-newpass" name="password" type="password" required
+                                                    autocomplete="new-password" placeholder="New password" aria-label="New password"></div>
+                        <div class="col-12"><button type="submit" class="btn btn-outline-secondary w-100" id="us-reset-btn">Reset</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.users">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="user" id="us-h-user">Username</th>
+                            <th scope="col" data-col-key="name" id="us-h-name">Display name</th>
+                            <th scope="col" data-col-key="email" id="us-h-email">Email</th>
+                            <th scope="col" data-col-key="roles" id="us-h-roles">Roles</th>
+                            <th scope="col" data-nosort id="us-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="us-row">
+                            <td><span class="u-user">user</span> <span class="u-master badge bg-orange-lt">superadmin</span>
+                                <span class="u-suspended badge bg-red-lt">suspended</span></td>
+                            <td class="u-name text-secondary">—</td>
+                            <td class="u-email text-secondary">—</td>
+                            <td class="u-roles text-secondary">—</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary u-edit-btn" data-bs-toggle="modal">Edit</button>
+                                <div class="modal modal-blur fade u-edit-modal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><span class="u-edit-title">Edit user</span> · <span class="u-edit-user text-secondary">user</span></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form class="u-edit-form m-0" method="post">
+                                                <div class="modal-body text-wrap">
+                                                    <input class="u-csrf" type="hidden" name="_csrf" value="">
+                                                    <label class="form-label w-100 mb-3"><span class="u-edit-l-name">Display name</span>
+                                                        <input class="form-control mt-1 u-edit-name" name="displayName" maxlength="128" autocomplete="off"></label>
+                                                    <label class="form-label w-100 mb-3"><span class="u-edit-l-email">Email</span>
+                                                        <input class="form-control mt-1 u-edit-email" name="email" type="email" maxlength="254" autocomplete="off"></label>
+                                                    <label class="form-label w-100 mb-0 u-edit-tier-group"><span class="u-edit-l-tier">Access tier</span>
+                                                        <select class="form-select mt-1" name="tier">
+                                                            <option value="SYSTEMOPERATOR" class="u-edit-tier-op">Operator</option>
+                                                            <option value="SYSTEMADMIN" class="u-edit-tier-admin">Administrator</option>
+                                                        </select></label>
+                                                    <small class="form-hint u-edit-tier-fixed">The access tier of this account cannot be changed here.</small>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-link link-secondary u-edit-cancel" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary u-edit-save">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <form class="u-suspend d-inline m-0" method="post">
+                                    <input class="u-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning u-suspend-btn">Suspend</button>
+                                </form>
+                                <form class="u-resume d-inline m-0" method="post">
+                                    <input class="u-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-success u-resume-btn">Resume</button>
+                                </form>
+                                <form class="u-delete d-inline m-0" method="post">
+                                    <input class="u-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger u-del-btn">Delete</button>
+                                </form>
+                                <span class="u-protected text-secondary small">protected</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

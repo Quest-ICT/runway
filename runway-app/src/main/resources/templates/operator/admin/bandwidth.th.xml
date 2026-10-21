@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Bandwidth screen. Headline totals + a daily "sent" bar list; each bar's width is a percent of the busiest
+     day (report.maxDaily()). Server-rendered CSS bars — no charting dependency. -->
+<thlogic>
+    <attr sel="#bw-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#bw-heading" th:text="#{op.bandwidth.heading}"/>
+
+    <attr sel="#bw-l-24h" th:text="#{op.bandwidth.last24h}"/>
+    <attr sel="#bw-24h" th:text="${report.out24hHuman()}"/>
+    <attr sel="#bw-l-7d" th:text="#{op.bandwidth.last7d}"/>
+    <attr sel="#bw-7d" th:text="${report.out7dHuman()}"/>
+    <attr sel="#bw-l-30d" th:text="#{op.bandwidth.last30d}"/>
+    <attr sel="#bw-30d" th:text="${report.out30dHuman()}"/>
+    <!-- The site's monthly cap is the operator's: shown read-only, never editable here. -->
+    <attr sel="#bw-cap" th:text="${quota.limited()} ? #{op.bandwidth.cap(${quota.human()})} : #{op.bandwidth.noCap}"/>
+    <attr sel="#bw-over" th:if="${overQuota}" th:text="#{op.bandwidth.over}"/>
+
+    <attr sel="#bw-l-daily" th:text="#{op.bandwidth.daily}"/>
+    <attr sel="#bw-row" th:each="p : ${report.daily()}" th:id="${null}"/>
+    <attr sel="#bw-row//.bw-day" th:text="${p.label()}"/>
+    <attr sel="#bw-row//.bw-bar" th:attr="style='width:' + ${p.outBar(report.maxDaily())} + '%'"/>
+    <attr sel="#bw-row//.bw-val" th:text="${p.outHuman()}"/>
+</thlogic>

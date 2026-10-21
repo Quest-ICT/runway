@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Site insights screen. Every path is VISITOR-CONTROLLED (it is whatever URL someone requested), so it is only
+     ever bound with th:text / th:title (escaped) — never th:utext, never into an href. Long paths are abbreviated
+     for display; the full stored path (already capped by the service) is in the title tooltip. The period links
+     carry only an integer from the server's own period list. -->
+<thlogic>
+    <attr sel="#in-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#in-heading" th:text="#{op.insights.heading}"/>
+
+    <attr sel="#in-periods" th:attr="aria-label=#{op.insights.period}"/>
+    <attr sel="#in-periods//.in-period" th:each="p : ${periods}"
+          th:href="|?days=${p.requested()}|"
+          th:text="#{op.insights.period.days(${p.effective()})}"
+          th:classappend="${p.effective() == report.days()} ? 'btn-primary active' : ''"/>
+
+    <attr sel="#in-logging-off" th:if="${!report.loggingEnabled()}" th:text="#{op.insights.loggingOff}"/>
+    <attr sel="#in-line-cap" th:if="${report.lineCapReached()}"
+          th:text="#{op.insights.lineCap(${report.linesScanned()})}"/>
+    <attr sel="#in-approximate" th:if="${report.approximate()}" th:text="#{op.insights.approximate}"/>
+
+    <attr sel="#in-l-views" th:text="#{op.insights.pageViews}"/>
+    <attr sel="#in-views" th:text="${report.pageViews()}"/>
+    <attr sel="#in-l-404" th:text="#{op.insights.notFound}"/>
+    <attr sel="#in-404" th:text="${report.notFound()}"/>
+    <attr sel="#in-window"
+          th:text="#{op.insights.window(${report.from()},${report.to()},${report.linesScanned()},${report.filesScanned()})}"/>
+
+    <attr sel="#in-l-pages" th:text="#{op.insights.topPages}"/>
+    <attr sel="#in-hp-path" th:text="#{op.insights.col.path}"/>
+    <attr sel="#in-hp-count" th:text="#{op.insights.col.views}"/>
+    <attr sel="#in-hp-last" th:text="#{op.insights.col.lastSeen}"/>
+    <attr sel="#in-pages-empty" th:if="${report.topPages().isEmpty()}"/>
+    <attr sel="#in-pages-empty-text" th:text="#{op.insights.empty.pages}"/>
+    <attr sel="#in-page-row" th:each="r : ${report.topPages()}" th:id="${null}"/>
+    <attr sel="#in-page-row//.in-path" th:text="${#strings.abbreviate(r.path(), 100)}" th:title="${r.path()}"/>
+    <attr sel="#in-page-row//.in-count" th:text="${r.count()}" th:attr="data-sort=${r.count()}"/>
+    <attr sel="#in-page-row//.in-last" th:text="${r.lastSeen()}"/>
+
+    <attr sel="#in-l-404s" th:text="#{op.insights.topNotFound}"/>
+    <attr sel="#in-404-hint" th:text="#{op.insights.topNotFound.hint}"/>
+    <attr sel="#in-hn-path" th:text="#{op.insights.col.path}"/>
+    <attr sel="#in-hn-count" th:text="#{op.insights.col.requests}"/>
+    <attr sel="#in-hn-last" th:text="#{op.insights.col.lastSeen}"/>
+    <attr sel="#in-404-empty" th:if="${report.topNotFound().isEmpty()}"/>
+    <attr sel="#in-404-empty-text" th:text="#{op.insights.empty.notFound}"/>
+    <attr sel="#in-404-row" th:each="r : ${report.topNotFound()}" th:id="${null}"/>
+    <attr sel="#in-404-row//.in-path" th:text="${#strings.abbreviate(r.path(), 100)}" th:title="${r.path()}"/>
+    <attr sel="#in-404-row//.in-count" th:text="${r.count()}" th:attr="data-sort=${r.count()}"/>
+    <attr sel="#in-404-row//.in-last" th:text="${r.lastSeen()}"/>
+
+    <attr sel="#in-note" th:text="#{op.insights.note}"/>
+    <attr sel="#in-retention" th:text="#{op.insights.retention(${retentionDays})}"/>
+</thlogic>

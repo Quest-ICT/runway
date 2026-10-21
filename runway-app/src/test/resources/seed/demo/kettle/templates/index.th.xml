@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+</thlogic>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <!-- The page language follows the operator locale in force, so a screen reader pronounces it correctly. -->
+    <attr sel="html" th:lang="${#locale.toLanguageTag()}"/>
+    <attr sel="body" th:attr="data-i18n-pw-toggle=#{op.a11y.pwToggle}"/>
+    <attr sel="#lg-title" th:text="#{op.login.tenant.title}"/>
+    <attr sel="#lg-brand" th:text="${siteName}"/>
+    <attr sel="#lg-heading" th:text="#{op.login.tenant.title}"/>
+    <attr sel="#lg-user-label" th:text="#{op.login.username}"/>
+    <attr sel="#lg-pass-label" th:text="#{op.login.password}"/>
+    <attr sel="#lg-submit" th:text="#{op.login.submit}"/>
+    <attr sel="#lg-forgot" th:if="${recoveryEnabled != null and recoveryEnabled}"/>
+    <attr sel="#lg-forgot-link" th:text="#{op.login.forgot}"/>
+
+    <!-- The ?error / ?locked / ?reverify / ?captcha / ?logout flags drive the alerts; each is removed when its flag is absent. -->
+    <attr sel="#lg-error" th:if="${param.error != null}"/>
+    <attr sel="#lg-error-text" th:text="#{op.login.error}"/>
+    <attr sel="#lg-locked" th:if="${param.locked != null}"/>
+    <attr sel="#lg-locked-text" th:text="#{op.login.locked}"/>
+    <attr sel="#lg-reverify" th:if="${param.reverify != null}"/>
+    <attr sel="#lg-reverify-text" th:text="#{op.login.reverify}"/>
+    <attr sel="#lg-captcha-error" th:if="${param.captcha != null}"/>
+    <attr sel="#lg-captcha-error-text" th:text="#{op.login.captcha}"/>
+    <attr sel="#lg-logout" th:if="${param.logout != null}"/>
+    <attr sel="#lg-logout-text" th:text="#{op.login.loggedOut}"/>
+    <attr sel="#lg-reset" th:if="${param.reset != null}"/>
+    <attr sel="#lg-reset-text" th:text="#{op.login.reset}"/>
+
+    <attr sel="#lg-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Language switcher: shown only with 2+ offered languages; one link per language (GET /__ui-lang, returning
+         to this page), the active one bold. Accent matches the tenant realm (success/green). -->
+    <attr sel="#lg-langswitch" th:if="${operatorLanguages != null and operatorLanguages.size() gt 1}"/>
+    <attr sel="#lg-langswitch/a" th:each="l : ${operatorLanguages}"
+          th:attr="href=@{/__ui-lang(lang=${l},to=${currentPath})},aria-current=${l == uiLocale ? 'true' : null}"
+          th:text="#{'op.lang.' + ${l}}"
+          th:classappend="${l == uiLocale} ? 'fw-bold text-success' : 'text-secondary'"/>
+
+    <!-- CAPTCHA slot: the plugin's login-view contributor sets captchaActive + provider flags + the PUBLIC site
+         key + the widget class + the script src when the bound site's captcha is active. The kernel template
+         stays provider-agnostic — it renders a visible widget (reCAPTCHA v2) with the class +
+         key from the model, or the invisible reCAPTCHA v3 hidden token field, plus the provider script. -->
+    <attr sel="#lg-captcha-widget"
+          th:if="${captchaActive != null and captchaActive and !captchaRecaptchaV3}"
+          th:attr="class=${captchaWidgetClass} + ' mb-3',data-sitekey=${captchaSiteKey}"/>
+    <attr sel="#lg-captcha-v3-token"
+          th:if="${captchaActive != null and captchaActive and captchaRecaptchaV3}"
+          th:attr="name=${captchaTokenField},data-sitekey=${captchaSiteKey}"/>
+    <attr sel="#lg-captcha-js"
+          th:if="${captchaActive != null and captchaActive}"
+          th:src="${captchaScriptUrl}"/>
+
+    <!-- "Remember this device for N days" — shown only when the plugin offers it (a CAPTCHA is being challenged
+         on this login and the feature is enabled). The {0} day count is the configured trust window. -->
+    <attr sel="#lg-remember-device" th:if="${rememberDeviceOffered != null and rememberDeviceOffered}"/>
+    <attr sel="#lg-remember-device-label" th:text="#{op.login.rememberDevice(${rememberDeviceDays})}"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#as-favicon" th:attr="href='/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#as-tabler-css" th:attr="href='/__assets/vendor/tabler.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-fa-css" th:attr="href='/__assets/vendor/fontawesome/css/all.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-chrome-css" th:attr="href='/__assets/runway-chrome.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-logo" th:src="'/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#as-captcha-v3-js" th:src="'/__assets/captcha-v3.js?v=' + ${assetVersion}"/>
+    <attr sel="#as-tabler-js" th:src="'/__assets/vendor/tabler.min.js?v=' + ${assetVersion}"/>
+    <attr sel="#as-chrome-js" th:src="'/__assets/runway-chrome.js?v=' + ${assetVersion}"/>
+</thlogic>

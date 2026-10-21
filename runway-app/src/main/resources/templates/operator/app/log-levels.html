@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Log levels</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle"><a id="ll-crumb" href="/__app/logs">Activity log</a></div>
+                <h2 class="page-title" id="ll-heading">Log levels</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="note"><div id="ll-intro">How much each part of the server writes to the server log.</div></div>
+
+    <div class="card mb-3">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.app.loglevels">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="logger" id="ll-h-logger">Logger</th>
+                    <th scope="col" data-col-key="effective" id="ll-h-effective">Now</th>
+                    <th scope="col" data-nosort data-col-key="set" id="ll-h-set">Set to</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="ll-row">
+                    <td><code class="ll-name">mx.quest.runway</code><div class="small text-secondary ll-what">what</div></td>
+                    <td><span class="badge bg-secondary-lt ll-effective">INFO</span></td>
+                    <td>
+                        <form class="d-flex gap-1 ll-form m-0" method="post" action="/__app/logs/levels">
+                            <input class="ll-csrf" type="hidden" name="_csrf" value="">
+                            <input class="ll-logger" type="hidden" name="logger" value="">
+                            <select class="form-select form-select-sm ll-select" name="level" style="width:9rem">
+                                <option value="" class="ll-default">Default</option>
+                                <option class="ll-opt" value="INFO">INFO</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm ll-save">Set</button>
+                        </form>
+                        <div class="small text-warning ll-locked">Set on the server.</div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="ll-l-other">Another logger</h3></div>
+        <div class="card-body">
+            <form method="post" action="/__app/logs/levels" class="row g-2 align-items-end" id="ll-other-form">
+                <input id="ll-other-csrf" type="hidden" name="_csrf" value="">
+                <div class="col-md-6"><label class="form-label" id="ll-l-name" for="ll-other-name">Logger name</label>
+                    <input class="form-control" id="ll-other-name" name="logger" required maxlength="200" placeholder="mx.quest.runway.page" autocomplete="off" spellcheck="false"></div>
+                <div class="col-md-3"><label class="form-label" id="ll-l-level" for="ll-other-level">Level</label>
+                    <select class="form-select" id="ll-other-level" name="level">
+                        <option class="ll-other-opt" value="DEBUG">DEBUG</option>
+                    </select></div>
+                <div class="col-md-3"><button type="submit" class="btn btn-primary" id="ll-other-save">Set</button></div>
+                <div class="col-12"><small class="form-hint" id="ll-other-hint">A Java package or class name.</small></div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fragments</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="fr-pretitle">Site</div>
+                <h2 class="page-title" id="fr-heading">Fragments</h2>
+            </div>
+            <div class="col-auto"><a class="btn btn-primary" id="fr-new" href="/__admin/fragments/new">New fragment</a></div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="alert" id="fr-info">
+        <div id="fr-info-text">Chrome partials (names start with <code>_</code>). They are never reachable by
+            URL and never listed as pages; masters and pages pull them by name (the shared layout
+            <code>_master</code>, and includes such as <code>_head</code> / <code>_scripts</code>). A save,
+            create, delete or reload clears the site's chrome cache so the change is live on the next request.</div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.fragments">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="name" id="fr-h-name">Name</th>
+                    <th scope="col" data-col-key="logic" id="fr-h-logic">Logic</th>
+                    <th scope="col" data-col-key="size" id="fr-h-size">Size</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="fr-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="fr-empty"><td colspan="4" class="text-secondary text-center" id="fr-empty-text">No fragments yet.</td></tr>
+                <tr id="fr-row">
+                    <td><code class="fr-name">_head</code></td>
+                    <td><span class="fr-logic badge">logic</span></td>
+                    <td class="fr-size text-secondary">size</td>
+                    <td>
+                        <a class="btn btn-sm fr-edit" href="#">Edit</a>
+                        <form class="d-inline fr-reload-form" method="post" action="#">
+                            <input class="fr-rcsrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-sm fr-reload">Reload</button>
+                        </form>
+                        <form class="d-inline fr-delete-form" method="post" action="#">
+                            <input class="fr-dcsrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-sm btn-danger fr-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-3" id="fr-errors-card">
+        <div class="card-header"><h3 class="card-title" id="fr-errors-title">Error pages</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="fr-errors-intro">What a visitor sees for an error, in the site's own look.</p>
+            <div class="table-responsive mb-3">
+                <table class="table table-vcenter" data-listing-table="runway.admin.errorpages">
+                    <thead>
+                    <tr>
+                        <th scope="col" data-col-key="status" id="fr-eh-status">Status</th>
+                        <th scope="col" data-col-key="name" id="fr-eh-name">File</th>
+                        <th scope="col" data-nosort data-col-key="actions" id="fr-eh-actions" class="w-1">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr id="fr-err-empty"><td colspan="3" class="text-secondary text-center" id="fr-err-empty-text">None: every error gets the platform's plain page.</td></tr>
+                    <tr id="fr-err-row">
+                        <td class="fr-err-status">404 Not Found</td>
+                        <td><code class="fr-err-name">_404</code></td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm fr-err-edit" href="#">Edit</a>
+                            <form class="d-inline fr-err-delete-form" method="post" action="#">
+                                <input class="fr-err-dcsrf" type="hidden" name="_csrf" value="">
+                                <button type="submit" class="btn btn-sm btn-danger fr-err-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <form id="fr-err-create" method="post" action="/__admin/fragments/error-pages" class="row g-2 align-items-end">
+                <input id="fr-err-csrf" type="hidden" name="_csrf" value="">
+                <div class="col-auto"><label class="form-label" id="fr-l-err-code" for="fr-err-code">Status</label>
+                    <input id="fr-err-code" class="form-control" name="code" list="fr-err-codes" required pattern="[45][0-9][0-9]" inputmode="numeric" maxlength="3" style="width:7rem">
+                    <datalist id="fr-err-codes"><option id="fr-err-code-opt" value="404"></option></datalist></div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary" id="fr-err-create-btn">Create error page</button></div>
+                <div class="col-12"><small class="form-hint" id="fr-err-hint">Starts from the site's master.</small></div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

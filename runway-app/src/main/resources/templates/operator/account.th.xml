@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#ac-pretitle" th:text="#{op.user.account}"/>
+    <attr sel="#ac-heading" th:text="#{op.account.heading}"/>
+    <attr sel="#ac-profile-title" th:text="#{op.account.profile}"/>
+    <attr sel="#ac-profile-form" th:attr="action=${accountAction} + '/profile'"/>
+    <attr sel="#ac-profile-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ac-l-username" th:text="#{op.account.username}"/>
+    <attr sel="#ac-username" th:text="${self.username()}"/>
+    <attr sel="#ac-l-name" th:text="#{op.account.displayName}"/>
+    <attr sel="#ac-name" th:attr="value=${self.displayName()}"/>
+    <attr sel="#ac-name-hint" th:text="#{op.account.displayName.hint}"/>
+    <attr sel="#ac-l-email" th:text="#{op.account.recoveryEmail}"/>
+    <attr sel="#ac-email" th:attr="value=${self.recoveryEmail()}"/>
+    <attr sel="#ac-email-hint" th:text="#{op.account.recoveryEmail.hint}"/>
+    <attr sel="#ac-l-profile-current" th:text="#{op.account.current}"/>
+    <attr sel="#ac-profile-current-hint" th:text="#{op.account.profileCurrent.hint}"/>
+    <attr sel="#ac-profile-save" th:text="#{op.account.saveProfile}"/>
+    <attr sel="#ac-change-title" th:text="#{op.account.change}"/>
+    <attr sel="#ac-l-current" th:text="#{op.account.current}"/>
+    <attr sel="#ac-l-new" th:text="#{op.account.new}"/>
+    <attr sel="#ac-l-confirm" th:text="#{op.account.confirm}"/>
+    <attr sel="#ac-save" th:text="#{op.account.change}"/>
+    <attr sel="#ac-form" th:attr="action=${accountAction}"/>
+    <attr sel="#ac-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+</thlogic>

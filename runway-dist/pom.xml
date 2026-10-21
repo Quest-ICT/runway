@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mx.quest</groupId>
+        <artifactId>runway</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>runway-dist</artifactId>
+    <packaging>pom</packaging>
+    <name>Runway Distribution</name>
+    <description>
+        Assembles the deployment bundle: the runway-&lt;version&gt;-dist.zip and the single-file
+        self-extracting runway-&lt;version&gt;.bin installer. It is the LAST reactor module (it depends on
+        runway-app and the bundled plugins), so at its package phase every sibling jar already exists — which
+        is why the dist lives here and not in runway-app: runway-plugin-protection depends on runway-app, so it
+        builds AFTER it, and the bundle must include the plugin. Build with `mvn -P dist install`.
+    </description>
+
+    <dependencies>
+        <!-- Order-only: force this module to build after the app and the bundled plugin, so the assembly can
+             read their target/ jars. Nothing here is compiled or shipped as a Maven artifact. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-app</artifactId>
+            <version>${project.version}</version>
+            <classifier>exec</classifier>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-plugin-protection</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- The installer's bundled-plugin refresh (scripts/plugin-seed.sh), its refusal to replace an existing
+                 external/application.yml (scripts/install.sh) and the release-notes gate of publish-release.sh
+                 (scripts/release-notes.sh) are shell, so their tests are too: scripts/test-plugin-seed.sh,
+                 scripts/test-install-config.sh and scripts/test-release-notes.sh run without root or network in this
+                 module's target/, and so does scripts/test-release-assets.sh (the release file set: SPI jars and
+                 consumer poms, SHA256SUMS, publish-release.sh's refusals and its dry run). Bound to `test`, so a plain `mvn test`/`install` runs them and -DskipTests skips
+                 them like any other test. -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>test-installer-scripts</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skipTests}</skip>
+                            <target>
+                                <mkdir dir="${project.build.directory}/installer-tests"/>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/../scripts/test-plugin-seed.sh"/>
+                                    <arg value="${project.build.directory}/installer-tests"/>
+                                </exec>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/../scripts/test-install-config.sh"/>
+                                    <arg value="${project.build.directory}/installer-tests"/>
+                                </exec>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/../scripts/test-release-notes.sh"/>
+                                    <arg value="${project.build.directory}/installer-tests"/>
+                                </exec>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/../scripts/test-release-assets.sh"/>
+                                    <arg value="${project.build.directory}/installer-tests"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+          `mvn -P dist package` (or install) builds the deployment artifacts: a distribution zip
+          (runway-<version>-dist.zip) and the single-file self-extracting installer (runway-<version>.bin),
+          the plugin author's runway-spi / runway-spi-testkit jars, sources jars and consumer poms
+          (../scripts/make-spi-assets.sh), then stable-named "latest" aliases (runway-latest.bin /
+          runway-latest-dist.zip) and a SHA256SUMS manifest over all of them (via ../scripts/make-release-aliases.sh)
+          so a release exposes a permanent, always-newest download link. All land in this module's target/ — the
+          set scripts/publish-release.sh uploads.
+        -->
+        <profile>
+            <id>dist</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>runway-${project.version}</finalName>
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/assembly/dist.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-dist-zip</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>make-selfextract-bin</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <!-- The .bin's tar entries take the cut instant from the SAME property
+                                             as the jars (project.build.outputTimestamp, set once in the reactor
+                                             pom), so the two can never disagree and a cut edits one value. -->
+                                        <exec executable="bash" failonerror="true">
+                                            <env key="BUILD_TIMESTAMP" value="${project.build.outputTimestamp}"/>
+                                            <arg value="${project.basedir}/../scripts/make-selfextract.sh"/>
+                                            <arg value="--zip"/>
+                                            <arg value="${project.build.directory}/runway-${project.version}-dist.zip"/>
+                                            <arg value="--stub"/>
+                                            <arg value="${project.basedir}/../scripts/selfextract-stub.sh"/>
+                                            <arg value="--out"/>
+                                            <arg value="${project.build.directory}/runway-${project.version}.bin"/>
+                                        </exec>
+                                        <!-- The plugin author's artifacts (runway-spi + runway-spi-testkit jars,
+                                             sources jars and consumer poms) as release assets: no Maven
+                                             repository serves them (docs/PLUGIN-DEVELOPMENT.md §3). -->
+                                        <exec executable="bash" failonerror="true">
+                                            <arg value="${project.basedir}/../scripts/make-spi-assets.sh"/>
+                                            <arg value="${project.basedir}/.."/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="${project.version}"/>
+                                        </exec>
+                                        <!-- Stable-named "latest" aliases (permanent Gitea download link) + SHA256SUMS
+                                             over every shippable artifact, the SPI files included. Runs after the .bin
+                                             exists. -->
+                                        <exec executable="bash" failonerror="true">
+                                            <arg value="${project.basedir}/../scripts/make-release-aliases.sh"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="${project.version}"/>
+                                        </exec>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

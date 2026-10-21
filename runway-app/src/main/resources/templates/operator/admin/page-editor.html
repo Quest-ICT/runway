@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>page editor</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="page-pretitle" id="pe-pretitle">Site</div>
+                <h2 class="page-title" id="pe-heading">Edit page</h2>
+            </div>
+            <!-- Editor / preview column split. Sits right by the page title (NOT over on the right by the right
+                 column) so it reads as "how to split the whole editor", not "the right column's width". Persisted
+                 per browser; hidden below lg where the columns stack and the split is meaningless. -->
+            <div class="col-auto d-none d-lg-block">
+                <div class="btn-group btn-group-sm" role="group" id="pe-ratio" aria-label="Editor / preview width">
+                    <button type="button" class="btn pe-ratio-btn" data-ratio="13" id="pe-ratio-13" title="Editor 1/3, preview 2/3">⅓</button>
+                    <button type="button" class="btn pe-ratio-btn" data-ratio="12" id="pe-ratio-12" title="Editor 1/2, preview 1/2">½</button>
+                    <button type="button" class="btn pe-ratio-btn" data-ratio="23" id="pe-ratio-23" title="Editor 2/3, preview 1/3">⅔</button>
+                    <button type="button" class="btn pe-ratio-btn" data-ratio="34" id="pe-ratio-34" title="Editor 3/4, preview 1/4">¾</button>
+                </div>
+            </div>
+            <div class="col-auto ms-auto"><a class="btn" id="pe-back" href="/__admin/pages">Back to pages</a></div>
+        </div>
+    </div>
+
+    <!-- Editorial banners (each shown only when it applies — th:if in the logic). -->
+    <div id="pe-ed-blocked" class="alert alert-danger" role="alert">
+        <div class="fw-bold" id="pe-ed-blocked-title">These quality errors must be fixed first:</div>
+        <ul class="mb-0" id="pe-ed-blocked-list"><li id="pe-ed-blocked-item">finding</li></ul>
+    </div>
+    <div id="pe-ed-revision" class="alert alert-info" role="status">
+        <i class="fa-solid fa-code-branch me-1"></i><span id="pe-ed-revision-text">You are editing a pending
+            revision. The live page is unchanged until it is approved.</span>
+        <span class="d-block text-secondary" id="pe-ed-revision-by">Submitted by someone.</span>
+    </div>
+    <div id="pe-ed-liveedit" class="alert alert-info" role="status">
+        <i class="fa-solid fa-user-check me-1"></i><span id="pe-ed-liveedit-text">This site requires review: saving
+            keeps your changes as a pending revision, and the live page stays as it is until they are approved.</span>
+    </div>
+    <div id="pe-ed-inreview" class="alert alert-info" role="status">
+        <i class="fa-solid fa-hourglass-half me-1"></i><span id="pe-ed-inreview-text">Waiting for review.</span>
+    </div>
+    <div id="pe-ed-returned" class="alert alert-warning" role="status">
+        <div class="fw-bold" id="pe-ed-returned-title">Sent back for changes</div>
+        <div id="pe-ed-returned-by" class="text-secondary">by someone</div>
+        <div id="pe-ed-returned-note" style="white-space:pre-wrap">note</div>
+    </div>
+
+    <form id="pe-form" method="post" autocomplete="off">
+        <input id="pe-csrf" type="hidden" name="_csrf" value="">
+        <!-- The pending revision the editor loaded (empty when editing the live page): a direct save drops exactly
+             that revision, never one somebody created after this page was opened. -->
+        <input id="pe-revision-key" type="hidden" name="revisionKey" value="">
+        <div class="row">
+            <!-- Left column: metadata + source (flex column so the Metadata card can order first). Rendered at
+                 the default ½ split so a first-time / default user sees no client-side width jump; the ratio
+                 control (below) overrides it from the persisted choice when that is ⅓ or ⅔. -->
+            <div class="col-lg-6 d-flex flex-column" id="pe-col-left">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title" id="pe-l-body">Page HTML</h3>
+                        <div class="card-actions">
+                            <!-- Download the current editor content / upload a locally-edited file to replace it.
+                                 Purely client-side over the CodeMirror instance; the author still Saves after. -->
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-download" id="pe-body-download"
+                                    data-target="pe-body" data-filename="page.html" title="Download a copy">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-upload" id="pe-body-upload"
+                                    data-target="pe-body" title="Upload a file">
+                                <i class="fa-solid fa-upload"></i>
+                            </button>
+                            <input type="file" class="d-none pe-cm-file" id="pe-body-file" data-target="pe-body"
+                                   accept=".html,.htm,text/html" data-confirm="Replace the editor content?">
+                            <!-- Toggle the editor between a capped height and a tall one. -->
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-expand" id="pe-body-expand"
+                                    data-target="pe-body-host" title="Expand" aria-pressed="false">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="runway-cm-host" id="pe-body-host">
+                            <!-- Height governed by #pe-body-host in the <style> below (the vendor .cm-editor{height:100%}
+                                 wins over the facade's data-cm-height, so it is omitted to avoid a second source). -->
+                            <textarea id="pe-body" name="html" data-cm data-cm-mode="html"
+                                      aria-labelledby="pe-l-body" aria-describedby="pe-cm-hint"></textarea>
+                        </div>
+                        <!-- Keyboard hint: Tab indents inside the code editors, so say how to leave them. -->
+                        <div class="form-hint mt-2" id="pe-cm-hint">Tab indents in the code editors. To move on, press Esc and then Tab.</div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title" id="pe-l-logic">Decoupled logic</h3>
+                            <div class="card-subtitle text-secondary" id="pe-logic-help">Optional</div>
+                        </div>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-download" id="pe-logic-download"
+                                    data-target="pe-logic" data-filename="page.th.xml" title="Download a copy">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-upload" id="pe-logic-upload"
+                                    data-target="pe-logic" title="Upload a file">
+                                <i class="fa-solid fa-upload"></i>
+                            </button>
+                            <input type="file" class="d-none pe-cm-file" id="pe-logic-file" data-target="pe-logic"
+                                   accept=".xml,.th.xml,text/xml,application/xml" data-confirm="Replace the editor content?">
+                            <button type="button" class="btn btn-sm btn-icon pe-cm-expand" id="pe-logic-expand"
+                                    data-target="pe-logic-host" title="Expand" aria-pressed="false">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="runway-cm-host" id="pe-logic-host">
+                            <textarea id="pe-logic" name="thxml" data-cm data-cm-mode="xml"
+                                      aria-labelledby="pe-l-logic" aria-describedby="pe-cm-hint"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3" style="order:-2">
+                    <div class="card-header"><h3 class="card-title" id="pe-l-meta">Metadata</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-path" for="pe-path">Path</label>
+                            <input id="pe-path" class="form-control" name="path" type="text" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-template" for="pe-template">Master</label>
+                            <input id="pe-template" class="form-control" name="template" type="text" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-nav" for="pe-nav">Active nav</label>
+                            <input id="pe-nav" class="form-control" name="activeNav" type="text" value="">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-author" for="pe-author">Author</label>
+                            <input id="pe-author" class="form-control" name="author" type="text" value="">
+                            <div class="form-hint" id="pe-author-help">Author help</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-publishedat" for="pe-publishedat">Published on</label>
+                            <input id="pe-publishedat" class="form-control" name="publishedAt" type="date" value="">
+                            <div class="form-hint" id="pe-publishedat-help">Published on help</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-canonical" for="pe-canonical">Canonical URL</label>
+                            <input id="pe-canonical" class="form-control" name="canonical" type="text" value="">
+                            <div class="form-hint" id="pe-canonical-help">Canonical override</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pe-l-cachecontrol" for="pe-cachecontrol">Cache-Control</label>
+                            <input id="pe-cachecontrol" class="form-control" name="cacheControl" type="text" value="">
+                            <div class="form-hint" id="pe-cachecontrol-help">Cache-Control override</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-check">
+                                <input id="pe-nosnippet" class="form-check-input" name="nosnippet" type="checkbox" value="true">
+                                <span class="form-check-label" id="pe-l-nosnippet">Do not show a snippet</span>
+                            </label>
+                            <div class="form-hint" id="pe-nosnippet-help">nosnippet help</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-check">
+                                <input id="pe-gone" class="form-check-input" name="gone" type="checkbox" value="true">
+                                <span class="form-check-label" id="pe-l-gone">Removed permanently</span>
+                            </label>
+                            <div class="form-hint" id="pe-gone-help">gone help</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-check">
+                                <input id="pe-noindex" class="form-check-input" name="noindex" type="checkbox" value="true">
+                                <span class="form-check-label" id="pe-l-noindex">Do not index</span>
+                            </label>
+                            <div class="form-hint" id="pe-noindex-help">noindex help</div>
+                        </div>
+
+                        <label class="form-label" id="pe-l-locales">Locales</label>
+                        <div class="mb-3" id="pe-locales">
+                            <label class="form-check" id="pe-loc-row">
+                                <input class="form-check-input pe-loc-cb" type="checkbox" name="locales" value="">
+                                <span class="form-check-label pe-loc-label">en</span>
+                            </label>
+                        </div>
+
+                        <label class="form-label" id="pe-l-perlocale">Per-locale content</label>
+                        <div id="pe-perlocale">
+                            <div id="pe-lp-row" class="mb-3">
+                                <div class="fw-bold mb-1 pe-lp-heading">en</div>
+                                <input class="form-control mb-1 pe-lp-title" type="text" value="">
+                                <input class="form-control mb-1 pe-lp-desc" type="text" value="">
+                                <input class="form-control pe-lp-path" type="text" value="">
+                            </div>
+                        </div>
+
+                        <label class="form-label mt-3" id="pe-l-params">Template parameters</label>
+                        <div class="form-hint mb-2" id="pe-params-help">Parameters help</div>
+                        <div id="pe-params">
+                            <!-- One row per existing parameter (iterated); the last row is a blank one for
+                                 adding a new parameter. Both key and value bind as parallel arrays so a key
+                                 can be renamed or added. -->
+                            <div id="pe-param-row" class="row g-2 mb-2">
+                                <div class="col-5">
+                                    <input class="form-control pe-param-key" name="paramKey" type="text" value="">
+                                </div>
+                                <div class="col-7">
+                                    <input class="form-control pe-param-value" name="paramValue" type="text" value="">
+                                    <small class="form-hint pe-param-site">Overrides the site value</small>
+                                </div>
+                            </div>
+                            <div id="pe-param-blank" class="row g-2 mb-2">
+                                <div class="col-5">
+                                    <input class="form-control pe-param-key" name="paramKey" type="text" value="">
+                                </div>
+                                <div class="col-7">
+                                    <input class="form-control pe-param-value" name="paramValue" type="text" value="">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Site parameters this page does NOT override: read-only, so the editor sees the
+                             effective set. They are edited on the Site config screen. -->
+                        <div id="pe-params-inherited" class="mt-2">
+                            <div class="form-hint mb-1" id="pe-params-inherited-help">Inherited from the site</div>
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                <tr id="pe-inherited-row">
+                                    <th scope="row" class="fw-normal text-secondary w-50 pe-inherited-key">key</th>
+                                    <td class="text-secondary pe-inherited-value">value</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content quality sits right after Metadata (via order) and stays in the left column, so it
+                     remains visible when the Preview is popped out into its own window. -->
+                <div class="card mb-3" style="order:-1">
+                    <div class="card-header"><h3 class="card-title" id="pe-l-quality">Page quality</h3></div>
+                    <div class="card-body">
+                        <div id="pe-clean" class="text-secondary">No issues.</div>
+                        <ul class="list-unstyled mb-0" id="pe-findings">
+                            <!-- data-code / data-severity drive the client "ignore" (persisted per page) and the
+                                 Preview status flag. The ignore button is removed for errors (never ignorable). -->
+                            <li id="pe-finding" class="pe-f-row d-flex align-items-start mb-2">
+                                <span class="badge pe-f-badge mt-1">warning</span>
+                                <span class="pe-f-msg flex-fill mx-2">message</span>
+                                <button type="button" class="btn btn-sm btn-icon btn-ghost-secondary pe-f-ignore flex-shrink-0"
+                                        title="Ignore">
+                                    <i class="fa-solid fa-bell-slash"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mb-4"><button type="submit" class="btn btn-primary" id="pe-save">Save</button></div>
+            </div>
+
+            <!-- Right column: live preview (default ½ split; see the left column note). -->
+            <div class="col-lg-6" id="pe-col-right">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title" id="pe-l-preview">Preview</h3>
+                        <div class="card-actions">
+                            <!-- Status flag: lit (warning, or error) by the JS when the Page quality panel has
+                                 non-ignored findings — a heads-up next to the preview. Hidden when all-clear. -->
+                            <span id="pe-quality-flag" class="me-2 align-self-center" style="display:none">
+                                <i class="fa-solid fa-triangle-exclamation text-warning" id="pe-quality-flag-icon"></i>
+                            </span>
+                            <!-- Shown by page-editor.js while the frame renders edits that are not saved yet. -->
+                            <span id="pe-live-badge" class="badge bg-azure-lt me-2 align-self-center d-none"
+                                  title="Save to keep them">Unsaved changes</span>
+                            <!-- Detach the preview into its own window (and widen the editor); toggles to reattach. -->
+                            <button type="button" class="btn btn-sm" id="pe-popout"
+                                    data-label-out="Pop out" data-label-back="Reattach">
+                                <i class="fa-solid fa-up-right-from-square me-1" id="pe-popout-icon"></i><span id="pe-popout-label">Pop out</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 position-relative">
+                        <!-- sandbox WITHOUT allow-same-origin: a page's scripts render but run in an opaque
+                             origin, unable to reach the parent editor / its CSRF token / cookies. The live preview
+                             (page-editor.js) clones this frame — sandbox included — for each render of unsaved
+                             edits and swaps the loaded clone in. -->
+                        <iframe id="pe-preview" title="preview" sandbox="allow-scripts"
+                                style="width:100%;height:calc(100vh - 13rem);min-height:45vh;border:0"></iframe>
+                        <!-- Shown in place of the iframe while the preview is popped out into its own window. -->
+                        <div id="pe-preview-detached" class="text-secondary text-center p-4" style="display:none">
+                            <i class="fa-solid fa-up-right-from-square mb-2" style="font-size:1.5rem;opacity:.6"></i>
+                            <div id="pe-detached-msg">The preview is open in a separate window.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Live preview of unsaved edits (its own form — forms cannot nest): page-editor.js copies both code editors
+         into the hidden fields and submits it into a sandboxed preview frame (target), so the response keeps its own
+         sandbox CSP. data-saved-src is the saved-draft preview it falls back to. -->
+    <form id="pe-live-form" method="post" class="d-none" data-debounce="600" data-timeout="15000">
+        <input id="pe-live-csrf" type="hidden" name="_csrf" value="">
+        <input id="pe-live-html" type="hidden" name="html" value="">
+        <input id="pe-live-thxml" type="hidden" name="thxml" value="">
+    </form>
+
+    <!-- Editorial actions, each its own form (HTML forms cannot nest) and each shown only when it applies. -->
+    <div class="d-flex flex-wrap gap-2 mb-3" id="pe-ed-actions">
+        <form id="pe-publish-form" method="post" class="d-inline">
+            <input id="pe-publish-csrf" type="hidden" name="_csrf" value="">
+            <button type="submit" class="btn btn-success" id="pe-publish">Publish</button>
+        </form>
+        <form id="pe-submit-form" method="post" class="d-inline">
+            <input id="pe-submit-csrf" type="hidden" name="_csrf" value="">
+            <button type="submit" class="btn btn-primary" id="pe-submit">Submit for review</button>
+        </form>
+        <form id="pe-withdraw-form" method="post" class="d-inline">
+            <input id="pe-withdraw-csrf" type="hidden" name="_csrf" value="">
+            <button type="submit" class="btn btn-outline-danger" id="pe-withdraw">Withdraw</button>
+        </form>
+        <a class="btn btn-outline-primary" id="pe-review-link" href="/__admin/review">Open in the review queue</a>
+    </div>
+
+    <!-- A separate form (HTML forms cannot nest): re-seed the page's chrome from its master. -->
+    <form id="pe-reseed-form" method="post" class="mb-4">
+        <input id="pe-reseed-csrf" type="hidden" name="_csrf" value="">
+        <button type="submit" class="btn btn-outline-secondary" id="pe-reseed">Re-seed chrome from master</button>
+        <span class="form-hint d-inline align-middle ms-2" id="pe-reseed-hint">Refresh the chrome from the master.</span>
+    </form>
+
+    <!-- A separate form: rename the page (its id). -->
+    <form id="pe-rename-form" method="post" class="mb-4">
+        <input id="pe-rename-csrf" type="hidden" name="_csrf" value="">
+        <label class="form-label" id="pe-l-rename" for="pe-rename-to">Page id</label>
+        <div class="input-group" style="max-width:32rem">
+            <input id="pe-rename-to" class="form-control" name="to" required pattern="[A-Za-z0-9][A-Za-z0-9._-]*" autocomplete="off" spellcheck="false">
+            <button type="submit" class="btn btn-outline-secondary" id="pe-rename">Rename</button>
+        </div>
+        <small class="form-hint" id="pe-rename-hint">Renames the page's files.</small>
+    </form>
+
+    <!-- A separate form: delete the page, after a confirmation. -->
+    <form id="pe-delete-form" method="post" class="mb-4">
+        <input id="pe-delete-csrf" type="hidden" name="_csrf" value="">
+        <button type="submit" class="btn btn-outline-danger" id="pe-delete" data-confirm="Delete this page?">
+            <i class="fa-solid fa-trash-can me-1"></i><span id="pe-delete-label">Delete page</span></button>
+        <span class="form-hint d-inline align-middle ms-2" id="pe-delete-hint">Removes the page and its files.</span>
+    </form>
+</div>
+
+<!-- Pulled into op-layout's #op-scripts seam: the self-hosted CodeMirror bundle auto-mounts every
+     textarea[data-cm] on load (its facade fired on DOMContentLoaded). -->
+<div id="scripts">
+    <link id="pe-cm-css" rel="stylesheet" href="/__assets/vendor/codemirror.min.css">
+    <style>
+        /* Cap the code editors' height so a long page stays manageable — they scroll internally; the
+           per-panel expand toggle grows them when more room is wanted. */
+        #pe-body-host  { height: 34vh; }
+        #pe-logic-host { height: 20vh; }
+        #pe-body-host.pe-cm-tall  { height: 76vh; }
+        #pe-logic-host.pe-cm-tall { height: 48vh; }
+        /* The right column holds only the Preview now — make it tall and sticky so it fills the space and
+           stays in view while the (long) left column scrolls. Only applies while attached (the whole
+           column is hidden when the preview is popped out). */
+        @media (min-width: 992px) { #pe-col-right > .card { position: sticky; top: 1rem; } }
+        /* An ignored quality finding stays listed but dimmed and struck through, and no longer lights the
+           Preview status flag. Errors are never ignorable, so they never carry this state. */
+        .pe-f-ignored { opacity: .55; }
+        .pe-f-ignored .pe-f-msg { text-decoration: line-through; }
+        /* A live-preview render loading behind the visible frame (page-editor.js): laid over it at the same size,
+           invisible and inert until it has loaded and is swapped in. */
+        .pe-live-staging { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; }
+    </style>
+    <script id="pe-cm-js" src="/__assets/vendor/codemirror.min.js"></script>
+    <!-- Pop-out preview: detach the preview into a free-floating window so the editor and preview can be
+         arranged however the author likes; the editor widens to full width while detached. The window is
+         re-pointed at the fresh saved-draft preview after each save (the editor reloads on save), and the
+         embedded panel is restored on reattach or when the window is closed. No same-origin coupling — the
+         preview stays sandboxed. -->
+    <script id="pe-js" src="/__assets/page-editor.js" defer></script>
+</div>
+</body>
+</html>

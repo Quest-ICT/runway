@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Inherit the SAME managed versions the Runway kernel uses (Spring Boot 4.0.6) so every `provided` Spring type
+      is byte-identical at runtime. A plugin is NOT a Boot application — NO repackage; `mvn package` produces a THIN
+      jar of only this plugin's classes.
+
+      SPI only (3.0.0): the plugin links nothing of the kernel but `runway-spi` (no runway-app, in any scope), and
+      nothing of the search plugin but its published SPI package `mx.quest.search.spi` (SiteSearchEngine,
+      SearchCorpus, SearchQuery, SearchHit). Lucene comes from the `lucene-provider` plugin (`provided` here,
+      `requires: lucene-provider == 10.4.0` in plugin.yml), so this pom bundles NOTHING into a lib/ folder.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-search-lucene</artifactId>
+    <version>3.3.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Search — Lucene engine</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        A Lucene-backed SiteSearchEngine for the Runway `search` plugin: a full-text index over each page's
+        title, description and body with per-locale analysis (stemming) and a tiered constant-score ranking —
+        exact phrase, near phrase, all-terms, any-terms — plus fuzzy matching and query-focused snippet
+        highlighting. It indexes the search plugin's SearchCorpus, declares `requires: search >= 2.2.0` and
+        `requires: lucene-provider == 10.4.0`, registers at a higher priority than the built-in engine, and
+        transparently upgrades the search box and results page. Links only the Runway SPI and the search SPI;
+        Lucene is supplied by the lucene-provider plugin (provided).
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>
+        <!-- The runway-spi (and runway-spi-testkit) version this plugin compiles and tests against, from ~/.m2. -->
+        <runway.version>1.0.0</runway.version>
+        <!-- The search plugin this engine compiles against, `provided` from ~/.m2 (install it first:
+             `mvn -o -DskipTests install` in ../search — the verify script does). plugin.yml declares
+             `search >= 2.2.0` (3.2.0: the box submits to the results page in its page's language, so a
+             language's index is reached); 2.1.0 was the first whose SearchHit carries the matched words (the
+             constructor this engine calls), and an older search does not compile this plugin. Provided, never bundled: a second copy of the search SPI classes would break by-type lookup. -->
+        <search.version>2.3.0</search.version>
+        <!-- The EXACT Lucene version this plugin is compiled against; lucene-provider must ship the same one
+             (plugin.yml pins `lucene-provider == 10.4.0`). Keep these two in lock-step. -->
+        <lucene.version>10.4.0</lucene.version>
+    </properties>
+
+    <dependencies>
+        <!-- The dependency-free extension API (SPI interfaces, services and immutable model records). -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+
+        <!-- NO runway-app dependency, in any scope: the plugin links only the SPI, so a host
+             import no longer compiles and the kernel's host-linkage scanner finds nothing to report. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The `search` plugin publishes the SiteSearchEngine SPI this plugin implements and the SearchCorpus it
+             indexes. Compile-only: at runtime the shared plugin classloader supplies search's classes (both
+             plugin jars load into ONE classloader, so the SPI has one Class identity), and `requires: search`
+             in plugin.yml makes it a HARD load gate. `provided` from ~/.m2 (install ../search first), and never
+             bundled: the assembly below copies this plugin's own jar only. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-plugin-search</artifactId>
+            <version>${search.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Lucene — supplied at RUNTIME by the lucene-provider plugin on the shared classloader. PROVIDED here:
+             compile-only, never bundled into this plugin's own lib/ (that would be a second copy on the shared
+             classloader). requires: lucene-provider == 10.4.0 in plugin.yml guarantees the exact binaries. -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analysis-common</artifactId>
+            <version>${lucene.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-highlighter</artifactId>
+            <version>${lucene.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Tests DO run the real Lucene: at test time it must be on the classpath, so the same jars come in as
+             `test` scope too (provided is not visible to the test classpath on its own). These are the exact
+             10.4.0 artifacts lucene-provider ships, so the tests exercise the runtime binaries faithfully. -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-memory</artifactId>
+            <version>${lucene.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queries</artifactId>
+            <version>${lucene.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-search-lucene</finalName>
+        <plugins>
+            <!-- Assemble both installable forms: target/search-lucene/ (folder) and the UI zip. NOTE: NO lib/ —
+                 Lucene is NOT bundled here; it comes from the lucene-provider plugin at runtime. -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/search-lucene"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-search-lucene.jar" todir="${stage}"/>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="search-lucene"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-search-lucene-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="search-lucene/**"/>
+                                </zip>
+                                <echo message="Staged install folder (thin jar, NO bundled Lucene — from lucene-provider): ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-search-lucene-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

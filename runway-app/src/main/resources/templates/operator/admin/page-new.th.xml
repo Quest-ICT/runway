@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- New-page form logic. The master <select> keeps its static "Standalone" option and iterates the
+     tenancy's masters on the second <option> (#pn-opt-master). -->
+<thlogic>
+    <attr sel="#pn-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#pn-heading" th:text="#{op.pages.new.heading}"/>
+    <attr sel="#pn-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#pn-l-slug" th:text="#{op.pages.new.slug}"/>
+    <attr sel="#pn-slug-hint" th:text="#{op.pages.new.slug.hint}"/>
+    <attr sel="#pn-l-title" th:text="#{op.pages.new.pagetitle}"/>
+    <attr sel="#pn-l-path" th:text="#{op.pages.col.path}"/>
+    <attr sel="#pn-l-master" th:text="#{op.pages.edit.master}"/>
+
+    <attr sel="#pn-opt-standalone" th:text="#{op.pages.new.standalone}"/>
+    <attr sel="#pn-opt-master" th:each="m : ${masters}" th:text="${m}" th:attr="value=${m}" th:id="${null}"/>
+
+    <attr sel="#pn-create" th:text="#{op.pages.new.create}"/>
+</thlogic>

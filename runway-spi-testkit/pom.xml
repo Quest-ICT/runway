@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mx.quest</groupId>
+        <artifactId>runway</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>runway-spi-testkit</artifactId>
+    <name>Runway SPI testkit</name>
+    <description>
+        In-memory fakes of the SPI service tier for plugin unit tests (TEST scope in a plugin). They apply the same
+        input rules as the kernel's implementations (an unsafe site id is refused, values come back frozen), so a
+        plugin tested against the fakes behaves the same against the kernel. Published with runway-spi, same
+        version. Like the SPI, it depends on nothing but runway-spi.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- The license and the plugin permission travel inside the jar, so a jar fetched on its own
+                 still carries its terms. -->
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>LICENSE-EXCEPTION</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- The sources jar ships as a release asset next to the jar (scripts/make-spi-assets.sh), so a plugin
+                 author's IDE shows this module's Javadoc and code. jar-no-fork: no second lifecycle run. -->
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

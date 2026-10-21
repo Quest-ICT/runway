@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Starter home page. Pulls the master's chrome seams and fills #content.
+
+  ${master} is a MODEL VARIABLE, never a literal: a name written directly as ~{__page__/...} would be
+  eaten by Thymeleaf's __...__ expression-preprocessing pass before the fragment is ever resolved.
+-->
+<thlogic>
+    <!-- The rendered locale, on the document itself. The master supplies <head>, but not <html>, so the
+         language has to be declared here — and it must be the locale actually being rendered, not a
+         hardcoded one, or a translated page tells screen readers and search engines the wrong language.
+         #locale is Thymeleaf's own built-in, so this keeps working even if the host stops putting a
+         `locale` variable in the model — this file belongs to the tenant and outlives our model. -->
+    <attr sel="html" th:attr="lang=${#locale.language}"/>
+
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+</thlogic>

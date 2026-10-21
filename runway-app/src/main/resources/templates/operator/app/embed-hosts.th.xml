@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Embed hosts: the operator's approved list (rows over ${hosts}) and the add/replace form. Each directive checkbox
+     repeats over ${directives}; its explanation is a message keyed by the directive name. -->
+<thlogic>
+    <attr sel="#eh-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#eh-heading" th:text="#{op.embed.heading}"/>
+    <attr sel="#eh-intro" th:text="#{op.embed.intro}"/>
+
+    <attr sel="#eh-h-label" th:text="#{op.embed.col.label}"/>
+    <attr sel="#eh-h-source" th:text="#{op.embed.col.source}"/>
+    <attr sel="#eh-h-directives" th:text="#{op.embed.col.directives}"/>
+    <attr sel="#eh-h-sites" th:text="#{op.embed.col.sites}"/>
+    <attr sel="#eh-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <attr sel="#eh-empty" th:if="${hosts.isEmpty()}"/>
+    <attr sel="#eh-empty-text" th:text="#{op.embed.empty}"/>
+    <attr sel="#eh-row" th:each="h : ${hosts}" th:id="${null}"/>
+    <attr sel="#eh-row//.eh-label" th:text="${h.label()}"/>
+    <attr sel="#eh-row//.eh-id" th:text="${h.id()}"/>
+    <attr sel="#eh-row//.eh-source" th:text="${h.source()}"/>
+    <attr sel="#eh-row//.eh-directives" th:text="${#strings.listJoin(h.directives(), ', ')}"/>
+    <attr sel="#eh-row//.eh-sites" th:text="${usage.getOrDefault(h.id(), 0)}"/>
+    <attr sel="#eh-row//.eh-rcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#eh-row//.eh-rid" th:attr="value=${h.id()}"/>
+    <attr sel="#eh-row//.eh-remove" th:text="#{op.embed.remove}"
+          th:attr="data-confirm=#{op.embed.removeConfirm(${h.label()}, ${usage.getOrDefault(h.id(), 0)})}"/>
+
+    <attr sel="#eh-l-add" th:text="#{op.embed.add}"/>
+    <attr sel="#eh-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#eh-l-id" th:text="#{op.embed.field.id}"/>
+    <attr sel="#eh-l-label" th:text="#{op.embed.col.label}"/>
+    <attr sel="#eh-l-source" th:text="#{op.embed.col.source}"/>
+    <attr sel="#eh-l-directives" th:text="#{op.embed.col.directives}"/>
+    <attr sel="#eh-dir" th:each="d : ${directives}" th:id="${null}"/>
+    <attr sel="#eh-dir//.eh-dir-input" th:value="${d}" th:checked="${d == 'frame-src'}"/>
+    <attr sel="#eh-dir//.eh-dir-name" th:text="${d}"/>
+    <attr sel="#eh-dir//.eh-dir-what" th:text="#{'op.embed.directive.' + ${d}}"/>
+    <attr sel="#eh-hint" th:text="#{op.embed.hint}"/>
+    <attr sel="#eh-save" th:text="#{op.embed.save}"/>
+</thlogic>

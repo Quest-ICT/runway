@@ -1,0 +1,6 @@
+runway-demo — the Runway reference plugin
+Copyright 2026 Quest ICT SAS de CV
+
+Licensed under the Apache License, Version 2.0 (the file LICENSE). Unlike the Runway kernel, which is
+licensed under the GNU Affero General Public License version 3, this plugin is offered under a
+permissive license so that it can be copied as the starting point of a plugin under any terms.

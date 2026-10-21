@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>operator home</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="home-pretitle">Application</div>
+                <h2 class="page-title" id="home-heading">Operator console</h2>
+            </div>
+        </div>
+    </div>
+    <!-- Without VIEW_APP_DASHBOARD: a minimal landing instead of the dashboard (never a 403 after sign-in). -->
+    <div class="card" id="home-minimal">
+        <div class="card-body">
+            <p class="mb-0 text-secondary" id="home-minimal-text">Use the menu above to open the screens you have access to.</p>
+        </div>
+    </div>
+    <div class="row row-cards" id="home-dashboard">
+        <div class="col-sm-6 col-lg-4">
+            <a href="/__app/sites" class="card card-link" id="home-link-sites">
+                <div class="card-body">
+                    <div class="subheader" id="home-lbl-sites">Sites</div>
+                    <div class="h1 mb-0" id="home-count-sites">0</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <a href="/__app/users" class="card card-link" id="home-link-users">
+                <div class="card-body">
+                    <div class="subheader" id="home-lbl-users">Application users</div>
+                    <div class="h1 mb-0" id="home-count-users">0</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <a href="/__app/plugins" class="card card-link" id="home-link-plugins">
+                <div class="card-body">
+                    <div class="subheader" id="home-lbl-plugins">Plugins loaded</div>
+                    <div class="h1 mb-0" id="home-count-plugins">0</div>
+                </div>
+            </a>
+        </div>
+        <div id="home-card-slot" class="col-12"><div class="home-card-inner"><!-- plugin dashboard card --></div></div>
+    </div>
+</div>
+</body>
+</html>

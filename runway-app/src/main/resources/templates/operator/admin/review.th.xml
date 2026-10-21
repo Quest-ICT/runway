@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Review queue. Slugs and user names are bound with th:text only (escaped); the only link built from data is the
+     item URL from the page's slug, which is a path-safe id. -->
+<thlogic>
+    <attr sel="#rv-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#rv-heading" th:text="#{op.review.heading}"/>
+    <attr sel="#rv-intro" th:text="#{op.review.intro}"/>
+    <attr sel="#rv-not-reviewed" th:if="${editorialLevel != 'reviewed'}" th:text="#{op.review.notReviewed}"/>
+
+    <attr sel="#rv-h-slug" th:text="#{op.review.col.page}"/>
+    <attr sel="#rv-h-path" th:text="#{op.pages.col.path}"/>
+    <attr sel="#rv-h-kind" th:text="#{op.review.col.kind}"/>
+    <attr sel="#rv-h-by" th:text="#{op.review.col.by}"/>
+    <attr sel="#rv-h-at" th:text="#{op.review.col.at}"/>
+    <attr sel="#rv-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <attr sel="#rv-row" th:each="row : ${items}" th:id="${null}"/>
+    <attr sel="#rv-row//.r-slug" th:text="${row.slug()}"/>
+    <attr sel="#rv-row//.r-path" th:text="${row.path() != null ? row.path() : '—'}"/>
+    <attr sel="#rv-row//.r-kind" th:text="${row.revision()} ? #{op.review.kind.revision} : #{op.review.kind.first}"
+          th:classappend="${row.revision() ? 'bg-azure-lt' : 'bg-yellow-lt'}"/>
+    <attr sel="#rv-row//.r-by" th:text="${row.submittedBy()}"/>
+    <attr sel="#rv-row//.r-at" th:text="${row.submittedAt()}"/>
+    <attr sel="#rv-row//.r-open" th:text="#{op.review.open}" th:attr="href='/__admin/review/' + ${row.slug()}"/>
+
+    <attr sel="#rv-empty" th:if="${items.isEmpty()}" th:text="#{op.review.empty}"/>
+</thlogic>

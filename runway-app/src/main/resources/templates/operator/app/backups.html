@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Backups</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ab-pretitle">Application</div>
+                <h2 class="page-title" id="ab-heading">Backups</h2>
+            </div>
+            <div class="col-auto" id="ab-config">
+                <a id="ab-config-link" class="btn btn-outline-secondary" href="/__app/config/backups">
+                    <i class="fa-solid fa-gear me-1"></i><span id="ab-config-label">Settings</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="cs-l">Create a site from a backup</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="cs-hint">Upload a backup to create a new, independent site (a clone
+                or a migration). The new id, name and hosts are yours to choose; the content comes from the backup.</p>
+            <form method="post" action="/__app/backups/create-site" enctype="multipart/form-data">
+                <input id="cs-csrf" type="hidden" name="_csrf" value="">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label" id="cs-l-id" for="cs-id">New site id</label>
+                        <input class="form-control" id="cs-id" name="newId" type="text" required>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label" id="cs-l-name" for="cs-name">Name</label>
+                        <input class="form-control" id="cs-name" name="name" type="text">
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label" id="cs-l-hosts" for="cs-hosts">Hosts</label>
+                        <input class="form-control" id="cs-hosts" name="hosts" type="text" placeholder="a.test, b.test">
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label" id="cs-l-file" for="cs-file">Backup file</label>
+                        <input class="form-control" id="cs-file" name="file" type="file" accept=".zip" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="cs-submit">Create site</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="ab-l-sites">Per-site backups</h3></div>
+        <div class="card-body">
+            <p class="text-secondary small" id="ab-offsite">Off-site copies: not configured.</p>
+            <div id="ab-empty" class="text-secondary">No sites yet.</div>
+            <div id="site-card" class="border rounded p-2 mb-2">
+                <div class="d-flex align-items-center flex-wrap gap-1">
+                    <strong class="sc-id me-auto">site</strong>
+                    <a class="sc-download btn btn-sm" href="#" target="_blank" rel="noopener">Download</a>
+                    <a class="sc-transfer btn btn-sm" href="#" target="_blank" rel="noopener">Transfer copy</a>
+                    <form class="sc-save-form d-inline" method="post" action="#">
+                        <input class="sc-save-csrf" type="hidden" name="_csrf" value="">
+                        <button class="btn btn-sm sc-save" type="submit">Save on server</button>
+                    </form>
+                    <form class="sc-restore-form d-inline" method="post" enctype="multipart/form-data" action="#">
+                        <input class="sc-restore-csrf" type="hidden" name="_csrf" value="">
+                        <input class="sc-restore-file form-control form-control-sm d-inline-block" type="file"
+                               name="file" accept=".zip" style="width:auto" required>
+                        <button class="btn btn-sm btn-danger sc-restore" type="submit">Restore</button>
+                    </form>
+                </div>
+                <ul class="list-unstyled mt-2 mb-0">
+                    <li class="stored-item d-flex align-items-center py-1">
+                        <span class="si-name font-monospace me-2">name</span>
+                        <span class="si-size text-secondary me-auto">size</span>
+                        <form class="si-restore-form d-inline" method="post" action="#">
+                            <input class="si-rcsrf" type="hidden" name="_csrf" value="">
+                            <button class="btn btn-sm si-restore" type="submit">Restore</button>
+                        </form>
+                        <form class="si-delete-form d-inline ms-1" method="post" action="#">
+                            <input class="si-dcsrf" type="hidden" name="_csrf" value="">
+                            <button class="btn btn-sm btn-danger si-delete" type="submit">Delete</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

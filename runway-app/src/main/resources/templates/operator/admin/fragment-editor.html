@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fragment editor</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="fe-pretitle">Site</div>
+                <h2 class="page-title" id="fe-heading">Edit fragment</h2>
+            </div>
+            <div class="col-auto"><a class="btn" id="fe-back" href="/__admin/fragments">Back to fragments</a></div>
+        </div>
+    </div>
+
+    <form id="fe-form" method="post" autocomplete="off">
+        <input id="fe-csrf" type="hidden" name="_csrf" value="">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                    <div class="card-header"><h3 class="card-title" id="fe-l-name-card">Name</h3></div>
+                    <div class="card-body">
+                        <label class="form-label" id="fe-l-name" for="fe-name">Fragment name</label>
+                        <!-- On create the author types the name (bound as `name`); on edit it is fixed (the
+                             name is in the POST path) and shown read-only, so a fragment can't be renamed into
+                             another via this form. -->
+                        <input id="fe-name" class="form-control" name="name" type="text" value=""
+                               placeholder="_head">
+                        <div class="form-hint" id="fe-name-help">Names start with an underscore.</div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header"><h3 class="card-title" id="fe-l-body">Fragment HTML</h3></div>
+                    <div class="card-body">
+                        <div class="runway-cm-host">
+                            <textarea id="fe-body" name="html" data-cm data-cm-mode="html" data-cm-height="45vh"
+                                      aria-labelledby="fe-l-body" aria-describedby="fe-cm-hint"></textarea>
+                        </div>
+                        <!-- Keyboard hint: Tab indents inside the code editors, so say how to leave them. -->
+                        <div class="form-hint mt-2" id="fe-cm-hint">Tab indents in the code editors. To move on, press Esc and then Tab.</div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title" id="fe-l-logic">Decoupled logic</h3>
+                        <div class="card-subtitle text-secondary" id="fe-logic-help">Optional</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="runway-cm-host">
+                            <textarea id="fe-logic" name="thxml" data-cm data-cm-mode="xml" data-cm-height="28vh"
+                                      aria-labelledby="fe-l-logic" aria-describedby="fe-cm-hint"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4"><button type="submit" class="btn btn-primary" id="fe-save">Save</button></div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Pulled into op-layout's #op-scripts seam: the self-hosted CodeMirror bundle auto-mounts every
+     textarea[data-cm] on load (the same bundle the page editor uses). -->
+<div id="scripts">
+    <link id="fe-cm-css" rel="stylesheet" href="/__assets/vendor/codemirror.min.css">
+    <script id="fe-cm-js" src="/__assets/vendor/codemirror.min.js"></script>
+</div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Build output
+target/
+*.class
+
+# Runtime / operator-editable state (seeded into a deployment, not source)
+/external/
+/uploads/
+/logs/
+/backups/
+# Safety net: surefire runs with CWD = the module dir, where the deployment-root-relative
+# logs/ and backups/ defaults would otherwise land if a test forgets to redirect them.
+/runway-app/logs/
+/runway-app/backups/
+*.pid
+
+# Local release artifacts
+*.bin
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+nbproject/private/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scratch (never commit)
+tmp_do_not_commit/

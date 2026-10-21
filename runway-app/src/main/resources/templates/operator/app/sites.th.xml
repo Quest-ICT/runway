@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#si-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#si-heading" th:text="#{op.sites.heading}"/>
+    <!-- Create / demo install / suspend / resume / delete / CAPTCHA rescue are platform operations (master or
+         SYSTEMADMIN): a VIEW_TENANCIES or MANAGE_SITE_HOSTS holder gets the list without them (the POSTs re-check). -->
+    <attr sel="#si-create-card" th:if="${canEditSites}"/>
+    <attr sel="#si-demos-card" th:if="${canEditSites}"/>
+    <attr sel="#si-create-title" th:text="#{op.sites.create}"/>
+    <attr sel="#si-create-btn" th:text="#{op.sites.createBtn}"/>
+    <attr sel="#si-l-id" th:text="#{op.sites.id}"/>
+    <attr sel="#si-l-name" th:text="#{op.sites.name}"/>
+    <attr sel="#si-l-hosts" th:text="#{op.sites.hosts}"/>
+    <attr sel="#si-l-locale" th:text="#{op.sites.defaultLocale}"/>
+    <attr sel="#si-l-locales" th:text="#{op.sites.otherLocales}"/>
+    <attr sel="#si-l-template" th:text="#{op.sites.bornFromTemplate}"/>
+    <attr sel="#si-template-opt" th:each="ct : ${templateCatalogs}" th:value="${ct.id()}"
+          th:text="${ct.builtIn()} ? #{op.sitetpl.default.name} : ${ct.name()}" th:id="${null}"/>
+    <attr sel="#si-l-muser" th:text="#{op.sites.masterUser}"/>
+    <attr sel="#si-l-mpass" th:text="#{op.sites.masterPass}"/>
+    <attr sel="#si-l-memail" th:text="#{op.sites.masterEmail}"/>
+    <attr sel="#si-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#si-h-id" th:text="#{op.sites.col.id}"/>
+    <attr sel="#si-h-name" th:text="#{op.sites.col.name}"/>
+    <attr sel="#si-h-hosts" th:text="#{op.sites.col.hosts}"/>
+    <attr sel="#si-h-masters" th:text="#{op.sites.col.masters}"/>
+    <attr sel="#si-h-status" th:text="#{op.sites.col.status}"/>
+    <attr sel="#si-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <attr sel="#si-empty" th:if="${sites.isEmpty()}"/>
+    <attr sel="#si-empty-text" th:text="#{op.sites.empty}"/>
+
+    <attr sel="#si-row" th:each="site,iter : ${sites}" th:id="${null}" th:with="q=${quotaBySite.get(site.id())},sc=${ceilingBySite.get(site.id())}"/>
+    <attr sel="#si-row//.s-id" th:text="${site.id()}"/>
+    <attr sel="#si-row//.s-default" th:if="${site.id() == defaultSiteId}" th:text="#{op.sites.defaultBadge}"/>
+    <attr sel="#si-row//.s-name" th:text="${site.name()}"/>
+    <attr sel="#si-row//.s-base" th:if="${site.baseUrl() != null}" th:text="#{op.sites.base.row(${site.baseUrl()})}"/>
+    <attr sel="#si-row//.s-hosts"
+          th:text="${site.hosts().isEmpty() ? '—' : #strings.listJoin(site.hosts(), ', ')}"/>
+    <attr sel="#si-row//.s-masters"
+          th:text="${#strings.isEmpty(mastersBySite.get(site.id()))} ? #{op.sites.noMasters} : ${mastersBySite.get(site.id())}"/>
+    <attr sel="#si-row//.s-badge" th:text="${site.status().name()}"
+          th:classappend="${site.active() ? 'bg-green-lt' : 'bg-secondary-lt'}"/>
+    <!-- The monthly bandwidth cap: shown when the site has one, or when its own setting is "no cap". -->
+    <attr sel="#si-row//.s-quota" th:if="${q.limited() or q.source().name() != 'DEFAULT'}"
+          th:text="#{${'op.sites.quota.row.' + (q.limited() ? q.source().name().toLowerCase() : 'unlimited')}(${q.human()})}"/>
+    <!-- The storage ceiling for the site's files: shown when there is one, or when its own setting is "no limit". -->
+    <attr sel="#si-row//.s-storage" th:if="${sc.limited() or sc.source().name() != 'DEFAULT'}"
+          th:text="#{${'op.sites.storage.row.' + (sc.limited() ? sc.source().name().toLowerCase() : 'unlimited')}(${ceilingTextBySite.get(site.id())})}"/>
+    <attr sel="#si-row//.s-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#si-row//.s-suspend" th:if="${canEditSites and site.active()}"
+          th:attr="action='/__app/sites/' + ${site.id()} + '/suspend'"/>
+    <attr sel="#si-row//.s-resume" th:if="${canEditSites and site.suspended()}"
+          th:attr="action='/__app/sites/' + ${site.id()} + '/resume'"/>
+    <attr sel="#si-row//.s-delete" th:if="${canEditSites}" th:attr="action='/__app/sites/' + ${site.id()} + '/delete'"/>
+    <attr sel="#si-row//.s-delete-btn"
+          th:attr="data-confirm='Delete site ' + ${site.id()} + ' and ALL its data? This cannot be undone.'"/>
+    <attr sel="#si-row//.s-captcha-off" th:if="${canEditSites and captchaBySite.get(site.id())}"
+          th:attr="action='/__app/sites/' + ${site.id()} + '/disable-captcha'"/>
+    <attr sel="#si-row//.s-captcha-btn" th:text="#{op.sites.captcha.disable}"
+          th:attr="title=#{op.sites.captcha.disable.tip},data-confirm=#{op.sites.captcha.disable.confirm}"/>
+
+    <!-- Edit name + languages (master/wildcard admin, like the lifecycle actions): a per-row modal keyed by row
+         index, same shape as the hosts modal below. The languages field lists ALL available tags, default included. -->
+    <attr sel="#si-row//.s-edit-btn" th:if="${canEditSites}" th:text="#{op.sites.edit}"
+          th:attr="data-bs-target='#si-edit-modal-' + ${iter.index}"/>
+    <attr sel="#si-row//.s-edit-modal" th:if="${canEditSites}"
+          th:attr="id='si-edit-modal-' + ${iter.index},aria-labelledby='si-edit-title-' + ${iter.index}"/>
+    <attr sel="#si-row//.s-edit-title" th:text="#{op.sites.edit.title}" th:attr="id='si-edit-title-' + ${iter.index}"/>
+    <attr sel="#si-row//.s-edit-siteid" th:text="${site.id()}"/>
+    <attr sel="#si-row//.s-edit-form" th:attr="action='/__app/sites/' + ${site.id()} + '/edit'"/>
+    <attr sel="#si-row//.s-edit-l-name" th:text="#{op.sites.name}"/>
+    <attr sel="#si-row//.s-edit-name" th:attr="value=${site.name()}"/>
+    <attr sel="#si-row//.s-edit-l-default" th:text="#{op.sites.defaultLocale}"/>
+    <attr sel="#si-row//.s-edit-default" th:attr="value=${site.defaultLocale().toLanguageTag()}"/>
+    <attr sel="#si-row//.s-edit-l-locales" th:text="#{op.sites.edit.locales}"/>
+    <attr sel="#si-row//.s-edit-locales"
+          th:attr="value=${#strings.listJoin(site.locales().![toLanguageTag()], ', ')}"/>
+    <attr sel="#si-row//.s-edit-hint" th:text="#{op.sites.edit.hint}"/>
+    <attr sel="#si-row//.s-edit-l-quota" th:text="#{op.sites.quota.label}"/>
+    <!-- Disabled (so not submitted, and left unchanged) when the server sets this site's cap: the host's value wins. -->
+    <attr sel="#si-row//.s-edit-quota" th:attr="value=${quotaInputBySite.get(site.id())}"
+          th:disabled="${q.source().name() == 'HOST'}"/>
+    <attr sel="#si-row//.s-edit-quota-hint" th:text="#{op.sites.quota.hint(${defaultQuotaText})}"/>
+    <attr sel="#si-row//.s-edit-quota-lock" th:if="${q.source().name() == 'HOST'}"
+          th:text="#{op.settings.locked(${q.origin()})}"/>
+    <attr sel="#si-row//.s-edit-l-storage" th:text="#{op.sites.storage.label}"/>
+    <attr sel="#si-row//.s-edit-storage" th:attr="value=${ceilingInputBySite.get(site.id())}"/>
+    <attr sel="#si-row//.s-edit-storage-hint" th:text="#{op.sites.storage.hint(${defaultCeilingText})}"/>
+    <attr sel="#si-row//.s-edit-cancel" th:text="#{op.sites.hosts.cancel}"/>
+    <attr sel="#si-row//.s-edit-save" th:text="#{op.sites.edit.save}"/>
+
+    <!-- Edit hosts (grantable MANAGE_SITE_HOSTS): a modal keyed by row index (CSS-safe, unlike a site id that
+         may contain a dot) opened via the Tabler data-API; the form posts and redirects, so no JS closes it. -->
+    <attr sel="#si-row//.s-hosts-editbtn" th:if="${canEditHosts}" th:text="#{op.sites.hosts.edit}"
+          th:attr="data-bs-target='#si-hosts-modal-' + ${iter.index}"/>
+    <attr sel="#si-row//.s-hosts-modal" th:if="${canEditHosts}"
+          th:attr="id='si-hosts-modal-' + ${iter.index},aria-labelledby='si-hosts-title-' + ${iter.index}"/>
+    <attr sel="#si-row//.s-hosts-title" th:text="#{op.sites.hosts.edit}" th:id="|si-hosts-title-${iter.index}|"/>
+    <attr sel="#si-row//.s-hosts-siteid" th:text="${site.id()}"/>
+    <attr sel="#si-row//.s-hosts-form" th:attr="action='/__app/sites/' + ${site.id()} + '/hosts'"/>
+    <attr sel="#si-row//.s-hosts-label" th:text="#{op.sites.hosts}" th:for="|si-hosts-input-${iter.index}|"/>
+    <attr sel="#si-row//.s-hosts-input" th:attr="value=${#strings.listJoin(site.hosts(), ', ')}"
+          th:id="|si-hosts-input-${iter.index}|"/>
+    <attr sel="#si-row//.s-hosts-hint" th:text="#{op.sites.hosts.hint}"/>
+    <attr sel="#si-row//.s-base-label" th:text="#{op.sites.base}"/>
+    <attr sel="#si-row//.s-base-input" th:attr="value=${site.baseUrl()},placeholder=${site.hosts().isEmpty() ? '' : 'https://' + site.hosts().get(0)}"/>
+    <attr sel="#si-row//.s-base-hint" th:text="#{op.sites.base.hint}"/>
+    <attr sel="#si-row//.s-hosts-cancel" th:text="#{op.sites.hosts.cancel}"/>
+    <attr sel="#si-row//.s-hosts-save" th:text="#{op.sites.hosts.save}"/>
+
+    <!-- Install a bundled demo site (opt-in): one row per not-yet-installed demo. -->
+    <attr sel="#si-demos-title" th:text="#{op.demos.title}"/>
+    <attr sel="#si-demos-intro" th:text="#{op.demos.intro}"/>
+    <attr sel="#si-demo-empty" th:if="${availableDemos.isEmpty()}" th:text="#{op.demos.empty}"/>
+    <!-- Each demo row's fields get row-unique ids so their labels stay associated; the template ids are dropped. -->
+    <attr sel="#si-demo-item" th:each="demo,diter : ${availableDemos}" th:id="${null}"/>
+    <attr sel="#si-demo-item//.d-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#si-demo-item//.d-demoid" th:attr="value=${demo.id()}"/>
+    <attr sel="#si-demo-item//.d-name" th:text="${demo.name()}"/>
+    <attr sel="#si-demo-item//.d-id" th:text="${demo.id()}"/>
+    <attr sel="#si-demo-item//.d-l-host" th:text="#{op.demos.host}" th:for="|si-demo-host-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-host" th:attr="value=${demo.defaultHost()}" th:id="|si-demo-host-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-l-user" th:text="#{op.demos.user}" th:for="|si-demo-user-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-user" th:attr="value=${demo.masterUsername()}" th:id="|si-demo-user-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-l-pass" th:text="#{op.demos.pass}" th:for="|si-demo-pass-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-pass" th:id="|si-demo-pass-${diter.index}|"/>
+    <attr sel="#si-demo-item//.d-l-default" th:text="#{op.demos.makeDefault}"/>
+    <attr sel="#si-demo-item//.d-btn" th:text="#{op.demos.install}"/>
+</thlogic>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>permissions</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="pm-pretitle">Realm</div>
+                <h2 class="page-title" id="pm-heading">Permissions</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <!-- Users state -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="pm-users-title">Users</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.perm.users">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="user" id="pm-uh-user">User</th>
+                            <th scope="col" data-col-key="roles" id="pm-uh-roles">Roles</th>
+                            <th scope="col" data-col-key="grants" id="pm-uh-grants">Direct grants</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="pm-user-empty"><td colspan="3" class="text-secondary text-center" id="pm-user-empty-text">No users.</td></tr>
+                        <tr id="pm-user-row">
+                            <td><span class="u-name">name</span> <span class="u-master badge bg-orange-lt">master</span></td>
+                            <td class="u-roles text-secondary">—</td>
+                            <td class="u-grants text-secondary">—</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roles state -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="pm-roles-title">Roles</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.perm.roles">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="role" id="pm-rh-role">Role</th>
+                            <th scope="col" data-col-key="inherits" id="pm-rh-inherits">Inherits</th>
+                            <th scope="col" data-col-key="perms" id="pm-rh-perms">Granted permissions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="pm-role-row">
+                            <td><span class="r-name">role</span> <span class="r-custom badge bg-blue-lt">custom</span></td>
+                            <td class="r-inherits text-secondary">—</td>
+                            <td class="r-perms text-secondary">—</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage roles (create / delete / arrange the DAG) -->
+        <div class="col-12" id="pm-roles-admin">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="pm-ra-title">Manage roles</h3></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6">
+                        <h4 id="pm-ra-create">Create role</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-create-role-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto">
+                                <input class="form-control" type="text" name="name" id="pm-create-role-name" aria-label="New role name"
+                                       placeholder="ROLE_NAME" pattern="[A-Za-z0-9_-]{1,64}" required>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select" name="inherits" multiple size="1" id="pm-create-role-inherits" aria-label="Inherits from">
+                                    <option class="opt-custom-role">r</option>
+                                </select>
+                            </div>
+                            <div class="col-auto"><button class="btn btn-success" id="pm-create-role-btn">Create</button></div>
+                        </form>
+                        <p class="text-secondary small mt-1" id="pm-create-role-hint">hint</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 id="pm-ra-delete">Delete role</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-delete-role-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-custom-role">r</option></select></div>
+                            <div class="col-auto"><button class="btn btn-outline-danger" id="pm-delete-role-btn">Delete</button></div>
+                        </form>
+                    </div>
+                    <div class="col-12">
+                        <h4 id="pm-ra-dag">Role hierarchy</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-add-inherit-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-custom-role">r</option></select></div>
+                            <div class="col-auto align-self-center" id="pm-inherit-sep">inherits</div>
+                            <div class="col-auto"><select class="form-select pm-sel-parent" name="parentName" aria-label="Inherited role"><option class="opt-custom-role">r</option></select></div>
+                            <div class="col-auto"><button class="btn btn-success" id="pm-add-inherit-btn">Add edge</button></div>
+                        </form>
+                        <form class="pm-form row g-2 mt-1" method="post" id="pm-remove-inherit-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-custom-role">r</option></select></div>
+                            <div class="col-auto align-self-center" id="pm-inherit-sep2">inherits</div>
+                            <div class="col-auto"><select class="form-select pm-sel-parent" name="parentName" aria-label="Inherited role"><option class="opt-custom-role">r</option></select></div>
+                            <div class="col-auto"><button class="btn btn-outline-danger" id="pm-remove-inherit-btn">Remove edge</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-12" id="pm-actions">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="pm-actions-title">Assign</h3></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6">
+                        <h4 id="pm-a-userrole">User roles</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-assign-role-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-user" name="targetId" aria-label="User"><option class="opt-user">u</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-role">r</option></select></div>
+                            <div class="col-auto"><button class="btn btn-success" id="pm-assign-role-btn">Assign</button></div>
+                        </form>
+                        <form class="pm-form row g-2 mt-1" method="post" id="pm-revoke-role-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-user" name="targetId" aria-label="User"><option class="opt-user">u</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-role">r</option></select></div>
+                            <div class="col-auto"><button class="btn btn-outline-danger" id="pm-revoke-role-btn">Revoke</button></div>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 id="pm-a-userperm">User direct grants</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-grant-perm-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-user" name="targetId" aria-label="User"><option class="opt-user">u</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-perm" name="permission" aria-label="Permission"><option class="opt-perm">p</option></select></div>
+                            <div class="col-auto"><button class="btn btn-success" id="pm-grant-perm-btn">Grant</button></div>
+                        </form>
+                        <form class="pm-form row g-2 mt-1" method="post" id="pm-revoke-perm-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-user" name="targetId" aria-label="User"><option class="opt-user">u</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-perm" name="permission" aria-label="Permission"><option class="opt-perm">p</option></select></div>
+                            <div class="col-auto"><button class="btn btn-outline-danger" id="pm-revoke-perm-btn">Revoke</button></div>
+                        </form>
+                    </div>
+                    <div class="col-12">
+                        <h4 id="pm-a-roleperm">Role permission deltas</h4>
+                        <form class="pm-form row g-2" method="post" id="pm-role-grant-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-role">r</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-perm" name="permission" aria-label="Permission"><option class="opt-perm">p</option></select></div>
+                            <div class="col-auto"><button class="btn btn-success" id="pm-role-grant-btn">Grant to role</button></div>
+                        </form>
+                        <form class="pm-form row g-2 mt-1" method="post" id="pm-role-revoke-form">
+                            <input class="pm-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-auto"><select class="form-select pm-sel-role" name="roleName" aria-label="Role"><option class="opt-role">r</option></select></div>
+                            <div class="col-auto"><select class="form-select pm-sel-perm" name="permission" aria-label="Permission"><option class="opt-perm">p</option></select></div>
+                            <div class="col-auto"><button class="btn btn-outline-danger" id="pm-role-revoke-btn">Revoke from role</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

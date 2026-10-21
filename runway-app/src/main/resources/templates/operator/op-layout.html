@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <title id="op-title">Runway</title>
+<link id="op-favicon" rel="icon" type="image/svg+xml" href="/__assets/runway.svg">
+    <link id="op-tabler-css" rel="stylesheet" href="/__assets/vendor/tabler.min.css">
+    <link id="op-fa-css" rel="stylesheet" href="/__assets/vendor/fontawesome/css/all.min.css">
+    <link id="op-chrome-css" rel="stylesheet" href="/__assets/runway-chrome.css">
+    <link id="op-lt-css" rel="stylesheet" href="/__assets/listing-tables.css">
+    <script id="op-htmx-js" defer src="/__assets/vendor/htmx.min.js"></script>
+    <script id="op-alpine-js" defer src="/__assets/vendor/alpine.min.js"></script>
+</head>
+<body class="layout-fluid" data-i18n-pw-toggle="Show / hide password">
+<!-- Skip link: the first focusable element, visually hidden until it receives keyboard focus, so a keyboard
+     or screen-reader user can jump past the topbar's menus straight to the screen's content. -->
+<a id="op-skip" class="rw-skip-link visually-hidden-focusable" href="#op-main">Skip to main content</a>
+<div class="page">
+    <header id="op-topbar"><!-- topbar fragment is pulled in here by realm --></header>
+    <div class="page-wrapper">
+        <main id="op-main" class="page-body" tabindex="-1">
+            <div class="container-xl">
+                <div id="op-notifications" class="mb-2">
+                    <div id="op-flash" class="alert alert-success" role="alert">
+                        <span id="op-flash-text">message</span>
+                    </div>
+                    <div id="op-error" class="alert alert-danger" role="alert">
+                        <span id="op-error-text">error</span>
+                    </div>
+                    <div id="op-secrets-dropped" class="alert alert-warning" role="alert">
+                        <span id="op-secrets-dropped-text">secrets dropped</span>
+                    </div>
+                    <!-- Persistent platform-misconfiguration warnings (app realm only; NOT dismissible — they
+                         stay until fixed). Set by OperatorShellModel from SecretCipher.isAvailable() /
+                         PlatformMailer.isConfigured(). -->
+                    <div id="op-warn-secret" class="alert alert-warning" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i><span id="op-warn-secret-text">No encryption key is configured.</span>
+                    </div>
+                    <div id="op-warn-smtp" class="alert alert-warning" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i><span id="op-warn-smtp-text">No platform mail account is configured.</span>
+                        <a id="op-warn-smtp-link" href="/__app/settings" class="alert-link">Platform settings</a>
+                    </div>
+                </div>
+                <section id="op-work"><!-- the page's content fragment is pulled in here --></section>
+            </div>
+        </main>
+    </div>
+    <!-- Footer sits OUTSIDE .page-wrapper so the app-shell (see runway-chrome.css) keeps it as a fixed bottom
+         band; only .page-wrapper between the topbar and here scrolls. -->
+    <footer id="op-foot" class="footer footer-transparent">
+        <div class="container-xl">
+            <div class="row text-secondary align-items-center">
+                <div class="col"><span id="op-foot-brand">Runway</span></div>
+            </div>
+        </div>
+    </footer>
+</div>
+<script id="op-tabler-js" src="/__assets/vendor/tabler.min.js"></script>
+<script id="op-chrome-js" src="/__assets/runway-chrome.js"></script>
+<script id="op-lt-js" defer src="/__assets/listing-tables.js"></script>
+<!-- Optional per-page scripts seam: a screen that sets `contentScripts` pulls that template's
+     #scripts fragment here (e.g. the page editor's self-hosted CodeMirror bundle + init). On an
+     ordinary screen the model has no `contentScripts`, so the seam collapses (see op-layout.th.xml). -->
+<div id="op-scripts"></div>
+</body>
+</html>

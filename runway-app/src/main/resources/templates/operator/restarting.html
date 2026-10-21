@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <!-- No-JS fallback: a generous fixed delay (the JS below redirects the moment the service is actually back). -->
+    <noscript><meta http-equiv="refresh" content="20;url=/app/login?restarted"></noscript>
+    <title id="rs-title">Restarting</title>
+    <link id="as-tabler-css" rel="stylesheet" href="/__assets/vendor/tabler.min.css">
+    <link id="as-chrome-css" rel="stylesheet" href="/__assets/runway-chrome.css">
+</head>
+<body class="d-flex flex-column">
+<div class="page page-center">
+    <main class="container container-tight py-4 text-center">
+        <div class="mb-3"><div class="spinner-border text-primary" role="status"></div></div>
+        <h1 class="h2" id="rs-heading">Restarting Runway…</h1>
+        <p class="text-secondary" id="rs-note">This page reloads automatically once the console is back.</p>
+    </main>
+</div>
+<!-- Poll the health endpoint and redirect the moment the service is actually back (rather than a fixed guess
+     that lands on a connection-refused page). Only redirect once we've seen it go down then come up, so we
+     never bounce off the still-alive old instance; a hard timeout falls back to a manual link. -->
+<script id="as-restarting-js" src="/__assets/restarting.js" defer></script>
+</body>
+</html>

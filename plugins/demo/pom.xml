@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Inherit the SAME managed dependency versions the Runway kernel uses (Spring Boot 4.0.6), so every
+      `provided` Spring / Jackson type the plugin compiles against is byte-identical to the class the host
+      loads at runtime. A plugin is NOT a Spring Boot application — there is NO spring-boot-maven-plugin
+      repackage here; `mvn package` produces a THIN jar of only this plugin's own classes.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <!-- runway-plugin-<plugin id>, as for every plugin in this repository: the release zip is named after it
+         (runway-plugin-runway-demo-<version>.zip under the tag runway-demo-<version>). -->
+    <artifactId>runway-plugin-runway-demo</artifactId>
+    <version>2.1.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Demo Plugin</name>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <description>
+        The kitchen-sink REFERENCE plugin for Runway: every extension axis (head, widget, endpoint incl. an
+        anonymous form POST, page-quality check, content source) and every service of the SPI service tier
+        (PluginSettings, PluginInfo/PluginLifecycle, PluginSiteFiles, Sites, RequestContext, AccessCheck, Messages,
+        SitePages, ContentCatalogView, ContentChanges, SiteEventListener, @ConsoleScreen), app-level and per-tenant
+        settings, personal-data declaration, permissions, a menu entry, a dashboard card, an admin fragment, static
+        assets, templates and i18n. Links only the Runway SPI.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>
+        <!-- The Runway SPI this plugin compiles against: a RELEASED kernel (its SPI jars installed
+             from that release's assets). The plugin's runtime floor is plugin.yml's
+             requiresSpi, not this number. -->
+        <runway.version>1.0.0</runway.version>
+    </properties>
+
+    <dependencies>
+        <!--
+          The dependency-free extension API: the axis interfaces, the service tier and the immutable model
+          records. COMPILE scope — it is the host's own stable artifact, resolved parent-first from the shared
+          classloader at runtime. This is the ONLY Runway artifact a plugin depends on.
+        -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <!-- NO runway-app dependency, in any scope: a host import no longer compiles, and the
+             kernel's host-linkage scanner finds nothing to report. -->
+
+        <!-- In-memory fakes of every SPI service with the kernel's input rules (TempDirSiteFiles, FakePluginSettings,
+             FakeSiteServices, FakeContentCatalog, EventDispatch). Tests only. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The PLATFORM libraries the host provides at runtime (the kernel's MAJOR line pins their MAJOR lines):
+             compile against them, never bundle them. -->
+        <!-- Spring context/Boot: @Configuration, @Bean, @ConfigurationProperties. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Spring MVC: the @ConsoleScreen @Controller (DemoConsoleController). -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Spring Security: @PreAuthorize("@authz.may('…')") on the console handlers. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson 3 (tools.jackson) YAML: the plugin's own serializer for notes.yml and showcase.yml. -->
+        <dependency>
+            <groupId>tools.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Unit tests run against the compiled classes (NEVER spring-boot:run — DevTools' restart classloader
+             loads ZERO plugins). The servlet API lets MockMvc drive the console controller in-process. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Stable deployed filename (no version/classifier): target/runway-plugin-demo.jar. It deliberately keeps
+             its pre-2.0.1 name although the artifactId changed: the kernel loads EVERY *.jar in the plugin's folder
+             (plugin.yml names no jar), so a filesystem upgrade that copies the new folder over the old one would
+             otherwise leave the old jar beside the new and load both. The console upload replaces the whole
+             folder; a copy does not. -->
+        <finalName>runway-plugin-demo</finalName>
+        <plugins>
+            <!--
+              After the jar is built, assemble the plugin in BOTH installable forms the platform accepts:
+                1. target/runway-demo/  — the install-ready folder for a FILESYSTEM install
+                   (`cp -r target/runway-demo <runway-external>/plugins/` + restart).
+                2. target/runway-plugin-runway-demo-<version>.zip — the archive the MANAGEMENT UI upload expects
+                   (/__app/plugins → install): plugin.yml under a single wrapping dir (runway-demo/) alongside
+                   the jar + static/ templates/ i18n/. The host validates the descriptor and lays it into
+                   external/plugins/<id>/ (id from the descriptor), then applies on restart.
+            -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/runway-demo"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/NOTICE" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-demo.jar" todir="${stage}"/>
+                                <copy todir="${stage}/static">
+                                    <fileset dir="${project.basedir}/static"/>
+                                </copy>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <!-- The UI-uploadable archive: plugin.yml under a single wrapping dir. -->
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="runway-demo"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/${project.artifactId}-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="runway-demo/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/${project.artifactId}-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

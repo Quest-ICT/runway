@@ -1,0 +1,88 @@
+/* Runway Search plugin — styles for the embeddable search box and the /search results page.
+   Served at /__plugin/search/static/search.css. Deliberately minimal and neutral so it inherits the site's
+   look; a site can override any .rw-search* rule from its own stylesheet. */
+
+.rw-search-box,
+.rw-search-form {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    max-width: 40rem;
+}
+
+.rw-search-box-input,
+.rw-search-input {
+    flex: 1 1 auto;
+    padding: .5rem .75rem;
+    border: 1px solid #ccc;
+    border-radius: .375rem;
+    font-size: 1rem;
+    min-width: 0;
+}
+
+.rw-search-box-submit,
+.rw-search-submit {
+    padding: .5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: .375rem;
+    background: #0d6efd;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.rw-search-box-submit:hover,
+.rw-search-submit:hover {
+    filter: brightness(.95);
+}
+
+/* Results page */
+.rw-search-main {
+    max-width: 46rem;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1a1a1a;
+}
+
+.rw-search-title {
+    font-size: 1.5rem;
+    margin: 0 0 1rem;
+}
+
+.rw-search-form {
+    margin-bottom: 1.5rem;
+}
+
+.rw-search-count,
+.rw-search-empty {
+    color: #555;
+    margin: 0 0 1rem;
+}
+
+.rw-search-hits {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.rw-search-hit {
+    padding: .75rem 0;
+    border-top: 1px solid #eee;
+}
+
+.rw-search-hit-link {
+    font-size: 1.125rem;
+    text-decoration: none;
+    color: #0d6efd;
+}
+
+.rw-search-hit-link:hover {
+    text-decoration: underline;
+}
+
+.rw-search-hit-snippet {
+    margin: .25rem 0 0;
+    color: #555;
+    font-size: .95rem;
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dashboard card logic. Values from ${@searchLuceneAdminModel...(tenantSiteId)}. -->
+<thlogic>
+    <attr sel="#lc-title" th:text="#{searchlucene.card.title}"/>
+    <attr sel="#lc-pages" th:text="${@searchLuceneAdminModel.indexedPages(tenantSiteId)}"/>
+    <attr sel="#lc-pages-lbl" th:text="#{searchlucene.card.pages}"/>
+    <attr sel="#lc-engine" th:text="${@searchLuceneAdminModel.engineKey()}"/>
+</thlogic>

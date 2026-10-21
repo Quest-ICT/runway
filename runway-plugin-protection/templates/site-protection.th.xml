@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tenant-realm Protection screen logic — honeypot + CAPTCHA over the bound site's per-site ${settings} (a model
+  variable, so its th:attr bindings are fine — the @bean-in-th:attr restriction does not apply here). The per-IP
+  lockout is app-scope only, so it is not shown per-site. The captcha SECRET is never written into the input; a
+  blank submit keeps the stored secret.
+-->
+<thlogic>
+    <attr sel="#pr-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#pr-heading" th:text="#{protection.screen.heading}"/>
+    <attr sel="#pr-intro-text" th:text="#{protection.screen.site.intro}"/>
+
+    <attr sel="#pr-nocipher" th:if="${!captchaSecretStorable}"/>
+    <attr sel="#pr-nocipher-text" th:text="#{protection.screen.noCipher}"/>
+
+    <attr sel="#pr-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#pr-l-honeypot-card" th:text="#{protection.screen.deterrents}"/>
+    <attr sel="#pr-honeypot" th:checked="${settings.honeypotEnabled()}"/>
+    <attr sel="#pr-honeypot-lbl" th:text="#{protection.screen.honeypot}"/>
+    <attr sel="#pr-honeypot-hint" th:text="#{protection.screen.honeypot.hint}"/>
+
+    <!-- No per-IP lockout card here: the lockout is an application-scope floor (SlidingWindowLoginGate reads the app
+         settings), so a per-site value would never take effect. Per-site protection is honeypot + CAPTCHA only. -->
+    <attr sel="#pr-l-captcha-card" th:text="#{protection.screen.captcha}"/>
+    <attr sel="#pr-captcha" th:checked="${settings.captcha().enabled()}"/>
+    <attr sel="#pr-captcha-lbl" th:text="#{protection.screen.captcha.enable}"/>
+    <attr sel="#pr-l-provider" th:text="#{protection.screen.provider}"/>
+    <attr sel="#pr-provider-opt" th:each="p : ${providers}" th:value="${p}" th:id="${null}"
+          th:text="#{'protection.screen.provider.' + ${p}}" th:selected="${p == settings.captcha().provider()}"/>
+    <attr sel="#pr-l-siteKey" th:text="#{protection.screen.siteKey}"/>
+    <attr sel="#pr-siteKey" th:attr="value=${settings.captcha().siteKey()}"/>
+    <attr sel="#pr-h-siteKey" th:text="#{protection.screen.siteKey.hint}"/>
+    <attr sel="#pr-l-secretKey" th:text="#{protection.screen.secretKey}"/>
+    <attr sel="#pr-secretKey"
+          th:attr="placeholder=${captchaSecretConfigured} ? #{protection.screen.secretKey.set} : #{protection.screen.secretKey.unset}"/>
+    <attr sel="#pr-h-secretKey" th:text="#{protection.screen.secretKey.hint}"/>
+    <attr sel="#pr-l-score" th:text="#{protection.screen.score}"/>
+    <attr sel="#pr-score" th:attr="value=${settings.captcha().scoreThreshold()}"/>
+    <attr sel="#pr-h-score" th:text="#{protection.screen.score.hint}"/>
+
+    <attr sel="#pr-save" th:text="#{protection.screen.save}"/>
+</thlogic>

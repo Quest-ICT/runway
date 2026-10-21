@@ -1,0 +1,371 @@
+# Runway kernel — default configuration (classpath).
+#
+# This is the reference/default copy. At runtime the operator's external override at
+# <external>/application.yml takes precedence (the first-run wizard creates it). Keep this file as the
+# documented set of defaults.
+
+spring:
+  # The operator's external override (the house convention: application.yml at the external-folder root).
+  # The first-run wizard writes it with the application-superadmin pin; on relaunch it is loaded ABOVE
+  # these classpath defaults, flipping the platform from WIZARD to ACTIVE mode. Optional until then.
+  config:
+    import: "optional:file:external/application.yml"
+  web:
+    resources:
+      # The page controller owns the catch-all '/**'; Boot's default static '/**' mapping is off so it can
+      # never shadow a page. Per-plugin static assets are served by their own high-precedence handler at
+      # /__plugin/<id>/static/** (PluginStaticResourceConfig); other static trees get explicit handlers too.
+      add-mappings: false
+  servlet:
+    multipart:
+      # The largest upload the platform accepts is a site backup zip (Backups screen restore-from-upload).
+      # 256 MB comfortably covers a tenant's templates + static assets + plugin-generated data; the 1 MB Boot
+      # default would reject any real backup. A bound per-request cap still keeps an unbounded body from
+      # exhausting disk/heap before the security chain (and MANAGE_BACKUPS/master gate) even runs.
+      max-file-size: 256MB
+      max-request-size: 256MB
+  thymeleaf:
+    servlet:
+      # BUFFER the whole rendered view before writing it to the response, instead of STREAMING it as it renders
+      # (Boot's default). Streaming flushes partial output, so an exception raised MID-render (e.g. a plugin
+      # fragment with a bad expression) commits the response before the container can dispatch to /error — the
+      # client then gets a blank/truncated page and no error page (a silent failure). Buffering means a render
+      # fault surfaces BEFORE any byte is written, so RunwayErrorController's page is shown every time. Console
+      # and admin pages are small, so the memory cost is negligible; correctness (never a silent blank) wins.
+      produce-partial-output-while-processing: false
+  task:
+    scheduling:
+      # The one scheduler pool every @Scheduled method runs on — kernel (automatic backups, when enabled) and plugins
+      # (e.g. a periodic submission flush). Scheduling is always on (SchedulingConfig); these size and name the
+      # pool Boot builds. 4 threads, so a long nightly backup cannot hold up short periodic plugin work; threads are
+      # created only as tasks are scheduled. The prefix makes them recognisable in a thread dump.
+      pool:
+        size: 4
+      thread-name-prefix: runway-scheduler-
+  security:
+    # THE filter-order fix (mirrors FilterOrder.CORE_SECURITY): Spring Security's whole chain runs inside one
+    # servlet filter, registered by default at order -100 — BEFORE the multi-tenancy filters (SiteContextFilter
+    # at FilterOrder.CORE_SITE_CONTEXT=50). That would run the security chains with NO site bound, silently
+    # breaking tenant isolation. Pinning it to 100 keeps the ladder SiteContext(50) -> Suspended(60) ->
+    # Quarantined(65) -> Security(100), so a chain can read SiteResolver.current(). FilterChainOrderTest guards it.
+    filter:
+      order: 100
+
+# Actuator: the systemd health probe (public) plus a Prometheus scrape endpoint. /actuator/prometheus is
+# gated to application superadmins/admins by AppSecurityConfig (only /actuator/health is public), so metrics
+# are never exposed anonymously. A monitoring system scrapes it with app-operator credentials, OR — for an
+# unattended scraper — with the optional bearer token below (runway.metrics.scrape-token), which grants access
+# to /actuator/prometheus only. See monitoring/README.md for a prometheus.yml scrape snippet + alert rules +
+# a Grafana dashboard. Per-site request timing is exposed as runway_http_server_requests_seconds_* (tag: site).
+management:
+  # Micrometer's stock disk.free/disk.total binder is OFF. It defaults to path "." — the JVM working directory —
+  # and the launcher cds to RUNWAY_HOME, the VERSIONED release dir, so its label read
+  # `path="/opt/runway-<version>/."`. Every upgrade minted a new series and abandoned the old one, and any panel,
+  # alert or recording rule pinning `path=` silently stopped matching (empty result, never an error). It also
+  # measured the wrong filesystem: what matters is where DATA is written, not where the jar lives.
+  # Replaced by the label-free runway_storage_free_bytes / runway_storage_total_bytes gauges (KernelMetrics),
+  # which read the resolved external data directory and therefore stay both stable and correct across upgrades.
+  # (Suppressed by a MeterFilter in MetricsConfig rather than by config: Boot rejects an empty `paths` list, and
+  # excluding the whole SystemMetricsAutoConfiguration would also lose uptime/cpu/file-descriptor metrics.)
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      # Public probe sees only UP/DOWN; the storage detail (external path) shows only to authenticated operators.
+      show-details: when-authorized
+
+server:
+  servlet:
+    session:
+      # The HTTP session idle timeout — the defined SOURCE of the session TTL. 30m matches today's container
+      # default, so setting it explicitly changes no behaviour; it exists so the value has ONE home. When
+      # clustering is on (runway.cluster.enabled=true) this SAME value should be mirrored to
+      # runway.cluster.session-ttl, which feeds the Hazelcast sessions-map max-idle-seconds (Hazelcast, not the
+      # container, then evicts idle sessions). Keep the two in step.
+      timeout: 30m
+  # The gated TrustedForwardedHeaderFilter (FilterOrder.CORE_FORWARDED, outermost) is the SOLE handler of
+  # X-Forwarded-* / Forwarded. Keep the container's native handling OFF — it would trust those headers from
+  # ANY peer, letting a directly-reachable instance spoof its IP, host and scheme.
+  forward-headers-strategy: none
+  # Container-native gzip is OFF on purpose: the kernel's single CompressionFilter (FilterOrder.CORE_COMPRESSION)
+  # owns BOTH gzip and brotli, so there is one compression decision and no double-encoding. Tune it under
+  # runway.compression.* below — NOT here.
+  compression:
+    enabled: false
+  error:
+    # RunwayErrorController (an ErrorController bean) already replaces Boot's BasicErrorController; disabling the
+    # whitelabel view too makes the intent explicit and removes any fallback path to Spring's default page.
+    whitelabel:
+      enabled: false
+  # Self-managed TLS: Boot's own SSL wiring, fed from the operator-facing runway.tls.* keys below (one knob
+  # set, no duplicated config). Default OFF — TlsStartup fail-fasts on an inconsistent enablement.
+  ssl:
+    enabled: ${runway.tls.enabled:false}
+    key-store: ${runway.tls.keystore:}
+    key-store-password: ${runway.tls.keystore-password:}
+    key-store-type: ${runway.tls.keystore-type:PKCS12}
+    key-alias: ${runway.tls.key-alias:runway}
+
+runway:
+  # A human-friendly name for THIS node, shown on the app-realm "About Runway" page and worth setting when
+  # several nodes run the platform behind a load balancer (so a page or log line can be traced to one node).
+  # Blank (the default) falls back to the OS host name.
+  node:
+    name: ""
+
+  # Operator console. `ui-languages` are the languages the console's topbar language switcher offers (BCP-47
+  # codes, in display order); each needs an `operator-messages[_xx].properties` bundle and an `op.lang.<code>`
+  # label. `default-language` is the fallback when the browser requests none offered. The chosen language is
+  # remembered per operator in a cookie and never crosses into a tenant site's own locale.
+  operator:
+    ui-languages: [en, es]
+    default-language: en
+
+  # Where the operator console (/__app, /app/login, /app/logout, /app/forgot-password, /app/reset) answers. Unset
+  # (the default): on the default site's host names and on host names that serve no site (the server's IP address,
+  # localhost), never on a host name that serves another site, whose scripts could act as a signed-in operator
+  # there. Set it to answer ONLY on the listed names (case and port ignored); every other host gets a plain 404.
+  # Set it only in external/application.yml (a wrong value locks the console; the file is the way back in), then
+  # restart. Each node of a cluster reads its own file.
+  # console:
+  #   hosts: [ops.example.com, 10.0.0.5]
+
+  # Response compression. The kernel's single filter encodes text/markup/script/JSON/SVG responses, preferring
+  # Brotli (when the client accepts `br` and the brotli4j native lib loaded) and falling back to gzip. Applies
+  # everywhere (public sites + operator console + static assets). A response larger than `max-buffer-bytes`
+  # streams through uncompressed rather than being buffered whole. Behind a TLS-terminating proxy that already
+  # compresses, set `enabled: false` and let the proxy do it.
+  compression:
+    enabled: true
+    max-buffer-bytes: 4194304   # 4 MiB
+    gzip:
+      enabled: true
+      min-size: 1024
+    brotli:
+      enabled: true
+      quality: 5                # 0..11; 4-6 is the sensible on-the-fly range
+      min-size: 1024
+
+  # Content-Security-Policy. The kernel's CspFilter (FilterOrder.CORE_CSP_FINALIZE — outer of head-injection,
+  # inner of compression) sets ONE policy header on every text/html response (public sites AND operator console).
+  # Browsers POST violations to the in-kernel collector at `report-uri` (/__csp-report), which logs each at WARN.
+  #
+  #   mode: report   -> Content-Security-Policy-Report-Only  (the DEFAULT). Violations are REPORTED, never
+  #                     blocked — so CSP can NEVER break a page out of the box. Watch the log, widen
+  #                     `extra-hosts` for any legitimate resource that gets flagged, THEN switch to enforce.
+  #   mode: enforce  -> Content-Security-Policy                (opt-in). Violations are BLOCKED. Only flip this
+  #                     after reviewing the report-only violations.
+  #   mode: off      -> no header at all.
+  #
+  # Self-only by design: Runway self-hosts every vendor asset under /__assets/**, so the default policy needs NO
+  # third-party CDN host. script-src is 'self' (NO 'unsafe-inline'): Runway ships no
+  # executable inline <script> — the first-party ones (console page-editor/messages/restart clients + the shared
+  # reCAPTCHA-v3 client) are served from /__assets/**, and JSON-LD is type="application/ld+json" data (not governed
+  # by script-src). style-src KEEPS 'unsafe-inline' (inline style= attributes remain — a separate refactor). CSP is
+  # ADDITIVE: it never weakens X-Frame-Options (SAMEORIGIN) or X-Content-Type-Options (nosniff), which Spring
+  # Security still owns.  [Keep script-src in sync with RunwayCspProperties.scriptSrc — a CspHeaderBindingTest binds
+  # this file and asserts the emitted header has no 'unsafe-inline', so the two can't drift.]
+  #
+  # CAPTCHA interaction: the login/widget CAPTCHA (Google reCAPTCHA v2 or v3, the only provider since 0.4.0) loads a
+  # provider script and an iframe. The protection plugin's CspHostContributor ALREADY allowlists www.google.com and
+  # www.gstatic.com — scoped to script-src/connect-src/frame-src only — so you do NOT add them to `extra-hosts`.
+  # `extra-hosts` is for OTHER third-party resources an operator adds (a CDN, an analytics host); it widens the full
+  # fetch surface + frame-src. Each *-src below is one directive's value; override wholesale only if you know why.
+  # Per-site health probe. GET https://<tenant-host>/__health answers for THAT site — the global /actuator/health
+  # is platform-wide (JVM + storage) and cannot tell you whether one tenant is serving. It runs outer of the
+  # suspended / maintenance / quota / floor gates, so it REPORTS those states instead of being 503'd by them.
+  #   Public body  : {"status":"up|degraded|down","time":...} — status only; the CAUSE is withheld because
+  #                  "suspended" is an operator decision about a tenant and must not be a scrapeable public field.
+  #   token        : unlocks the detail body (state, site id, checks) via `Authorization: Bearer <token>`. Blank
+  #                  by default = detail disabled. A wrong/absent token silently returns the PUBLIC shape and
+  #                  never a 401, so this can never be a credential oracle or turn a typo into an outage.
+  #                  It is a SECRET: set it in the external application.yml (already chmod 600), not here.
+  #   content-check: also verify the site can actually render (home page routable + _master.html present) so the
+  #                  probe cannot report green for a site whose every request 500s. Memoized for the TTL below.
+  # The path is fixed and NOT configurable — a configurable path could not be reserved against tenant content.
+  # Site reload — re-read EVERYTHING for one site without a restart.
+  #   POST http://127.0.0.1:8080/__reload/site/<id>   -H "Authorization: Bearer <token>"
+  #   POST http://127.0.0.1:8080/__reload/sites       (every site)
+  # Per-site state (site.yml, per-site plugin config, icons, templates, i18n, SEO, authz stores) is read through
+  # snapshot caches invalidated when the PLATFORM writes a site — so editing those files directly changes nothing
+  # until a restart, silently. This endpoint is the out-of-band path: it evicts the site record and publishes the
+  # same change event the platform itself would, so every per-site cache re-reads (and the cluster relay repeats
+  # it to peer nodes).
+  # THREE GATES: inert unless `token` is set (blank => 404, the feature is absent); LOOPBACK ONLY (a non-loopback
+  # peer gets 404 — so no firewall rule and no exposure decision); then a constant-time bearer-token compare (a
+  # wrong token is 403, because unlike the health probe this endpoint MUTATES and must fail loudly).
+  # The token is a SECRET: set it in the external application.yml (already 600). Arming it costs one restart;
+  # after that, reloads are restart-free forever.
+  reload:
+    enabled: true
+    token: ""
+
+  health:
+    enabled: true
+    token: ""
+    content-check: true
+    content-check-ttl-seconds: 10
+
+  csp:
+    mode: report
+    default-src: "'self'"
+    script-src: "'self'"
+    style-src: "'self' 'unsafe-inline'"
+    img-src: "'self' data:"
+    font-src: "'self'"
+    connect-src: "'self'"
+    base-uri: "'self'"
+    form-action: "'self'"
+    frame-ancestors: "'self'"
+    report-uri: "/__csp-report"
+    upgrade-insecure-requests: false   # opt-in; turn on once the whole estate is served over https
+    # script-src leads with a per-request 'nonce-<x>'. With strict-dynamic on (below), the nonced KERNEL surfaces
+    # (console / login / recovery / wizard) also emit 'strict-dynamic' — a modern browser then trusts the nonced
+    # scripts (and scripts they load, e.g. reCAPTCHA) and IGNORES the 'self'/host allowlist, closing the
+    # "host allowlist can be bypassed" finding; the allowlist stays as an old-browser fallback. Set false to roll the
+    # whole estate (public pages included) back to the host allowlist without a redeploy.
+    strict-dynamic: true
+    # Public tenant pages: every page response that carries an ETag gets a nonce DERIVED FROM THAT ETAG
+    # (HMAC of the page version with the secret in <external>/csp-nonce.key, created 0600 on first need), plus
+    # 'strict-dynamic'; the response edge stamps the same nonce on every executable <script> in the body (JSON-LD
+    # and other data blocks excepted). Stable per content version, so shared caching and 304s keep working.
+    # Responses without a page ETag (error pages, plugin endpoints, maintenance) keep the host allowlist.
+    # Rotate: delete csp-nonce.key and restart (every page ETag moves with it). Needs strict-dynamic: true.
+    public-strict-dynamic: true
+    extra-hosts: []
+
+  # HTTP caching. The `Cache-Control` header the kernel writes on public-facing responses, so a CDN / browser
+  # can serve within a freshness window WITHOUT revalidating on every hit. Every public page still carries a
+  # strong ETag + Last-Modified, so a content edit changes the validator and a revalidating client sees the
+  # new page immediately — `max-age` only bounds how long the CURRENT version may be served without asking.
+  #   public-pages : the default for a rendered public page. A page overrides it per-page via its .meta.yml
+  #                  `cacheControl` field. Set to "no-cache" to force revalidation on every hit (the pre-0.2
+  #                  behaviour) if your content changes constantly and the ETag round-trip is acceptable.
+  #   assets       : the site's public static files (/static/**), which change rarely (an edit lands under a
+  #                  new URL) and so cache for a day.
+  #   plugin-assets: a plugin's bundled files (/__plugin/<id>/static/**): an hour, then revalidated against a
+  #                  content ETag. A plugin file keeps its name across upgrades, hence shorter than a site's files.
+  #   immutable-assets / immutable-extensions : assets served under a content-addressed / never-edited-in-place
+  #                  name get a 1-year `immutable` lifetime (zero revalidation on repeat visits). By default only
+  #                  web-font types qualify (woff2/woff/ttf/otf/eot) — a font is replaced by shipping a NEW file,
+  #                  never edited in place. Add "css","js" ONLY if your build fingerprints those filenames; leave
+  #                  them out for plain editable site.css/app.js. The doc/ download subtree never gets this.
+  #   The editor preview and error responses are always no-store (not configurable: there is no safe looser value).
+  http-cache:
+    public-pages: "public, max-age=300, stale-while-revalidate=60"
+    assets: "public, max-age=86400"
+    plugin-assets: "public, max-age=3600"
+    immutable-assets: "public, max-age=31536000, immutable"
+    immutable-extensions: ["woff2", "woff", "ttf", "otf", "eot"]
+
+  # Observability. Route-level and JVM metrics come from Actuator for free; Runway adds platform gauges and a
+  # per-site request timer. `scrape-token` (blank = off) lets an unattended Prometheus scrape
+  # /actuator/prometheus with `Authorization: Bearer <token>` instead of an operator login — set it in the
+  # EXTERNAL application.yml (it is a secret). See monitoring/README.md for the scrape config + dashboard/alerts.
+  metrics:
+    scrape-token: ""
+
+  # Optional SELF-MANAGED TLS (default OFF — the expected topology is plain HTTP behind a TLS-terminating
+  # reverse proxy; see runway.proxy below). Enabling it makes the embedded Jetty terminate TLS itself:
+  # point `keystore` at a PKCS12 holding the certificate + key, set its password in the EXTERNAL
+  # application.yml (chmod 600 — it is a secret; never here), and restart. Startup FAILS FAST when enabled
+  # with a missing/unreadable keystore or a blank password, and one log line always states where TLS
+  # terminates. `redirect-http` adds a plain-HTTP listener (default port 80 — binding it needs
+  # CAP_NET_BIND_SERVICE, see scripts/runway.service) that 301-redirects everything to HTTPS EXCEPT
+  # /.well-known/acme-challenge/, served as plain files from `acme-challenges-dir` so Let's Encrypt HTTP-01
+  # (certbot/acme.sh --webroot) keeps working with the redirect on.
+  # Master key for AES-256-GCM encryption of secret-typed settings (stored ENC(...)): runway.security.secret-key.
+  # Set it in the EXTERNAL application.yml (chmod 600), never here. It is SHA-256'd into the AES key with no
+  # stretching, so it MUST be a long, high-entropy RANDOM string — generate with `openssl rand -base64 48`, not a
+  # passphrase. Blank = the cipher is unavailable and secret settings cannot be saved (the form says so). Back it
+  # up: losing/changing it makes existing ENC(...) values undecryptable. (Until 1.0.0 this example sat under
+  # spring.security, where an uncommented key binds to nothing.)
+  # security:
+  #   secret-key: ""
+
+  tls:
+    enabled: false
+    keystore: ""
+    keystore-password: ""
+    keystore-type: PKCS12
+    key-alias: runway
+    # Watch the keystore file and hot-reload the certificate when it changes on disk, so a renewal (e.g. an
+    # ACME client's --deploy-hook rewriting the PKCS12) is picked up WITHOUT a restart. Only new TLS
+    # connections use the new certificate; a bad/half-written keystore is logged and the old one keeps serving.
+    watch-keystore: true
+    # Jetty's SNI/Host consistency check (secure default). Turn off only for a re-encrypting proxy that
+    # connects by IP while forwarding the real Host.
+    sni-host-check: true
+    redirect-http:
+      enabled: false
+      port: 80
+      status: 301          # or 308 to preserve the request method
+      acme-challenges-dir: ./external/acme-challenges
+  proxy:
+    # Honor X-Forwarded-* only from these trusted proxy peers. The bound default (no entries) is "trust
+    # nothing"; this classpath default seeds loopback for a same-host proxy. An off-host proxy must add its
+    # exact IP/CIDR (prefer the exact proxy IP over a broad range). Empty list = every request attributed to
+    # its direct connection.
+    forwarded-headers: true
+    trusted-cidrs:
+      - "127.0.0.1/32"
+      - "::1/128"
+  # Stored-backup retention (app-level, not tenant-editable). After a site backup is written, its own
+  # older stored backups are pruned so `backups/<id>/` does not grow without bound. Both limits apply
+  # independently; either set to 0 disables that dimension. The just-written backup is always kept.
+  backups:
+    retention:
+      max-count: 30      # keep at most this many stored backups per site (newest kept); 0 = unlimited
+      max-age-days: 0    # also prune backups older than this many days; 0 = no age limit
+    # Automatic backups (opt-in). When enabled, a scheduled task backs up EVERY site on the cron, each site
+    # isolated (one failure never stops the rest); retention + off-host mirror apply as for a manual backup.
+    # When disabled (default) no backup is ever scheduled (the shared scheduler pool above still serves plugins'
+    # periodic work). Manual console backups work regardless.
+    schedule:
+      enabled: false
+      cron: "0 30 2 * * *"   # Spring 6-field cron: sec min hour day month weekday — 02:30 daily
+    # Optional OFF-HOST mirror: absolute path (ideally a mounted remote share / second disk) that every new
+    # backup is copied into as <offsite-dir>/<siteId>/<name>.zip, so a copy survives loss of this host.
+    # Best-effort (an unmounted target logs a warning, never fails the local backup); off-host copies are
+    # pruned by the retention policy above. Blank = disabled (backups live only under the deployment-root).
+    offsite-dir: ""
+  # Per-site bandwidth metering + optional enforcement (app-level, never tenant-editable). Metering is on by
+  # default (aggregate byte counts only). The quota is an OPTIONAL outbound cap: when a site's rolling 30-day
+  # served bytes exceed its effective cap, its PUBLIC traffic gets 503 (console + login stay reachable). Off
+  # by default (default-monthly-bytes 0 = unlimited). Set a global default and/or per-site overrides:
+  bandwidth:
+    quota:
+      default-monthly-bytes: 0   # 0 = no cap; e.g. 53687091200 for 50 GiB/site/30-days
+      per-site: {}               # e.g. { acme: 10737418240, blog: 0 }  (bytes; 0 = unlimited for that site)
+
+  # Horizontal clustering — OPT-IN, default OFF. Off is today's single-node footprint EXACTLY: no Hazelcast
+  # member, no Spring Session, the container's own HttpSession is used — ZERO overhead. Turn it on ONLY to run
+  # several Runway nodes behind a load balancer that must share sessions (so a request may land on any node and
+  # still see the same login). Enabling it moves sessions into a Hazelcast IMap shared by all nodes; the
+  # per-realm/per-site isolation is unchanged (it lives as HttpSession ATTRIBUTES, which a Hazelcast-backed
+  # session carries across the cluster for free — no security-config change). Set enabled:true only in the
+  # EXTERNAL, post-wizard application.yml (clustering is meaningless during first-run WIZARD mode, and the
+  # ACTIVE-mode gate enforces that structurally).
+  cluster:
+    enabled: false
+    cluster-name: runway         # members/clients only join peers sharing this name
+    topology: embedded           # embedded | client-server
+    # session-ttl feeds the sessions-map max-idle-seconds (Hazelcast evicts idle sessions). Keep it in step
+    # with server.servlet.session.timeout above — same value, two homes (container vs grid).
+    session-ttl: 30m
+    sessions-map-name: runway.sessions   # the distributed map holding sessions
+    events-topic-name: runway.events     # distributed topic for cross-node invalidation events (the cluster event relay)
+    # Embedded topology — each Runway JVM is itself a Hazelcast member (no external grid to run).
+    embedded:
+      discovery: tcp-ip          # tcp-ip (explicit member list; recommended) | multicast (same-subnet dev)
+      members: []                # for tcp-ip, e.g. ["10.0.0.1:5701", "10.0.0.2:5701"]
+      port: 5701
+      port-auto-increment: true  # try the next port if 5701 is taken (several members per host)
+    # Client-server topology — Runway connects as a CLIENT to a separately-operated Hazelcast cluster.
+    client:
+      addresses: []              # e.g. ["hz1.internal:5701", "hz2.internal:5701"]
+      smart-routing: true

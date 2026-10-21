@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Review</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ri-pretitle">Site</div>
+                <h2 class="page-title" id="ri-heading">Review</h2>
+            </div>
+            <div class="col-auto ms-auto"><a class="btn" id="ri-back" href="/__admin/review">Back to the queue</a></div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <span class="badge me-2" id="ri-kind">kind</span>
+            <span id="ri-by">Submitted by someone</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-5">
+            <!-- Quality findings of the proposed content. On an enforced/reviewed site an ERROR blocks approval. -->
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title" id="ri-l-quality">Page quality</h3></div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert" id="ri-blocks">Approval is refused until the errors
+                        are fixed.</div>
+                    <div class="text-secondary" id="ri-clean">No issues found.</div>
+                    <ul class="list-unstyled mb-0" id="ri-findings">
+                        <li class="ri-f d-flex align-items-start mb-2">
+                            <span class="badge ri-f-badge mt-1">warning</span>
+                            <span class="ri-f-msg ms-2">message</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- The approver's two answers. Approve carries the fingerprint of what this screen shows, so content
+                 an editor saves after this screen was opened is never approved unseen. -->
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title" id="ri-l-decide">Decision</h3></div>
+                <div class="card-body">
+                    <form id="ri-approve-form" method="post" class="mb-3">
+                        <input id="ri-approve-csrf" type="hidden" name="_csrf" value="">
+                        <input id="ri-fingerprint" type="hidden" name="fingerprint" value="">
+                        <button type="submit" class="btn btn-success" id="ri-approve">Approve and publish</button>
+                    </form>
+                    <form id="ri-return-form" method="post">
+                        <input id="ri-return-csrf" type="hidden" name="_csrf" value="">
+                        <label class="form-label" id="ri-l-note" for="ri-note">Note to the editor</label>
+                        <textarea class="form-control mb-2" id="ri-note" name="note" rows="4" maxlength="2000"
+                                  required></textarea>
+                        <button type="submit" class="btn btn-outline-warning" id="ri-return">Send back</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- What the revision changes in the page's settings (only the changed fields). -->
+            <div class="card mb-3" id="ri-meta-card">
+                <div class="card-header"><h3 class="card-title" id="ri-l-meta">Settings changed</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-sm card-table">
+                        <thead>
+                        <tr>
+                            <th scope="col" id="ri-mh-field">Field</th>
+                            <th scope="col" id="ri-mh-before">Live</th>
+                            <th scope="col" id="ri-mh-after">Proposed</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr class="ri-meta-row">
+                            <td class="ri-m-field">field</td>
+                            <td class="ri-m-before text-secondary text-break">before</td>
+                            <td class="ri-m-after text-break">after</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body text-secondary" id="ri-meta-none">No settings changed.</div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <!-- Side-by-side renders: the live page and the proposal (a first publication shows the proposal only).
+                 Sandboxed exactly like the editor's preview. -->
+            <div class="row g-2 mb-3">
+                <div class="col" id="ri-live-col">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title" id="ri-l-live">Live</h3></div>
+                        <div class="card-body p-0">
+                            <iframe id="ri-live" title="live page" sandbox="allow-scripts"
+                                    style="width:100%;height:60vh;border:0"></iframe>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title" id="ri-l-proposed">Proposed</h3></div>
+                        <div class="card-body p-0">
+                            <iframe id="ri-proposed" title="proposed page" sandbox="allow-scripts"
+                                    style="width:100%;height:60vh;border:0"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line diffs of the page source against the live files. -->
+            <div class="card mb-3" id="ri-body-card">
+                <div class="card-header"><h3 class="card-title" id="ri-l-body">Page HTML changes</h3></div>
+                <div class="card-body text-secondary" id="ri-body-same">No changes.</div>
+                <div class="card-body text-secondary" id="ri-body-large">Too large to compare line by line; use the
+                    side-by-side preview.</div>
+                <div class="table-responsive" id="ri-body-table">
+                    <table class="table table-sm card-table font-monospace rw-diff">
+                        <tbody>
+                        <tr class="ri-d-row"><td class="ri-d-mark w-1">+</td><td class="ri-d-text">line</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card mb-3" id="ri-logic-card">
+                <div class="card-header"><h3 class="card-title" id="ri-l-logic">Decoupled logic changes</h3></div>
+                <div class="card-body text-secondary" id="ri-logic-same">No changes.</div>
+                <div class="card-body text-secondary" id="ri-logic-large">Too large to compare line by line.</div>
+                <div class="table-responsive" id="ri-logic-table">
+                    <table class="table table-sm card-table font-monospace rw-diff">
+                        <tbody>
+                        <tr class="ri-d-row"><td class="ri-d-mark w-1">+</td><td class="ri-d-text">line</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .rw-diff td { white-space: pre-wrap; word-break: break-all; padding-top: .1rem; padding-bottom: .1rem; }
+        .rw-diff .rw-d-added { background: rgba(47, 179, 68, .12); }
+        .rw-diff .rw-d-removed { background: rgba(214, 57, 57, .12); }
+        .rw-diff .rw-d-fold td { color: var(--tblr-secondary); font-style: italic; }
+    </style>
+</div>
+</body>
+</html>

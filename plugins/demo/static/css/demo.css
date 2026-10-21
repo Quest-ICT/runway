@@ -1,0 +1,59 @@
+/*
+ * runway-demo plugin styles — served at /__plugin/runway-demo/static/css/demo.css.
+ * Injected into tenant pages by the DemoAnalyticsHead HeadContributor (when the notice is enabled) and linked by
+ * the feedback form itself; styles the notice and feedback widgets. Served from the plugin's own namespace — never copied
+ * into a tenant.
+ */
+.rw-demo-notice {
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid transparent;
+    font: 0.95rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.rw-demo-notice-info {
+    background: #e7f5ff;
+    border-color: #a5d8ff;
+    color: #1864ab;
+}
+
+.rw-demo-notice-warning {
+    background: #fff9db;
+    border-color: #ffe066;
+    color: #997404;
+}
+
+.rw-demo-notice-danger {
+    background: #fff5f5;
+    border-color: #ffc9c9;
+    color: #c92a2a;
+}
+
+/* The public feedback form (DemoFeedbackWidget). */
+.rw-demo-feedback form {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 36rem;
+    font: 0.95rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.rw-demo-feedback textarea {
+    font: inherit;
+    padding: 0.5rem;
+}
+
+.rw-demo-feedback button {
+    justify-self: start;
+    font: inherit;
+    padding: 0.4rem 1rem;
+}
+
+/* The honeypot: off-screen for people (and aria-hidden for assistive technology); a naive bot still fills it. */
+.rw-demo-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}

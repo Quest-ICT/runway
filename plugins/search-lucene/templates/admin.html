@@ -1,0 +1,28 @@
+<!-- Admin status fragment — the filename `admin` makes the host render it below this plugin's per-tenant
+     settings form (the titleBoost tuning). Bare fragment; binding in admin.th.xml. -->
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title" id="la-title">Lucene index status</h3></div>
+    <div class="card-body">
+        <div class="datagrid">
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="la-l-engine">Engine</div>
+                <div class="datagrid-content" id="la-engine">search/lucene</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="la-l-pages">Indexed pages</div>
+                <div class="datagrid-content" id="la-pages">0</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="la-l-storage">Storage</div>
+                <div class="datagrid-content" id="la-storage">heap</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="la-l-boost">Title boost</div>
+                <div class="datagrid-content" id="la-boost">8.0</div>
+            </div>
+        </div>
+        <p class="text-secondary small mt-2 mb-0" id="la-note">
+            This engine supersedes the built-in search whenever it is installed. The index refreshes
+            automatically as pages change; no manual rebuild is needed.</p>
+    </div>
+</div>

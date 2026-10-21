@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Static files</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="sf-pretitle">Site</div>
+                <h2 class="page-title" id="sf-heading">Static files</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="note" id="sf-info">
+        <div id="sf-info-text">Stylesheets, scripts, images, fonts and media your pages use, served at /static/…</div>
+    </div>
+
+    <p class="text-secondary mb-3" id="sf-storage">Storage used.</p>
+    <div class="alert alert-warning" role="status" id="sf-over">
+        <span id="sf-over-text">This site is over its storage limit.</span>
+    </div>
+
+    <ol class="breadcrumb mb-3" aria-label="Folder" id="sf-crumbs">
+        <li class="breadcrumb-item"><a id="sf-crumb-root" href="/__admin/static">static</a></li>
+        <li class="breadcrumb-item" id="sf-crumb"><a class="sf-crumb-link" href="#">folder</a></li>
+    </ol>
+
+    <div class="alert alert-secondary" role="note" id="sf-docs-note">
+        <span id="sf-docs-note-text">This folder holds the site's documents.</span>
+        <a id="sf-docs-link" href="/__admin/documents">Documents</a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.static">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="name" id="sf-h-name">Name</th>
+                    <th scope="col" data-col-key="size" id="sf-h-size">Size</th>
+                    <th scope="col" data-col-key="modified" id="sf-h-modified">Modified</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="sf-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="sf-empty"><td colspan="4" class="text-secondary text-center" id="sf-empty-text">This folder is empty.</td></tr>
+                <tr id="sf-row">
+                    <td>
+                        <a class="sf-folder" href="#"><i class="fa-solid fa-folder me-1" aria-hidden="true"></i><span class="sf-folder-name">folder</span></a>
+                        <a class="sf-file" href="#" target="_blank" rel="noopener"><i class="fa-regular fa-file me-1" aria-hidden="true"></i><span class="sf-file-name">file.css</span></a>
+                    </td>
+                    <td class="sf-size text-secondary">size</td>
+                    <td class="sf-modified text-secondary">date</td>
+                    <td class="text-nowrap">
+                        <button type="button" class="btn btn-sm sf-copy" data-copy="">Copy URL</button>
+                        <a class="btn btn-sm sf-docs" href="/__admin/documents">Documents</a>
+                        <form class="d-inline sf-delete-form" method="post" action="/__admin/static/delete">
+                            <input class="sf-dcsrf" type="hidden" name="_csrf" value="">
+                            <input class="sf-dpath" type="hidden" name="path" value="">
+                            <button type="submit" class="btn btn-sm btn-danger sf-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row row-cards" id="sf-forms">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="sf-l-upload">Upload files</h3></div>
+                <div class="card-body">
+                    <form method="post" action="/__admin/static/upload" enctype="multipart/form-data" id="sf-upload-form">
+                        <input id="sf-ucsrf" type="hidden" name="_csrf" value="">
+                        <input id="sf-udir" type="hidden" name="dir" value="">
+                        <input class="form-control mb-2" type="file" name="files" id="sf-files" multiple required aria-labelledby="sf-l-upload">
+                        <label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="replace" value="true" id="sf-replace">
+                            <span class="form-check-label" id="sf-replace-label">Replace files with the same name</span></label>
+                        <button class="btn btn-primary" type="submit" id="sf-upload">Upload</button>
+                        <small class="form-hint mt-2" id="sf-upload-hint">Allowed types and size.</small>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="sf-l-folder">New folder</h3></div>
+                <div class="card-body">
+                    <form method="post" action="/__admin/static/folder" id="sf-folder-form">
+                        <input id="sf-fcsrf" type="hidden" name="_csrf" value="">
+                        <input id="sf-fdir" type="hidden" name="dir" value="">
+                        <div class="input-group">
+                            <input class="form-control" name="name" id="sf-fname" required pattern="[A-Za-z0-9_\-][A-Za-z0-9._\-]{0,63}" aria-labelledby="sf-l-folder" autocomplete="off" spellcheck="false">
+                            <button class="btn" type="submit" id="sf-fcreate">Create</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+# =============================================================================
+#  Runway Search — Lucene engine
+#  A full-text SiteSearchEngine (title + description + body) with per-locale
+#  analysis (stemming), a TIERED constant-score ranking (exact phrase → near
+#  phrase → all-terms → any-terms), FUZZY matching, and query-focused <mark>
+#  highlighting — a real upgrade over the built-in substring engine.
+#
+#  Indexes the search plugin's SearchCorpus (the site's published pages and
+#  content items minus the site's search exclusions — the same corpus the
+#  built-in engine indexes), drops a site's index on every change the kernel
+#  announces (a SiteEventListener), and implements the engine SPI's manual
+#  reindex hook. Since 3.0.0 it links only the Runway SPI and the search SPI.
+#
+#  Lucene lives in the standalone `lucene-provider` plugin: this plugin does not
+#  bundle Lucene in its own lib/. It declares two hard dependencies:
+#    - requires: search >= 2.2.0     — publishes SiteSearchEngine, SearchCorpus and SearchHit.terms
+#    - requires: lucene-provider == 10.4.0 — the exact Lucene binaries it is compiled against
+#
+#  The install folder name MUST equal this `id`: external/plugins/search-lucene/.
+# =============================================================================
+id: search-lucene
+name: Search — Lucene engine
+version: 3.3.0
+
+# The @Configuration registered before refresh. Package mx.quest.searchlucene lives OUTSIDE mx.quest.runway.
+mainClass: mx.quest.searchlucene.SearchLuceneConfig
+
+# HARD dependencies (both must be satisfied or this plugin is skipped with a reason, shown "Blocked" in the UI):
+#   - search >= 2.1.0: publishes the SiteSearchEngine SPI this plugin implements and the SearchCorpus it indexes.
+#     `>=` (not exact) because the search SPI is API-stable (it grows by default methods and kept constructors only);
+#     2.2.0 is the floor (3.2.0): this plugin keeps one index per language, which a visitor reaches only when the
+#     search box on a localized page submits to the results page in that language — search 2.2.0 does that (2.1.x
+#     always submitted to the default-language results page, so every query arrived in the default language).
+#     Before 3.2.0 the floor was 2.1.0, the first search with the SearchHit constructor carrying the matched words.
+#   - lucene-provider == 10.4.0: EXACT pin — this plugin is compiled against the 10.4.0 Lucene binaries the
+#     provider ships; a different Lucene could be binary-incompatible, so `==` (not `>=`).
+requires: [ "search >= 2.2.0", "lucene-provider == 10.4.0" ]
+
+# The lowest Runway SPI whose services this plugin uses (PluginSettings, Sites, SiteEventListener and the
+# CatalogEntry the corpus hands out). A kernel below SPI 1.0.0 BLOCKS this plugin at startup with a reason.
+requiresSpi: ">=1.0.0"
+
+# --- Grantable control-point permission (gates the per-tenant tuning editor) -----------------------------
+permissions:
+  - { id: settings, realm: tenant, label: searchlucene.perm.settings, defaultRoles: [] }
+
+# --- App-level settings (superadmin): PLATFORM concerns only — WHERE the index bytes live. -----------------
+#     A tenant-editable filesystem path would be an isolation/abuse risk, so storage is app-level, not per-site.
+#     Applied on RESTART (bound by the plugin's own @ConfigurationProperties bean from
+#     external/plugin-settings/search-lucene.yml).
+#       storage   : heap → in-memory ByteBuffersDirectory (default; no disk, rebuilt on boot)
+#                   disk → MMapDirectory under indexRoot/<siteId> (survives restart, memory-mapped)
+#       indexRoot : the root folder for disk indexes (per-site subfolders created under it, traversal-guarded)
+settings:
+  - { key: storage,   type: enum,   values: [heap, disk], default: heap, label: searchlucene.set.storage }
+  - { key: indexRoot, type: string, default: "./external/plugins/search-lucene/index", label: searchlucene.set.indexRoot }
+
+# --- Per-tenant settings (tenant-owned ranking tuning; over sites/<id>/plugins/search-lucene.yml) ----------
+#     Applied IMMEDIATELY (read per query through the SPI's PluginSettings). `decimal` IGNORES range
+#     (authoring guide §4.1), so the engine clamps every knob to a sane range itself. Defaults reproduce the
+#     historical constants, so an unconfigured site ranks exactly as before this schema existed.
+siteSettings:
+  # Fuzzy (typo-tolerant) matching — on/off + how much a fuzzy hit is worth relative to an exact term hit.
+  - { key: fuzzy,            type: boolean, default: true, label: searchlucene.set.fuzzy }
+  - { key: fuzzyBoost,       type: decimal, default: 0.4,  label: searchlucene.set.fuzzyBoost }
+  # Per-field term boosts (applied to the any-terms tier's term matches).
+  - { key: titleBoost,       type: decimal, default: 8.0,  label: searchlucene.set.titleBoost }
+  - { key: descriptionBoost, type: decimal, default: 4.0,  label: searchlucene.set.descriptionBoost }
+  # Tier scores — the constant score a document earns for matching each tier (bigger = stronger relevance
+  # signal). exact-phrase-in-title ≫ exact-phrase-in-body ≫ near-phrase-in-body ≫ all-terms-anywhere.
+  - { key: tierPhraseTitle,  type: decimal, default: 4000, label: searchlucene.set.tierPhraseTitle }
+  - { key: tierPhraseBody,   type: decimal, default: 2000, label: searchlucene.set.tierPhraseBody }
+  - { key: tierNearPhrase,   type: decimal, default: 800,  label: searchlucene.set.tierNearPhrase }
+  - { key: tierAllTerms,     type: decimal, default: 300,  label: searchlucene.set.tierAllTerms }
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/search-lucene/dashboard) ----------------------
+dashboardCards:
+  - { realm: tenant, order: 41, fragment: dashboard, permission: "search-lucene|settings" }

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Runway distribution bundle: a runway-<version>/ tree the installer lays on a host.
+  `mvn -P dist package` (in runway-dist, the last reactor module) zips this
+  (runway-<version>-dist.zip) and then wraps it in the single-file self-extracting
+  runway-<version>.bin (via make-selfextract). Sources are read from the sibling modules'
+  target/ dirs — safe because runway-dist builds after them.
+-->
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.0 http://maven.apache.org/xsd/assembly-2.1.0.xsd">
+    <id>dist</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <baseDirectory>runway-${project.version}</baseDirectory>
+
+    <files>
+        <!-- The repackaged executable jar (spring-boot:repackage ran in runway-app). It carries the
+             `exec` classifier so runway-app's MAIN artifact stays the thin jar for reactor siblings that
+             compile `provided` against it. The launcher globs `runway-app-*-exec.jar`. -->
+        <file>
+            <source>${project.basedir}/../runway-app/target/runway-app-${project.version}-exec.jar</source>
+            <outputDirectory>bin</outputDirectory>
+        </file>
+        <!-- The license and the additional permission for plugins, at the release root. -->
+        <file>
+            <source>${project.basedir}/../LICENSE</source>
+            <outputDirectory>.</outputDirectory>
+        </file>
+        <file>
+            <source>${project.basedir}/../LICENSE-EXCEPTION</source>
+            <outputDirectory>.</outputDirectory>
+        </file>
+        <!-- The bundled third-party components (the exec jar's libraries and the console's front-end assets),
+             their licenses and their NOTICE texts. -->
+        <file>
+            <source>${project.basedir}/../THIRD-PARTY-NOTICES</source>
+            <outputDirectory>.</outputDirectory>
+        </file>
+        <!-- The launcher lives beside the jar so its APP_DIR resolves to the release root. -->
+        <file>
+            <source>${project.basedir}/../scripts/runway.sh</source>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>0755</fileMode>
+        </file>
+
+        <!-- The essential protection plugin, staged under seed/ so install.sh copies it into
+             external/plugins/protection on a fresh install and refreshes it on every upgrade (it moves in
+             lockstep with the kernel; scripts/plugin-seed.sh keeps the previous jar + descriptor as *.bak and
+             backs up edited templates/i18n). A thin jar + its descriptor — the loader picks up any *.jar in the
+             plugin folder. -->
+        <file>
+            <source>${project.basedir}/../runway-plugin-protection/plugin.yml</source>
+            <outputDirectory>seed/plugins/protection</outputDirectory>
+        </file>
+        <file>
+            <source>${project.basedir}/../runway-plugin-protection/target/runway-plugin-protection.jar</source>
+            <outputDirectory>seed/plugins/protection</outputDirectory>
+        </file>
+    </files>
+
+    <fileSets>
+        <!-- The protection plugin's operator-editable resources — the Protection (app + per-site) and DoS
+             screens' templates + i18n bundles. They live at the module root (NOT in the jar, so an operator can
+             edit them), and the plugin loader resolves plugin templates/i18n from the plugin FOLDER — so a fresh
+             install needs the whole bundle staged, not just the jar + descriptor. -->
+        <fileSet>
+            <directory>${project.basedir}/../runway-plugin-protection/templates</directory>
+            <outputDirectory>seed/plugins/protection/templates</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../runway-plugin-protection/i18n</directory>
+            <outputDirectory>seed/plugins/protection/i18n</outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>${project.basedir}/../scripts</directory>
+            <outputDirectory>scripts</outputDirectory>
+            <includes>
+                <include>install.sh</include>
+                <include>plugin-seed.sh</include>
+                <include>runway.service</include>
+                <include>selfextract-stub.sh</include>
+                <include>make-selfextract.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+
+        <!-- Prometheus alert rules + Grafana dashboard (+ their README with the scrape-token config). Shipped
+             as reference assets an operator wires into their own monitoring stack — not read by Runway. -->
+        <fileSet>
+            <directory>${project.basedir}/../monitoring</directory>
+            <outputDirectory>monitoring</outputDirectory>
+            <includes>
+                <include>runway-prometheus-alerts.yml</include>
+                <include>runway-grafana-dashboard.json</include>
+                <include>README.md</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>

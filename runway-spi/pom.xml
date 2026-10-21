@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mx.quest</groupId>
+        <artifactId>runway</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>runway-spi</artifactId>
+    <name>Runway SPI</name>
+    <description>
+        The dependency-free extension API: thin interfaces and immutable model records that
+        plugins and core features alike implement. Depends on nothing in the host. This is
+        RELEASED API — evolve only by ADDING default methods; never reorder/retype existing
+        members; keep old-arity constructors on model records so an extension compiled against
+        an earlier version keeps loading.
+    </description>
+
+    <!--
+        Intentionally NO compile/runtime dependencies. The SPI is the stable artifact
+        extensions compile against; pulling in host code here would defeat its purpose.
+        The only dependency is JUnit at TEST scope — not transitive, so the published
+        artifact remains dependency-free for consumers.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- The license and the plugin permission travel inside the jar, so a jar fetched on its own
+                 still carries its terms. -->
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>LICENSE-EXCEPTION</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- The sources jar ships as a release asset next to the jar (scripts/make-spi-assets.sh), so a plugin
+                 author's IDE shows this module's Javadoc and code. jar-no-fork: no second lifecycle run. -->
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

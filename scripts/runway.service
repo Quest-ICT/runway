@@ -1,0 +1,45 @@
+[Unit]
+Description=Runway (multi-site web platform)
+# Runway is filesystem/YAML-backed — no database service to order against.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=runway
+Group=runway
+Environment=RUNWAY_HOME=/opt/runway
+# JDK/JRE 25+. install.sh rewrites this to the JAVA_HOME it detected on the host
+# (e.g. an Azul Zulu JRE 25). A JRE is fine for running; javac is not needed.
+Environment=JAVA_HOME=/usr/lib/jvm/java-25-openjdk
+# Quote the whole assignment: systemd splits Environment= on whitespace, so an
+# unquoted value with spaces makes the heap flags parse as bogus standalone
+# assignments and get dropped. runway.sh then word-splits ${JAVA_OPTS}.
+Environment="JAVA_OPTS=-Xms256m -Xmx1g"
+ExecStart=/opt/runway/bin/runway.sh -f
+
+# Sandboxing: least privilege on the host filesystem. Everything Runway writes is
+# under its external tree and the launcher log dir.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/runway/external /opt/runway/logs /opt/runway/backups
+# Uncomment ONLY if Runway must bind a privileged port (< 1024) itself — e.g. it
+# terminates TLS on 443 or serves 80 directly rather than behind a reverse proxy.
+# The house default is to run plain HTTP on a high port behind HAProxy/nginx, so
+# these stay off. NoNewPrivileges remains compatible with AmbientCapabilities.
+#AmbientCapabilities=CAP_NET_BIND_SERVICE
+#CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+Restart=on-failure
+RestartSec=5
+# Runway requests a supervised relaunch (the first-run wizard, plugin install) by
+# exiting 42. RestartForceExitStatus makes systemd restart on 42 even though it is
+# a "success" code; SuccessExitStatus keeps both a clean SIGTERM shutdown (143)
+# and the relaunch (42) from being logged as failures.
+RestartForceExitStatus=42
+SuccessExitStatus=143 42
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2 @@
+/* Runway Search plugin: added to every page of a site with search highlighting on. Loads highlight.js only when the address carries the #rw-hl= marker of a search result link, now or after a hashchange. Kept tiny on purpose: it is fetched with every page. */
+(function(){function l(){if(window.__rwHl||location.hash.indexOf('rw-hl=')<0)return;window.__rwHl=1;var s=document.createElement('script');s.src='/__plugin/search/static/highlight.js?v=2.3.0';document.head.appendChild(s)}l();addEventListener('hashchange',l)})();

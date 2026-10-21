@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>plugin settings</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle"><a id="st-back" href="/__app/plugins">Plugins</a></div>
+                <h2 class="page-title"><span id="st-heading">Settings</span> · <span id="st-plugin">plugin</span></h2>
+            </div>
+        </div>
+    </div>
+
+    <div id="st-pending" class="alert alert-warning" role="alert">
+        <span id="st-pending-text">Some settings are saved but need a restart to take effect.</span>
+    </div>
+    <div id="st-stray" class="alert alert-info" role="alert">
+        <span id="st-stray-text">The file has keys the plugin no longer declares.</span>
+    </div>
+
+    <div id="st-overrides" class="alert alert-info" role="status">
+        <div class="st-override">Some sites set their own value.</div>
+    </div>
+
+    <form method="post" id="st-form" class="card">
+        <input id="st-csrf" type="hidden" name="_csrf" value="">
+        <div class="card-body">
+            <div id="st-empty" class="text-secondary">This plugin declares no settings.</div>
+
+            <!-- A long form opens with links to its titled sections. -->
+            <nav id="st-index" class="st-index mb-4" aria-labelledby="st-index-label">
+                <div id="st-index-label" class="text-secondary small mb-1">Jump to a section</div>
+                <ul class="st-index-list">
+                    <li class="st-index-item"><a class="st-index-link" href="#st-section-1">Section</a></li>
+                </ul>
+            </nav>
+
+            <!-- One card per section: the untitled section of ungrouped fields, then each declared group. The
+                 card's frame shows where a section ends; its header carries the title and introduction. -->
+            <section id="st-section" class="st-section card mb-4">
+                <div class="card-header st-sec-head">
+                    <div>
+                        <h3 class="card-title st-sec-title">Section</h3>
+                        <div class="text-secondary st-sec-help">Section introduction.</div>
+                        <a class="small st-sec-more" href="#" target="_blank" rel="noopener">Learn more</a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- The iterating wrapper and the fragment slot are separate elements: th:replace outranks
+                         th:each on one element. -->
+                    <div class="st-field"><div class="st-field-slot"></div></div>
+
+                    <details class="st-adv mt-2">
+                        <summary class="text-secondary mb-3 st-adv-summary">Advanced</summary>
+                        <div class="st-adv-field"><div class="st-adv-slot"></div></div>
+                    </details>
+                </div>
+            </section>
+        </div>
+        <div class="card-footer text-end">
+            <a href="/__app/plugins" class="btn" id="st-cancel">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="st-save">Save</button>
+        </div>
+    </form>
+
+    <!-- "Use the file's value" on a locked kernel field posts here: a form of its own (each button names it with
+         form="st-adopt-form"), so pressing Enter in a field still saves the settings form. -->
+    <form method="post" id="st-adopt-form" class="d-none">
+        <input id="st-adopt-csrf" type="hidden" name="_csrf" value="">
+    </form>
+
+    <div id="st-admin-fragment" class="mt-3"><!-- optional plugin admin/status panel --></div>
+</div>
+</body>
+</html>

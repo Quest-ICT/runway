@@ -1,0 +1,178 @@
+/*
+ * listing-tables.css — styles for the v2 data-listing table behaviours
+ * (multi-sort + per-column menu + menu reorder + resize). Neutral `lt-`
+ * prefix; the --tblr-* variables fall back to literals on non-Tabler
+ * projects, so this works unchanged outside Tabler.
+ */
+
+/* Applies to any participating table (new data-listing-table or legacy
+ * data-sortable / data-resizable-cols). */
+table[data-listing-table] td,
+table[data-resizable-cols] td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The header's INNER wrapper is the flex row: a clipping label + a no-shrink
+ * tools slot (sort indicator, sort-order number, caret). The <th> itself
+ * stays a table cell — making the <th> flex collapses the table layout. */
+.lt-th-inner {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    width: 100%;
+}
+.lt-th-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;        /* centered titles, matching the house listing style */
+}
+.lt-th-tools {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: .15rem;
+}
+
+/* Sortable header affordance. touch-action: manipulation removes the
+ * double-tap-zoom delay so a tap-sort resolves promptly (vertical scroll can
+ * still start on the header). */
+th.lt-sortable { cursor: pointer; user-select: none; touch-action: manipulation; }
+th.lt-sortable:hover .lt-th-label { color: var(--tblr-primary, #206bc4); }
+th.lt-sortable:focus-visible { outline: 2px solid var(--tblr-primary, #206bc4); outline-offset: -2px; }
+
+/* Screen-reader-only text (multi-sort priority hint on headers). */
+.lt-sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.lt-ind {
+    font-size: .7em;
+    opacity: .75;
+    white-space: nowrap;
+    line-height: 1;
+}
+.lt-order {
+    display: inline-block;
+    margin-left: .15em;
+    padding: 0 .3em;
+    font-size: .92em;
+    font-weight: 600;
+    border-radius: 999px;
+    color: var(--tblr-primary, #206bc4);
+    background: var(--tblr-primary-lt, rgba(32, 107, 196, .12));
+}
+
+/* Caret / menu-trigger button (hidden via data-no-carets). Subtle by
+ * default, brighter on header hover / focus; always tappable on touch. */
+.lt-caret {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0 .15rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--tblr-secondary, #6c757d);
+    opacity: .55;
+    border-radius: var(--tblr-border-radius, 4px);
+    touch-action: manipulation;
+}
+.lt-th:hover .lt-caret,
+.lt-th:focus-visible .lt-caret,
+.lt-caret:focus-visible { opacity: 1; }
+.lt-caret:hover { color: var(--tblr-primary, #206bc4); }
+
+/* Resize divider (pointer events). The resizable th is NOT overflow:hidden —
+ * the title already clips via .lt-th-label, and clipping the th would cut off
+ * the divider's overhanging hit-zone (shrinking an already-small touch target).
+ * Only position:relative, so the absolutely-positioned divider anchors here. */
+table[data-listing-table] thead th,
+table[data-resizable-cols] thead th { position: relative; }
+.lt-divider {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--tblr-border-color, #e6e7e9);
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;        /* let pointer-drag resize work on touch */
+}
+.lt-divider::before {          /* wider invisible hit-zone */
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 10px;
+    height: 100%;
+}
+.lt-divider:hover { background: var(--tblr-primary, #066fd1); }
+
+/* Drag-to-reorder feedback: the grabbed header dims; the column the pointer is
+   over shows an insertion highlight on its leading edge. */
+.lt-th.lt-drag-src { opacity: .5; }
+.lt-th.lt-drop-target { box-shadow: inset 3px 0 0 0 var(--tblr-primary, #066fd1); }
+
+/* The per-column popup menu (no Bootstrap dropdown JS; built by the script). */
+.lt-menu {
+    position: fixed;
+    z-index: 1080;
+    min-width: 13rem;
+    padding: .35rem 0;
+    background: var(--tblr-bg-surface, #fff);
+    color: var(--tblr-body-color, #1f2933);
+    border: 1px solid var(--tblr-border-color, #e6e7e9);
+    border-radius: var(--tblr-border-radius, 6px);
+    box-shadow: 0 .5rem 1.25rem rgba(0, 0, 0, .18);
+    font-size: .875rem;
+}
+.lt-menu[hidden] { display: none; }
+.lt-menu-head {
+    padding: .25rem .9rem .4rem;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--tblr-secondary, #6c757d);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lt-menu-sep {
+    height: 1px;
+    margin: .3rem 0;
+    background: var(--tblr-border-color, #e6e7e9);
+}
+.lt-menu-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    padding: .35rem .9rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lt-menu-item:hover:not([disabled]),
+.lt-menu-item:focus-visible { background: var(--tblr-primary, #206bc4); color: #fff; outline: none; }
+.lt-menu-item[disabled] { opacity: .45; cursor: default; }
+.lt-menu-item .lt-check {
+    flex: 0 0 1em;
+    width: 1em;
+    text-align: center;
+    font-weight: 700;
+}
+.lt-menu-item .lt-label { flex: 1 1 auto; }

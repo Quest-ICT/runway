@@ -1,0 +1,20 @@
+# A SYNTHETIC demo tree that exists only on the TEST classpath.
+#
+# The demo installer is a general mechanism: it materialises any seed/demo/<id>/** tree into a real,
+# independent tenant. It used to be tested against a demo that shipped with the product, which coupled a
+# mechanism test to product content — so when the bundled demos were retired the whole suite broke, and it
+# broke only under `mvn clean` because stale resources in target/classes had been masking it.
+#
+# This fixture removes that coupling: the mechanism is tested against a tree the test owns, and the
+# distribution is free to bundle any demos, or none.
+id: kettle
+name: Kettle & Co
+hosts:
+  - kettle.demo.localhost
+defaultLocale: en
+locales: [en, es]
+default: true
+master:
+  username: kettle-admin
+  displayName: Kettle Demo Admin
+requiresPlugins: [search]

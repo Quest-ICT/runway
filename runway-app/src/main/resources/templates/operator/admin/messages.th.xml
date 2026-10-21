@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Messages editor. A key × locale grid: one body row per message key, one value input per site locale, plus a
+     trailing add-a-message card. The "keep" checkbox carries the row's key (its value=), so unticking it drops
+     the key from the POST's `keep` list and the save removes it. Per-locale value inputs iterate the site's
+     locales in order; their name is value_<tag> / newValue_<tag> so the controller re-pairs them positionally.
+     Nested th:each (row × locale) is used for the value cells and works in decoupled logic. `//` is used to reach
+     inputs nested inside a <td>/<div> so the loop variable stays in scope. -->
+<thlogic>
+    <attr sel="#msg-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#msg-heading" th:text="#{op.messages.heading}"/>
+
+    <attr sel="#msg-intro-title" th:text="#{op.messages.intro.title}"/>
+    <attr sel="#msg-intro-text" th:text="#{op.messages.intro.text}"/>
+
+    <attr sel="#msg-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#msg-l-list" th:text="#{op.messages.list}"/>
+    <!-- Filter box + pager (client-side; the count templates carry {0}/{1} for the JS to fill). -->
+    <attr sel="#msg-search" th:attr="placeholder=#{op.messages.filter},aria-label=#{op.messages.filter}"/>
+    <attr sel="#msg-count" th:attr="data-all=#{op.messages.count.all},data-filtered=#{op.messages.count.filtered}"/>
+    <attr sel="#msg-prev" th:text="#{op.messages.prev}"/>
+    <attr sel="#msg-next" th:text="#{op.messages.next}"/>
+    <attr sel="#msg-h-keep" th:text="#{op.messages.col.keep}"/>
+    <attr sel="#msg-h-key" th:text="#{op.messages.col.key}"/>
+    <attr sel="#msg-h-locale" th:text="#{op.messages.col.value}"/>
+
+    <!-- One row per key. The keep checkbox value IS the key (so it appears in `keep` only while ticked); the
+         hidden-but-readonly key input re-posts the key positionally with its value inputs. -->
+    <attr sel="#msg-row" th:each="row : ${rows}" th:remove="none" th:id="${null}"/>
+    <!-- Repeated cells drop their template ids; each control is named for screen readers by its key (and language)
+         because the grid shows those only as column/row context. -->
+    <attr sel="#msg-row//#msg-keep" th:id="${null}"
+          th:attr="value=${row.key()},title=#{op.messages.keep.tip},aria-label=#{op.messages.a11y.keep(${row.key()})}"/>
+    <attr sel="#msg-row//#msg-key" th:attr="value=${row.key()},aria-label=#{op.messages.col.key}" th:id="${null}"/>
+    <!-- Per-locale value input, in the site's locale order. name=value_<tag>; the label shows the language. -->
+    <attr sel="#msg-row//#msg-val-wrap" th:each="tag,st : ${localeTags}" th:remove="none" th:id="${null}"/>
+    <attr sel="#msg-row//#msg-val-lang" th:id="${null}"
+          th:text="${tag == defaultLocaleTag} ? (${tag} + ' · ' + #{op.messages.defaultLang}) : ${tag}"/>
+    <!-- data-key/data-locale give each cell a STABLE identity (not a positional index), so the client can track
+         which cells changed and post only those, surviving the filter/pager. -->
+    <attr sel="#msg-row//#msg-val" th:id="${null}"
+          th:attr="name='value_' + ${tag},value=${row.values()[st.index]},data-key=${row.key()},data-locale=${tag},aria-label=#{op.messages.a11y.value(${row.key()},${tag})}"/>
+
+    <!-- The empty-state row shows only when there are no keys (kept out of the sortable body otherwise). -->
+    <attr sel="#msg-empty" th:if="${rows.isEmpty()}"/>
+    <attr sel="#msg-empty-text" th:text="#{op.messages.empty}"/>
+
+    <!-- Add-a-message card: a new key plus one value input per locale (newValue_<tag>). -->
+    <attr sel="#msg-l-add" th:text="#{op.messages.add}"/>
+    <attr sel="#msg-l-newkey" th:text="#{op.messages.newKey}"/>
+    <attr sel="#msg-newkey" th:attr="title=#{op.messages.newKey.tip}"/>
+    <attr sel="#msg-newval-wrap" th:each="tag,st : ${localeTags}" th:remove="none" th:id="${null}"/>
+    <attr sel="#msg-newval-lang" th:id="${null}" th:for="|msg-newval-${tag}|"
+          th:text="${tag == defaultLocaleTag} ? (${tag} + ' · ' + #{op.messages.defaultLang}) : ${tag}"/>
+    <attr sel="#msg-newval" th:attr="name='newValue_' + ${tag},data-locale=${tag}" th:id="|msg-newval-${tag}|"/>
+
+    <attr sel="#msg-save" th:text="#{op.messages.save}"/>
+    <!-- Localized status text the incremental-save JS shows next to the button (data-* so no server round-trip). -->
+    <attr sel="#msg-save-status" th:attr="data-saved=#{op.messages.saved},data-failed=#{op.messages.failed}"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#msg-js" th:src="'/__assets/messages.js?v=' + ${assetVersion}"/>
+</thlogic>

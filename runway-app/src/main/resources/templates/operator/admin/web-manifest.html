@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Web app manifest</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="wm-pretitle">Site</div>
+                <h2 class="page-title" id="wm-heading">Web app manifest</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-secondary" id="wm-hint">These fields populate the site's <code>manifest.webmanifest</code>,
+                so it can be installed as a progressive web app. Icons come from the Icons screen.</p>
+            <form method="post" action="/__admin/manifest">
+                <input id="wm-csrf" type="hidden" name="_csrf" value="">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" id="wm-l-name" for="wm-name">Name</label>
+                        <input class="form-control" id="wm-name" name="name" type="text" value="">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" id="wm-l-short" for="wm-short">Short name</label>
+                        <input class="form-control" id="wm-short" name="shortName" type="text" value="">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="wm-l-desc" for="wm-desc">Description</label>
+                    <input class="form-control" id="wm-desc" name="description" type="text" value="">
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" id="wm-l-theme" for="wm-theme">Theme color</label>
+                        <input class="form-control" id="wm-theme" name="themeColor" type="text" value="" placeholder="#0d6efd" pattern="#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})" spellcheck="false">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" id="wm-l-bg" for="wm-bg">Background color</label>
+                        <input class="form-control" id="wm-bg" name="backgroundColor" type="text" value="" placeholder="#ffffff" pattern="#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})" spellcheck="false">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label" id="wm-l-display" for="wm-display">Display</label>
+                        <select class="form-select" id="wm-display" name="display">
+                            <option value="" id="wm-d-default">Default</option>
+                            <option value="fullscreen" id="wm-d-fullscreen">fullscreen</option>
+                            <option value="standalone" id="wm-d-standalone">standalone</option>
+                            <option value="minimal-ui" id="wm-d-minimal">minimal-ui</option>
+                            <option value="browser" id="wm-d-browser">browser</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label" id="wm-l-lang" for="wm-lang">Language</label>
+                        <input class="form-control" id="wm-lang" name="lang" type="text" value="" placeholder="en">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="wm-save">Save manifest</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

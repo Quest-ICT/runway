@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Embed hosts</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="eh-pretitle">Application</div>
+                <h2 class="page-title" id="eh-heading">Embed hosts</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="note"><div id="eh-intro">Hosts sites may add to their own pages' policy.</div></div>
+
+    <div class="card mb-3">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.app.embedhosts">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="label" id="eh-h-label">Name</th>
+                    <th scope="col" data-col-key="source" id="eh-h-source">Source</th>
+                    <th scope="col" data-col-key="directives" id="eh-h-directives">May join</th>
+                    <th scope="col" data-col-key="sites" id="eh-h-sites">Sites using it</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="eh-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="eh-empty"><td colspan="5" class="text-secondary text-center" id="eh-empty-text">No hosts approved.</td></tr>
+                <tr id="eh-row">
+                    <td><span class="eh-label">YouTube</span> <code class="eh-id text-secondary small">youtube</code></td>
+                    <td><code class="eh-source">https://www.youtube-nocookie.com</code></td>
+                    <td class="eh-directives">frame-src</td>
+                    <td class="eh-sites text-secondary">0</td>
+                    <td>
+                        <form class="d-inline eh-remove-form" method="post" action="/__app/embed-hosts/remove">
+                            <input class="eh-rcsrf" type="hidden" name="_csrf" value="">
+                            <input class="eh-rid" type="hidden" name="id" value="">
+                            <button type="submit" class="btn btn-sm btn-danger eh-remove">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="eh-l-add">Approve a host</h3></div>
+        <div class="card-body">
+            <form method="post" action="/__app/embed-hosts" class="row g-2" id="eh-form">
+                <input id="eh-csrf" type="hidden" name="_csrf" value="">
+                <div class="col-md-2"><label class="form-label" id="eh-l-id" for="eh-id">Id</label>
+                    <input class="form-control" id="eh-id" name="id" required pattern="[a-z0-9]([a-z0-9\-]{0,38}[a-z0-9])?" placeholder="youtube" autocomplete="off" spellcheck="false"></div>
+                <div class="col-md-4"><label class="form-label" id="eh-l-label" for="eh-label">Name</label>
+                    <input class="form-control" id="eh-label" name="label" required maxlength="80" placeholder="YouTube videos" autocomplete="off"></div>
+                <div class="col-md-6"><label class="form-label" id="eh-l-source" for="eh-source">Source</label>
+                    <input class="form-control" id="eh-source" name="source" required placeholder="https://www.youtube-nocookie.com" autocomplete="off" spellcheck="false"></div>
+                <div class="col-12">
+                    <span class="form-label d-block" id="eh-l-directives">May join</span>
+                    <label class="form-check form-check-inline" id="eh-dir">
+                        <input class="form-check-input eh-dir-input" type="checkbox" name="directives" value="frame-src">
+                        <span class="form-check-label"><code class="eh-dir-name">frame-src</code> <span class="eh-dir-what text-secondary">embedded pages</span></span></label>
+                </div>
+                <div class="col-12"><small class="form-hint" id="eh-hint">Saving with an existing id replaces it.</small></div>
+                <div class="col-12"><button type="submit" class="btn btn-primary" id="eh-save">Approve</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

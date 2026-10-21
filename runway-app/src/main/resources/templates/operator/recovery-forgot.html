@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title id="rc-title">Reset your password</title>
+    <link id="as-favicon" rel="icon" type="image/svg+xml" href="/__assets/runway.svg">
+    <link id="as-tabler-css" rel="stylesheet" href="/__assets/vendor/tabler.min.css">
+    <link id="as-fa-css" rel="stylesheet" href="/__assets/vendor/fontawesome/css/all.min.css">
+    <link id="as-chrome-css" rel="stylesheet" href="/__assets/runway-chrome.css">
+</head>
+<body id="rc-body" class="border-top-wide d-flex flex-column" data-i18n-pw-toggle="Show / hide password">
+<div class="page page-center">
+    <main class="container container-tight py-4">
+        <div class="text-center mb-4">
+            <span class="navbar-brand navbar-brand-autodark">
+                <img id="as-logo" src="/__assets/runway.svg" alt="Runway" style="height:1.75rem;width:auto" class="me-2"><span id="rc-brand">Runway</span>
+            </span>
+        </div>
+        <div class="card card-md">
+            <div class="card-body">
+                <div id="rc-form-wrap">
+                    <h2 class="h2 text-center mb-3" id="rc-heading">Reset your password</h2>
+                    <p class="text-secondary text-center mb-4" id="rc-lead">
+                        Enter the email address for your account and we'll send you a link to reset your password.</p>
+                    <div id="rc-captcha-error" class="alert alert-warning" role="alert">
+                        <span id="rc-captcha-error-text">Captcha verification failed. Please try again.</span>
+                    </div>
+                    <form id="rc-form" method="post" action="/app/forgot-password" autocomplete="off">
+                        <input id="rc-csrf" type="hidden" name="_csrf" value="">
+                        <!-- Honeypot: humans never see or fill this (off-screen, out of tab order); a form-filling
+                             bot does, and the form guard drops it. name MUST equal LoginFormGuard.HONEYPOT_FIELD. -->
+                        <div aria-hidden="true"
+                             style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">
+                            <label for="rc-website">Website</label>
+                            <input id="rc-website" name="website" type="text" tabindex="-1" autocomplete="off">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="rc-email-label" for="rc-email">Email address</label>
+                            <input id="rc-email" name="email" type="email" class="form-control"
+                                   autocomplete="email" autofocus required>
+                        </div>
+                        <!-- CAPTCHA slot (plugin-driven, provider-agnostic); rendered only when the scope's CAPTCHA
+                             is active. Same shape as the login page — a visible widget or the invisible v3 field. -->
+                        <div id="rc-captcha-widget" class="mb-3" data-sitekey=""></div>
+                        <input id="rc-captcha-v3-token" class="rw-captcha-v3" data-action="recovery" type="hidden" name="g-recaptcha-response" data-sitekey="">
+                        <div class="form-footer">
+                            <button type="submit" class="btn w-100" id="rc-submit">Send reset link</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="rc-sent-wrap">
+                    <h2 class="h2 text-center mb-3" id="rc-sent-heading">Check your email</h2>
+                    <p class="text-secondary text-center" id="rc-sent-text">
+                        If an account with that email exists, we've sent it a link to reset the password. The link
+                        expires in one hour.</p>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/app/login" id="rc-back" class="text-secondary small">Back to sign in</a>
+                </div>
+            </div>
+        </div>
+        <!-- Pre-auth language switcher: one link per offered UI language (GET /__ui-lang, returning here). Shown
+             only when more than one language is offered. -->
+        <div class="text-center mt-3" id="rc-langswitch">
+            <i class="fa-solid fa-language text-secondary me-1"></i>
+            <a class="rc-lang-item small mx-1" href="#">language</a>
+        </div>
+    </main>
+</div>
+<!-- CAPTCHA provider script (rendered only when captchaActive) + the reCAPTCHA v3 client (inert unless the hidden
+     v3 token field carries a data-sitekey). Mirrors the login page; provider-agnostic. -->
+<script id="rc-captcha-js" src="" async defer></script>
+<!-- reCAPTCHA v3 client — externalized to /__assets/captcha-v3.js so the page carries NO inline <script> (which
+     is what lets script-src drop 'unsafe-inline'). Keys off input.rw-captcha-v3; inert unless it has a data-sitekey. -->
+<script id="as-captcha-v3-js" src="/__assets/captcha-v3.js" defer></script>
+<script id="as-tabler-js" src="/__assets/vendor/tabler.min.js"></script>
+<script id="as-chrome-js" src="/__assets/runway-chrome.js"></script>
+</body>
+</html>

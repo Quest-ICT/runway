@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tenant-realm topbar logic. The flat list was reorganized into dropdown groups (Resources / Access /
+     Activity / Settings); the Settings group also carries each plugin's per-tenant settings form (${pluginSettings},
+     replacing the old standalone Site-settings page). Plugin top-level menu links (${pluginMenu}) stay top-level. -->
+<thlogic>
+    <!-- The brand logo is a versioned /__assets reference like every other (AssetVersion). -->
+    <attr sel="#tb-brand/img" th:src="'/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#tb-realm-badge"
+          th:text="${tenantSiteId != null} ? #{op.realm.tenant.site(${tenantSiteId})} : #{op.realm.tenant}"/>
+    <attr sel="#tb-user" th:text="${principalName}"/>
+    <attr sel="#tb-account" th:text="#{op.user.account}"/>
+    <attr sel="#tb-logout" th:text="#{op.user.logout}"/>
+    <attr sel="#tb-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Language switcher (identical to the app topbar): current-language label + one item per offered language
+         (GET /__ui-lang, returning to the current page). #{'op.lang.' + ${x}} keeps the variable in ${} (#12);
+         the item loop uses `//` so its loop var stays in scope (#8). -->
+    <attr sel="#tb-langswitch/a" th:attr="title=#{op.lang.label},aria-label=#{op.lang.label}"/>
+    <attr sel="#tb-lang-current" th:text="#{'op.lang.' + ${uiLocale}}"/>
+    <attr sel="#tb-langswitch//#tb-lang-item" th:each="l : ${operatorLanguages}"
+          th:attr="href=@{/__ui-lang(lang=${l},to=${currentPath})},aria-current=${l == uiLocale ? 'true' : null}"
+          th:id="${null}" th:text="#{'op.lang.' + ${l}}" th:classappend="${l == uiLocale} ? 'active'"/>
+
+    <!-- Accessible names: the menu landmark, the collapsed-menu toggler and the user menu, localized.
+         Iterated entries below (languages, plugin links) drop their template id (th:id null) so a rendered page
+         never repeats one; the active language and the active kernel item carry aria-current, so the state is
+         not conveyed by colour alone (a dropdown group's <li> only gets the class — it is not a link). -->
+    <attr sel="#navbar-menu" th:attr="aria-label=#{op.a11y.consoleMenu}"/>
+    <attr sel="#tb-toggler" th:attr="aria-label=#{op.a11y.toggleNav}"/>
+    <attr sel="#tb-usermenu" th:attr="aria-label=#{op.a11y.userMenu}"/>
+
+    <!-- Labels -->
+    <attr sel="#nav-dashboard//span" th:text="#{op.nav.dashboard}"/>
+    <attr sel="#grp-resources-label" th:text="#{op.nav.group.resources}"/>
+    <attr sel="#nav-pages//span" th:text="#{op.nav.pages}"/>
+    <attr sel="#nav-review//span" th:text="#{op.nav.review}"/>
+    <attr sel="#nav-fragments//span" th:text="#{op.nav.fragments}"/>
+    <attr sel="#nav-widgets//span" th:text="#{op.nav.widgets}"/>
+    <attr sel="#nav-documents//span" th:text="#{op.nav.documents}"/>
+    <attr sel="#nav-static//span" th:text="#{op.nav.static}"/>
+    <attr sel="#nav-messages//span" th:text="#{op.nav.messages}"/>
+    <attr sel="#grp-access-label" th:text="#{op.nav.group.access}"/>
+    <attr sel="#nav-users//span" th:text="#{op.nav.users}"/>
+    <attr sel="#nav-permissions//span" th:text="#{op.nav.permissions}"/>
+    <attr sel="#grp-activity-label" th:text="#{op.nav.group.activity}"/>
+    <attr sel="#nav-insights//span" th:text="#{op.nav.insights}"/>
+    <attr sel="#nav-bandwidth//span" th:text="#{op.nav.bandwidth}"/>
+    <attr sel="#nav-logs//span" th:text="#{op.nav.logs}"/>
+    <attr sel="#grp-settings-label" th:text="#{op.nav.settings}"/>
+    <attr sel="#nav-config//span" th:text="#{op.nav.config}"/>
+    <attr sel="#nav-seo//span" th:text="#{op.nav.seo}"/>
+    <attr sel="#nav-icons//span" th:text="#{op.nav.icons}"/>
+    <attr sel="#nav-manifest//span" th:text="#{op.nav.manifest}"/>
+    <attr sel="#nav-backups//span" th:text="#{op.nav.backuprestore}"/>
+    <attr sel="#nav-maintenance//span" th:text="#{op.nav.maintenance}"/>
+
+    <!-- Active group (any child path matches). Matched against ${adminPath} (the path minus its "/__admin"
+         prefix) so no expression carries two "/__admin/…" literals whose leading "__" would pair as Thymeleaf
+         __…__ preprocessing delimiters. -->
+    <attr sel="#nav-dashboard" th:with="on=${adminPath == ''}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <!-- Visibility (ConsoleNavigation): a kernel entry the operator's route gate refuses is not offered, and a
+         dropdown left empty is hidden. nav is absent only for a shell built without it: then show everything. -->
+    <attr sel="#grp-resources" th:if="${nav == null or nav['grp.resources']}" th:classappend="${adminPath != null and (#strings.startsWith(adminPath, '/pages') or #strings.startsWith(adminPath, '/review') or #strings.startsWith(adminPath, '/fragments') or #strings.startsWith(adminPath, '/widgets') or #strings.startsWith(adminPath, '/documents') or #strings.startsWith(adminPath, '/messages'))} ? 'active'"/>
+    <attr sel="#grp-access" th:if="${nav == null or nav['grp.access']}" th:classappend="${adminPath != null and (#strings.startsWith(adminPath, '/users') or #strings.startsWith(adminPath, '/permissions'))} ? 'active'"/>
+    <attr sel="#grp-activity" th:if="${nav == null or nav['grp.activity']}" th:classappend="${adminPath != null and (#strings.startsWith(adminPath, '/insights') or #strings.startsWith(adminPath, '/bandwidth') or #strings.startsWith(adminPath, '/logs'))} ? 'active'"/>
+    <attr sel="#grp-settings" th:if="${nav == null or nav['grp.settings']}" th:classappend="${adminPath != null and (#strings.startsWith(adminPath, '/config') or #strings.startsWith(adminPath, '/seo') or #strings.startsWith(adminPath, '/icons') or #strings.startsWith(adminPath, '/manifest') or #strings.startsWith(adminPath, '/backups') or #strings.startsWith(adminPath, '/maintenance') or #strings.startsWith(adminPath, '/plugins') or #strings.startsWith(adminPath, '/protection'))} ? 'active'"/>
+
+    <!-- Active child item -->
+    <attr sel="#nav-pages" th:if="${nav == null or nav['pages']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/pages')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-review" th:if="${nav == null or nav['review']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/review')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-fragments" th:if="${nav == null or nav['fragments']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/fragments')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-widgets" th:if="${nav == null or nav['widgets']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/widgets')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-documents" th:if="${nav == null or nav['documents']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/documents')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-static" th:if="${nav == null or nav['static']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/static')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-messages" th:if="${nav == null or nav['messages']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/messages')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-users" th:if="${nav == null or nav['users']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/users')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-permissions" th:if="${nav == null or nav['permissions']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/permissions')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-insights" th:if="${nav == null or nav['insights']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/insights')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-bandwidth" th:if="${nav == null or nav['bandwidth']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/bandwidth')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-logs" th:if="${nav == null or nav['logs']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/logs')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-config" th:if="${nav == null or nav['config']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/config')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-seo" th:if="${nav == null or nav['seo']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/seo')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-icons" th:if="${nav == null or nav['icons']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/icons')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-manifest" th:if="${nav == null or nav['manifest']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/manifest')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-backups" th:if="${nav == null or nav['backups']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/backups')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+    <attr sel="#nav-maintenance" th:if="${nav == null or nav['maintenance']}" th:with="on=${adminPath != null and #strings.startsWith(adminPath, '/maintenance')}" th:classappend="${on} ? 'active'" th:attr="aria-current=${on ? 'page' : null}"/>
+
+    <!-- Plugin per-tenant settings entries inside the Settings group. The divider shows only when at least one
+         plugin declares a schema; the label is the plugin's own name (a literal, not an i18n key). -->
+    <attr sel="#nav-set-plugin-div" th:if="${pluginSettings != null and not pluginSettings.isEmpty()}"/>
+    <attr sel="#nav-set-plugin" th:each="p : ${pluginSettings}" th:attr="href=${p.path()}" th:id="${null}"/>
+    <attr sel="#nav-set-plugin//.ps-label" th:text="${p.label()}"/>
+
+    <!-- Plugin-contributed top-level menu links (empty when no plugin declares one). The label is treated as a
+         message key resolved against the plugin's own i18n bundle; an unresolved key (or a literal label)
+         renders as-is (useCodeAsDefaultMessage). -->
+    <attr sel="#nav-plugin-item" th:each="m : ${pluginMenu}" th:id="${null}"/>
+    <attr sel="#nav-plugin-item//.pl-link" th:attr="href=${m.path()}"/>
+    <attr sel="#nav-plugin-item//.pl-icon" th:attr="class=|${m.icon()} me-1|"/>
+    <attr sel="#nav-plugin-item//.pl-label" th:text="#{${m.label()}}"/>
+
+    <!-- Plugin screens the plugin targets at the Settings group (region: settings) — its OWN console screen (e.g.
+         Essential Protection), distinct from the generic-form ${pluginSettings} links above. The divider shows only
+         when at least one plugin contributes; the label is an i18n key in the plugin's own bundle. -->
+    <attr sel="#nav-set-screen-div" th:if="${pluginSettingsMenu != null and not pluginSettingsMenu.isEmpty()}"/>
+    <attr sel="#nav-set-screen" th:each="m : ${pluginSettingsMenu}" th:attr="href=${m.path()}" th:id="${null}"/>
+    <attr sel="#nav-set-screen//.ss-label" th:text="#{${m.label()}}"/>
+
+    <!-- Plugin screens targeted at the Activity group (region: activity). -->
+    <attr sel="#nav-act-screen" th:each="m : ${pluginActivityMenu}" th:attr="href=${m.path()}" th:id="${null}"/>
+    <attr sel="#nav-act-screen//.aa-label" th:text="#{${m.label()}}"/>
+</thlogic>

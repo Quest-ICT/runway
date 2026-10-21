@@ -1,0 +1,74 @@
+# =============================================================================
+#  Runway Demo Plugin — descriptor
+#  The kitchen-sink REFERENCE plugin: it exercises every extension axis and every
+#  service of the SPI service tier, each the way a real plugin should
+#  use it. Copy it to start a new plugin. Links ONLY the Runway SPI.
+#  The install folder name MUST equal this `id`: external/plugins/runway-demo/.
+# =============================================================================
+id: runway-demo
+name: Runway Demo (Kitchen-Sink Plugin)
+version: 2.1.0
+
+# The lowest SPI level this plugin needs; a kernel below it BLOCKS the plugin at startup with a reason. Declare the
+# floor of the NEWEST type you use: without it, an older kernel would load the plugin and fail at the first request
+# that touches a missing type. SPI 1.0.0 is the frozen 1.x contract.
+requiresSpi: ">=1.0.0"
+
+# The @Configuration registered into the host context before refresh. Its package lives OUTSIDE
+# mx.quest.runway (mx.quest.demo) so the host never scans it, and every bean it defines is named runwayDemo…
+mainClass: mx.quest.demo.DemoPluginConfig
+
+# `enabled` (optional, default true) is the operator's disable switch — omit to stay enabled.
+# `essential` is honored ONLY for kernel security-floor ids on the EssentialAllowlist (only 'protection'); a
+#   normal plugin must NOT claim it.
+# `requires:` / `conflicts:` — this demo has no hard dependency, so it always loads. Forms (documented in
+#   docs/DEMO-PLUGIN.md): requires: [ some-id ], [ some-id >= 1.2.0 ], [ some-id == 1.2.0 ]; conflicts: [ id ].
+
+# --- Personal data ---------------------------------------------------------------------------------------
+#     notes.yml holds what people typed: operator notes from the console AND visitors' messages from the public
+#     feedback form. A TRANSFER copy of a site (the one handed to someone outside the organisation) leaves it out
+#     and lists it in the archive's manifest; a FULL backup keeps it. Paths are relative to
+#     sites/<id>/plugins/runway-demo/ (end a folder with "/"). showcase.yml is published content, not personal.
+siteData:
+  personal:
+    - notes.yml
+
+# --- Grantable control-point permissions (namespaced <id>|<declId> in the catalog) -------------------
+# `settings` is the reserved id that gates this plugin's per-tenant settings form.
+# `manage-notes` gates the demo's console screen, its actions and /demo/notes.json (enforced server-side with
+#   AccessCheck / @authz.may on the FULL key "runway-demo|manage-notes"; the menu and card use the full key too).
+# defaultRoles is EMPTY: control points start ungranted. Administrators hold them via the wildcard tier; a
+# tenant superadmin grants them explicitly to the seed OPERATOR role or a custom role.
+permissions:
+  - { id: settings,     realm: tenant, label: runwaydemo.perm.settings,    defaultRoles: [] }
+  - { id: manage-notes, realm: tenant, label: runwaydemo.perm.manageNotes, defaultRoles: [] }
+
+# --- App-level settings (PLATFORM concerns; bound as runway.plugin.runway-demo.* from -------------------
+#     external/plugin-settings/runway-demo.yml; applied on RESTART; read via the DemoAppProps bean)
+settings:
+  - { key: banner.enabled,     type: boolean, default: true,          label: runwaydemo.settings.bannerEnabled }
+  - { key: banner.text,        type: text,                            label: runwaydemo.settings.bannerText }
+  - { key: cache.max-entries,  type: int,     default: 500, range: "1..100000", label: runwaydemo.settings.cacheMax }
+  - { key: generator.label,    type: string,  default: "Runway Demo", label: runwaydemo.settings.generatorLabel }
+  - { key: analytics.write-key, type: secret,                         label: runwaydemo.settings.writeKey }
+
+# --- Per-tenant settings (tenant-owned BEHAVIOUR; stored in sites/<id>/plugins/runway-demo.yml; applied ----
+#     IMMEDIATELY; read with PluginSettings.site(siteId), a `secret` with PluginSettings.secret(siteId, key))
+siteSettings:
+  - { key: notice.enabled,           type: boolean, default: true,  label: runwaydemo.settings.noticeEnabled }
+  - { key: notice.style,             type: enum,    default: info, range: "info,warning,danger", label: runwaydemo.settings.noticeStyle }
+  - { key: notice.max-chars,         type: int,     default: 280, range: "1..2000", label: runwaydemo.settings.noticeMax }
+  - { key: analytics.enabled,        type: boolean, default: false, label: runwaydemo.settings.analyticsEnabled }
+  - { key: analytics.site-token,     type: secret,                  label: runwaydemo.settings.siteToken }
+  - { key: feedback.enabled,         type: boolean, default: true,  label: runwaydemo.settings.feedbackEnabled }
+  - { key: quality.title-warn-ratio, type: decimal, default: 1.0,   label: runwaydemo.settings.titleRatio }
+  - { key: quality.ignore-codes,     type: list,    default: "",    label: runwaydemo.settings.ignoreCodes }
+
+# --- Tenant-console menu entry: the demo's own console screen (@ConsoleScreen), gated by the FULL key -------
+menu:
+  - { realm: tenant, region: menu, order: 60, label: runwaydemo.menu.console,
+      path: "/__admin/runway-demo", permission: "runway-demo|manage-notes", icon: "fa-solid fa-flask" }
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/runway-demo/dashboard = templates/dashboard.*) --
+dashboardCards:
+  - { realm: tenant, order: 20, fragment: dashboard, permission: "runway-demo|manage-notes" }

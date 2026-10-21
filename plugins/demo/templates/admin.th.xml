@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Decoupled logic for the admin fragment. The host renders it automatically BELOW the per-site settings form because
+  templates/admin.html exists (a filename convention — no descriptor entry). Fed by the plugin's own bean; tenantSiteId
+  comes from the console. The link to the demo screen shows only to a user who may open it: ${@authz.may(..)} is the
+  AccessCheck bean, the same check the screen's @PreAuthorize makes (hiding a link is UX; the screen still checks).
+-->
+<thlogic>
+    <attr sel="#rd-admin-title" th:text="#{runwaydemo.admin.title}"/>
+    <attr sel="#rd-admin-count" th:text="#{runwaydemo.admin.notes(${@runwayDemoAdminModel.noteCount(tenantSiteId)})}"/>
+    <attr sel="#rd-admin-banner" th:text="#{runwaydemo.admin.banner(${@runwayDemoAdminModel.bannerEnabled()})}"/>
+    <attr sel="#rd-admin-key" th:text="#{runwaydemo.admin.writeKey(${@runwayDemoAdminModel.analyticsKeyConfigured()})}"/>
+    <attr sel="#rd-admin-token" th:text="#{runwaydemo.admin.siteToken(${@runwayDemoAdminModel.siteTokenConfigured(tenantSiteId)})}"/>
+    <attr sel="#rd-admin-page" th:text="${@runwayDemoAdminModel.demoPagePath(tenantSiteId).isEmpty()} ? #{runwaydemo.admin.page.none} : #{runwaydemo.admin.page(${@runwayDemoAdminModel.demoPagePath(tenantSiteId)})}"/>
+    <attr sel="#rd-admin-note" th:each="n : ${@runwayDemoAdminModel.recentNotes(tenantSiteId)}" th:text="${n.text()}"/>
+    <attr sel="#rd-admin-console" th:if="${@authz.may('runway-demo|manage-notes')}" th:text="#{runwaydemo.card.console}"/>
+</thlogic>

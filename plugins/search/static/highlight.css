@@ -1,0 +1,9 @@
+/* Runway Search plugin — how the page a search result opened shows the matched words (search 2.1.0+).
+   Added by highlight.js before the site's own stylesheets, only when the visitor came from a result, so a site
+   restyles it with its own rule, e.g.  ::highlight(rw-search) { background-color: #cfe2ff; }
+   Only colour, background and text decoration apply to a highlight; layout properties are ignored. */
+/* Dark text on the yellow, set explicitly: a dark theme's light text would be unreadable on it. */
+::highlight(rw-search) {
+    background-color: #ffe066;
+    color: #1a1a1a;
+}

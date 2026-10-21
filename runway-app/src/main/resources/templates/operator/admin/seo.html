@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>SEO</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="seo-pretitle">Site</div>
+                <h2 class="page-title" id="seo-heading">SEO</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" id="seo-free" role="alert">
+        <h4 class="alert-title" id="seo-free-title">Handled automatically</h4>
+        <div class="text-secondary" id="seo-free-text">Canonical URLs, hreflang alternates and robots
+            directives are emitted for every page automatically. Analytics and GEO markup come from plugins.</div>
+    </div>
+
+    <form method="post" action="/__admin/seo">
+        <input id="seo-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="seo-l-social">Social sharing</h3></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" id="seo-l-ogImage" for="seo-ogImage">Preview image</label>
+                    <input class="form-control" id="seo-ogImage" name="ogImage" type="url" value="">
+                    <small class="form-hint" id="seo-h-ogImage">Absolute URL of the image shown when a page is shared.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="seo-l-ogType" for="seo-ogType">Content type</label>
+                    <input class="form-control" id="seo-ogType" name="ogType" type="text" value="" list="seo-ogTypes" maxlength="40" spellcheck="false">
+                    <datalist id="seo-ogTypes"><option value="website"></option><option value="article"></option><option value="profile"></option><option value="book"></option><option value="video.other"></option><option value="music.song"></option></datalist>
+                    <small class="form-hint" id="seo-h-ogType">e.g. website or article.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="seo-l-twCard" for="seo-twCard">Twitter card</label>
+                    <select class="form-select" id="seo-twCard" name="twitterCard">
+                        <option value="" id="seo-tw-auto">Automatic</option>
+                        <option value="summary" id="seo-tw-summary">summary</option>
+                        <option value="summary_large_image" id="seo-tw-large">summary_large_image</option>
+                    </select>
+                    <small class="form-hint" id="seo-h-twCard">e.g. summary or summary_large_image.</small>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" id="seo-l-twSite" for="seo-twSite">Twitter handle</label>
+                    <input class="form-control" id="seo-twSite" name="twitterSite" type="text" value="">
+                    <small class="form-hint" id="seo-h-twSite">The site's @handle.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="seo-l-verify">Search-engine verification</h3></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" id="seo-l-google" for="seo-google">Google verification token</label>
+                    <input class="form-control" id="seo-google" name="googleVerification" type="text" value="">
+                    <small class="form-hint" id="seo-h-google">The content value from Google Search Console's meta-tag method.</small>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" id="seo-l-bing" for="seo-bing">Bing verification token</label>
+                    <input class="form-control" id="seo-bing" name="bingVerification" type="text" value="">
+                    <small class="form-hint" id="seo-h-bing">The content value from Bing Webmaster Tools' meta-tag method.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="seo-l-docs">Uploaded documents</h3></div>
+            <div class="card-body">
+                <label class="form-check mb-0">
+                    <input id="seo-docs-noindex" class="form-check-input" name="documentsNoindex" type="checkbox" value="true">
+                    <span class="form-check-label" id="seo-l-docs-noindex">Keep uploaded documents out of search engines</span>
+                </label>
+                <small class="form-hint" id="seo-h-docs">Sends <code>X-Robots-Tag: noindex</code> with every file under
+                    <code>/static/doc/</code>. A PDF has no page markup, so this header is the only way to ask a search
+                    engine not to list it. It applies to all of them together, and only to engines that honour it — it is
+                    not access control: the files stay publicly downloadable to anyone with the link.</small>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="seo-l-extra">Extra &lt;head&gt; markup</h3></div>
+            <div class="card-body">
+                <textarea class="form-control font-monospace" id="seo-extra" name="extraHead" rows="5"
+                          aria-labelledby="seo-l-extra" aria-describedby="seo-h-extra"></textarea>
+                <small class="form-hint" id="seo-h-extra">Injected verbatim into every page's &lt;head&gt;. For
+                    trusted markup only (link tags, structured-data scripts) — it is not escaped.</small>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="seo-save">Save</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>content widgets</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="wi-pretitle">Site management</div>
+                <h2 class="page-title" id="wi-heading">Content widgets</h2>
+            </div>
+        </div>
+    </div>
+
+    <p id="wi-intro" class="text-secondary">
+        Each widget placed in this site's templates is listed below; configure how each placement behaves.
+    </p>
+
+    <div id="wi-empty" class="empty">
+        <div class="empty-title" id="wi-empty-title">No widgets are placed in this site.</div>
+        <div class="empty-subtitle text-secondary" id="wi-empty-sub">
+            A designer adds one with a <code>data-widget="type/instance"</code> anchor in a template.
+        </div>
+    </div>
+
+    <div id="wi-card" class="card mb-3">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title mb-0">
+                    <i class="fa-solid fa-puzzle-piece me-2"></i><span class="wi-type">type</span>
+                    <span class="text-secondary">/</span> <span class="wi-instance">instance</span>
+                </h3>
+                <div class="card-subtitle mt-1">
+                    <span class="wi-in-label">Placed in</span>: <span class="wi-templates">home</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="wi-noconf text-secondary">This widget offers no per-instance settings.</div>
+
+            <form method="post" class="wi-form">
+                <input class="wi-csrf" type="hidden" name="_csrf" value="">
+                <div class="wi-field mb-3">
+                    <label class="form-label wi-label" for="wi-input">key</label>
+                    <input class="form-control wi-input-text" type="text" id="wi-input" name="key" value="">
+                    <textarea class="form-control wi-input-area" name="key" rows="3"></textarea>
+                    <input class="form-control wi-input-secret" type="password" name="key" autocomplete="off"
+                           placeholder="leave blank to keep">
+                    <label class="form-check">
+                        <input class="form-check-input wi-input-bool" type="checkbox" name="key" value="true">
+                        <span class="form-check-label wi-bool-label">Enabled</span>
+                    </label>
+                    <small class="form-hint wi-help">help</small>
+                    <small class="form-hint wi-hint">hint</small>
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary wi-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

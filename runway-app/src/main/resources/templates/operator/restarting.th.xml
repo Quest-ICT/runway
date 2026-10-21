@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <!-- The page language follows the operator locale in force, so a screen reader pronounces it correctly. -->
+    <attr sel="html" th:lang="${#locale.toLanguageTag()}"/>
+    <attr sel="#rs-title" th:text="#{op.plugins.restart.title}"/>
+    <attr sel="#rs-heading" th:text="#{op.plugins.restart.heading}"/>
+    <attr sel="#rs-note" th:text="#{op.plugins.restart.note}"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#as-tabler-css" th:attr="href='/__assets/vendor/tabler.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-chrome-css" th:attr="href='/__assets/runway-chrome.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-restarting-js" th:src="'/__assets/restarting.js?v=' + ${assetVersion}"/>
+</thlogic>

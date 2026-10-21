@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Icons</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ic-pretitle">Site</div>
+                <h2 class="page-title" id="ic-heading">Icons</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="ic-gen-title">Generate from an SVG</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="ic-gen-hint">Upload one master SVG; the platform generates every raster
+                icon (apple-touch, 192, 512 and favicon.ico) and keeps the SVG as the SVG favicon.</p>
+            <form id="ic-gen-form" method="post" enctype="multipart/form-data" action="/__admin/icons/generate">
+                <input id="ic-gen-csrf" type="hidden" name="_csrf" value="">
+                <div class="input-group" style="max-width:36rem">
+                    <input id="ic-gen-file" class="form-control" type="file" name="svg" aria-labelledby="ic-gen-title"
+                           accept=".svg,image/svg+xml" required>
+                    <button id="ic-gen-btn" class="btn btn-primary" type="submit">Generate icons</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="ic-l-icons">Site icons</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="ic-hint">Upload each icon a browser or device may ask for. Missing
+                slots simply return 404; the icons a page references are injected into its head automatically.</p>
+            <div id="ic-row" class="row align-items-center border-bottom py-2">
+                <div class="col-auto" style="width:64px">
+                    <img class="ic-preview" src="#" alt="" width="48" height="48" style="object-fit:contain">
+                    <span class="ic-none text-secondary">—</span>
+                </div>
+                <div class="col">
+                    <div class="ic-url font-monospace">/icon</div>
+                    <span class="ic-badge badge">status</span>
+                </div>
+                <div class="col-auto">
+                    <form class="ic-upload-form d-inline" method="post" enctype="multipart/form-data" action="#">
+                        <input class="ic-ucsrf" type="hidden" name="_csrf" value="">
+                        <input class="ic-file form-control form-control-sm d-inline-block" type="file" name="file"
+                               style="width:auto" required>
+                        <button class="ic-upload btn btn-sm" type="submit">Upload</button>
+                    </form>
+                    <form class="ic-delete-form d-inline" method="post" action="#">
+                        <input class="ic-dcsrf" type="hidden" name="_csrf" value="">
+                        <button class="ic-delete btn btn-sm btn-danger" type="submit">Remove</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

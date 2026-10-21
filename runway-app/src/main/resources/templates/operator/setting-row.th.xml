@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logic for one settings-form row. `field` (a SettingField) is in scope from the including th:each. Labels
+     and help lines are plugin message keys resolved against the plugin's own bundle. -->
+<thlogic>
+    <!-- A dependent row carries its switch's key for runway-chrome.js and starts hidden while the switch is
+         off; its inputs still submit, so hiding never clears a stored value. -->
+    <attr sel=".sr-row"
+          th:attr="data-show-when=${field.showWhen()},hidden=${field.hidden() ? 'hidden' : null}"/>
+
+    <!-- A checkbox carries its label beside it, so the label above would only repeat it. -->
+    <attr sel=".sr-row//.sr-label" th:if="${field.inputKind() != 'bool'}" th:text="#{${field.label()}}"
+          th:attr="for='f-' + ${field.key()}"/>
+
+    <!-- text (string / int / decimal; enum without a range) -->
+    <attr sel=".sr-row//.sr-text" th:if="${field.inputKind() == 'text'}"
+          th:attr="name=${field.key()},value=${field.value()},id='f-' + ${field.key()},disabled=${field.lockedBy() != null ? 'disabled' : null}"/>
+    <!-- textarea (text / list) -->
+    <attr sel=".sr-row//.sr-area" th:if="${field.inputKind() == 'area'}"
+          th:text="${field.value()}" th:attr="name=${field.key()},id='f-' + ${field.key()},disabled=${field.lockedBy() != null ? 'disabled' : null}"/>
+    <!-- secret: never echoed; placeholder says whether one is stored -->
+    <attr sel=".sr-row//.sr-secret" th:if="${field.inputKind() == 'secret'}"
+          th:attr="name=${field.key()},id='f-' + ${field.key()},placeholder=(${field.secretSet()} ? #{op.settings.secret.set} : #{op.settings.secret.unset}),disabled=${field.lockedBy() != null ? 'disabled' : null}"/>
+    <!-- enum with a declared range: a select. The inherit choice says what it resolves to right now. -->
+    <attr sel=".sr-row//.sr-select" th:if="${field.inputKind() == 'select'}"
+          th:attr="name=${field.key()},id='f-' + ${field.key()},disabled=${field.lockedBy() != null ? 'disabled' : null}"/>
+    <attr sel=".sr-row//.sr-opt" th:each="opt : ${field.options()}" th:value="${opt.value()}"
+          th:selected="${opt.selected()}"
+          th:text="${opt.inherited() != null} ? #{op.settings.inheritCurrent(${opt.value()},${opt.inherited()})} : ${opt.value()}"/>
+    <!-- boolean checkbox -->
+    <attr sel=".sr-row//.sr-bool-wrap" th:if="${field.inputKind() == 'bool'}"/>
+    <attr sel=".sr-row//.sr-bool"
+          th:attr="name=${field.key()},id='f-' + ${field.key()},checked=${field.value() == 'true' ? 'checked' : null},disabled=${field.lockedBy() != null ? 'disabled' : null}"/>
+    <attr sel=".sr-row//.sr-bool-label" th:text="#{${field.label()}}"/>
+
+    <attr sel=".sr-row//.sr-platform-off" th:if="${field.platformOff()}" th:text="#{op.settings.platformOff}"/>
+    <!-- Set by the server itself: shown, disabled, and why (one home per setting; the host's wins). -->
+    <attr sel=".sr-row//.sr-locked" th:if="${field.lockedBy() != null}"
+          th:attr="id='lk-' + ${field.key()}"/>
+    <attr sel=".sr-row//.sr-locked-where" th:text="#{op.settings.locked(${field.lockedBy()})}"/>
+    <!-- What removing the server's line would do: the console's own value, or the default, takes over then. -->
+    <attr sel=".sr-row//.sr-locked-state" th:if="${field.lockState() != null}"
+          th:text="#{${'op.settings.locked.' + field.lockState()}}"/>
+    <!-- Copies the value the server runs with into the console, so the line can be removed with nothing changing.
+         Posts the separate #st-adopt-form (its own CSRF token); asks first. -->
+    <attr sel=".sr-row//.sr-adopt" th:if="${field.lockedBy() != null and field.adoptLabel() != null}"
+          th:text="#{${field.adoptLabel()}}"
+          th:attr="value=${field.key()},aria-describedby='lk-' + ${field.key()},data-confirm=#{op.settings.adopt.confirm(${field.lockedBy()})}"/>
+    <attr sel=".sr-row//.sr-help" th:if="${field.help() != null}" th:text="#{${field.help()}}"/>
+
+    <!-- The facts line: localized, and only the facts a person needs (no type names). -->
+    <attr sel=".sr-row//.sr-facts"
+          th:if="${field.type() == 'list' or field.showsRange() or field.showsDefault() or field.helpLink() != null}"/>
+    <attr sel=".sr-row//.sr-fact-list" th:if="${field.type() == 'list'}" th:text="#{op.settings.fact.list}"/>
+    <attr sel=".sr-row//.sr-fact-range" th:if="${field.showsRange()}"
+          th:text="#{op.settings.fact.range(${field.range()})}"/>
+    <attr sel=".sr-row//.sr-fact-default" th:if="${field.showsDefault()}"
+          th:text="#{op.settings.fact.default(${field.defaultValue()})}"/>
+    <attr sel=".sr-row//.sr-more" th:if="${field.helpLink() != null}" th:href="${field.helpLink()}"
+          th:text="#{op.settings.learnMore}"/>
+</thlogic>

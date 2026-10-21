@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Admin fragment logic. Values from ${@searchLuceneAdminModel...(tenantSiteId)}. -->
+<thlogic>
+    <attr sel="#la-title" th:text="#{searchlucene.admin.title}"/>
+    <attr sel="#la-l-engine" th:text="#{searchlucene.admin.engine}"/>
+    <attr sel="#la-engine" th:text="${@searchLuceneAdminModel.engineKey()}"/>
+    <attr sel="#la-l-pages" th:text="#{searchlucene.admin.pages}"/>
+    <attr sel="#la-pages" th:text="${@searchLuceneAdminModel.indexedPages(tenantSiteId)}"/>
+    <attr sel="#la-l-storage" th:text="#{searchlucene.admin.storage}"/>
+    <attr sel="#la-storage" th:text="${@searchLuceneAdminModel.storageMode()}"/>
+    <attr sel="#la-l-boost" th:text="#{searchlucene.admin.boost}"/>
+    <attr sel="#la-boost" th:text="${@searchLuceneAdminModel.titleBoost(tenantSiteId)}"/>
+    <attr sel="#la-note" th:text="#{searchlucene.admin.note}"/>
+</thlogic>

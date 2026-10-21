@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#us-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#us-heading" th:text="#{op.users.heading}"/>
+    <attr sel="#us-create-title" th:text="#{op.users.create}"/>
+    <attr sel="#us-create-btn" th:text="#{op.users.createBtn}"/>
+    <attr sel="#us-reset-title" th:text="#{op.users.reset}"/>
+    <attr sel="#us-reset-btn" th:text="#{op.users.resetBtn}"/>
+    <attr sel="#us-l-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#us-l-pass" th:text="#{op.login.password}"/>
+    <attr sel="#us-l-tier" th:text="#{op.users.tier}"/>
+    <attr sel="#us-roles-group" th:if="${!customRoles.isEmpty()}"/>
+    <attr sel="#us-l-roles" th:text="#{op.users.additionalRoles}"/>
+    <attr sel="#us-roles-hint" th:text="#{op.users.additionalRolesHint}"/>
+    <attr sel=".us-opt-role" th:each="r : ${customRoles}" th:value="${r}" th:text="${r}"/>
+    <attr sel="#us-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#us-l-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#us-tier-op" th:text="#{op.users.roleOperator}"/>
+    <attr sel="#us-tier-admin" th:text="#{op.users.roleAdmin}"/>
+    <attr sel="#us-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Reset-a-password card (select + password → param-based endpoint) -->
+    <attr sel="#us-reset-form" th:attr="action='/__app/users/reset-password'"/>
+    <attr sel=".us-reset-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel=".us-opt" th:each="u : ${users}" th:value="${u.principalId()}" th:text="${u.username()}"/>
+
+    <!-- Users table -->
+    <attr sel="#us-h-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#us-h-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#us-h-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#us-h-roles" th:text="#{op.users.col.roles}"/>
+    <attr sel="#us-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <attr sel="#us-row" th:each="u,iter : ${users}" th:id="${null}"/>
+    <attr sel="#us-row//.u-user" th:text="${u.username()}"/>
+    <attr sel="#us-row//.u-master" th:if="${u.principalId() == masterId}" th:text="#{op.permissions.master}"/>
+    <attr sel="#us-row//.u-suspended" th:if="${!u.enabled()}" th:text="#{op.users.suspendedBadge}"/>
+
+    <!-- Edit (profile + tier) as a per-row modal keyed by row index. The tier select is absent for the pinned
+         superadmin and for the operator's own row (the service refuses both); a hint explains instead. -->
+    <attr sel="#us-row//.u-edit-btn" th:text="#{op.users.edit}"
+          th:attr="data-bs-target='#us-edit-modal-' + ${iter.index}"/>
+    <attr sel="#us-row//.u-edit-modal"
+          th:attr="id='us-edit-modal-' + ${iter.index},aria-labelledby='us-edit-title-' + ${iter.index}"/>
+    <attr sel="#us-row//.u-edit-title" th:text="#{op.users.edit.title}" th:attr="id='us-edit-title-' + ${iter.index}"/>
+    <attr sel="#us-row//.u-edit-user" th:text="${u.username()}"/>
+    <attr sel="#us-row//.u-edit-form" th:attr="action='/__app/users/' + ${u.principalId()} + '/edit'"/>
+    <attr sel="#us-row//.u-edit-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#us-row//.u-edit-name" th:attr="value=${u.displayName()}"/>
+    <attr sel="#us-row//.u-edit-l-email" th:text="#{op.users.col.email}"/>
+    <attr sel="#us-row//.u-edit-email" th:attr="value=${u.recoveryEmail()}"/>
+    <attr sel="#us-row//.u-edit-tier-group" th:if="${u.principalId() != masterId and u.principalId() != selfId}"/>
+    <attr sel="#us-row//.u-edit-l-tier" th:text="#{op.users.tier}"/>
+    <attr sel="#us-row//.u-edit-tier-op" th:text="#{op.users.roleOperator}"
+          th:selected="${u.roles().contains('SYSTEMOPERATOR')}"/>
+    <attr sel="#us-row//.u-edit-tier-admin" th:text="#{op.users.roleAdmin}"
+          th:selected="${u.roles().contains('SYSTEMADMIN')}"/>
+    <attr sel="#us-row//.u-edit-tier-fixed" th:if="${u.principalId() == masterId or u.principalId() == selfId}"
+          th:text="#{op.users.edit.tierFixed}"/>
+    <attr sel="#us-row//.u-edit-cancel" th:text="#{op.sites.hosts.cancel}"/>
+    <attr sel="#us-row//.u-edit-save" th:text="#{op.users.edit.save}"/>
+
+    <!-- Suspend / resume: never for the pinned superadmin, never on your own row. -->
+    <attr sel="#us-row//.u-suspend"
+          th:if="${u.enabled() and u.principalId() != masterId and u.principalId() != selfId}"
+          th:attr="action='/__app/users/' + ${u.principalId()} + '/suspend'"/>
+    <attr sel="#us-row//.u-suspend-btn" th:text="#{op.users.suspend}"
+          th:attr="title=#{op.users.suspend.tip},data-confirm=#{op.users.suspend.confirm(${u.username()})}"/>
+    <attr sel="#us-row//.u-resume" th:if="${!u.enabled()}"
+          th:attr="action='/__app/users/' + ${u.principalId()} + '/resume'"/>
+    <attr sel="#us-row//.u-resume-btn" th:text="#{op.users.resume}"/>
+    <attr sel="#us-row//.u-name" th:text="${u.displayName()}"/>
+    <attr sel="#us-row//.u-email" th:text="${u.recoveryEmail() != null and !u.recoveryEmail().isEmpty() ? u.recoveryEmail() : '—'}"/>
+    <attr sel="#us-row//.u-roles" th:text="${#strings.setJoin(u.roles(), ', ')}"/>
+    <attr sel="#us-row//.u-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <!-- The pinned superadmin is protected: no delete form, a 'protected' marker instead. -->
+    <attr sel="#us-row//.u-delete" th:if="${u.principalId() != masterId}"
+          th:attr="action='/__app/users/' + ${u.principalId()} + '/delete'"/>
+    <attr sel="#us-row//.u-del-btn" th:attr="data-confirm='Delete user ' + ${u.username()} + '?'"/>
+    <attr sel="#us-row//.u-protected" th:if="${u.principalId() == masterId}"/>
+    <!-- Accessible names for the reset form's unlabelled fields; the placeholder is localized too. -->
+    <attr sel=".a11y-user" th:attr="aria-label=#{op.a11y.user}"/>
+    <attr sel=".a11y-newpass" th:attr="aria-label=#{op.a11y.newPassword},placeholder=#{op.a11y.newPassword}"/>
+</thlogic>

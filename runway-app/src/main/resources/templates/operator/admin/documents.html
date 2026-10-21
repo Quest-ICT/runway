@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Documents</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="dc-pretitle">Site</div>
+                <h2 class="page-title" id="dc-heading">Documents</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="dc-l-upload">Upload a document</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="dc-upload-hint">Files are served as downloads at
+                <code>/static/doc/&lt;name&gt;</code>. Disable a document to withhold it without deleting it.</p>
+            <form method="post" action="/__admin/documents/upload" enctype="multipart/form-data">
+                <input id="dc-ucsrf" type="hidden" name="_csrf" value="">
+                <div class="input-group">
+                    <input class="form-control" type="file" name="file" id="dc-file" aria-labelledby="dc-l-upload" required>
+                    <button class="btn btn-primary" type="submit" id="dc-upload">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="dc-l-list">Documents</h3></div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.documents">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="name" id="dc-h-name">Name</th>
+                    <th scope="col" data-col-key="size" id="dc-h-size">Size</th>
+                    <th scope="col" data-col-key="status" id="dc-h-status">Status</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="dc-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="dc-empty"><td colspan="4" class="text-secondary text-center" id="dc-empty-text">No documents yet.</td></tr>
+                <tr id="dc-row">
+                    <td class="dc-name">name</td>
+                    <td class="dc-size text-secondary">size</td>
+                    <td><span class="dc-status badge">status</span></td>
+                    <td>
+                        <a class="btn btn-sm dc-download" href="#" target="_blank" rel="noopener">Download</a>
+                        <form class="d-inline dc-toggle-form" method="post" action="/__admin/documents/toggle">
+                            <input class="dc-tcsrf" type="hidden" name="_csrf" value="">
+                            <input class="dc-tpath" type="hidden" name="path" value="">
+                            <input class="dc-tdisable" type="hidden" name="disable" value="">
+                            <button type="submit" class="btn btn-sm dc-toggle">Toggle</button>
+                        </form>
+                        <form class="d-inline dc-delete-form" method="post" action="/__admin/documents/delete">
+                            <input class="dc-dcsrf" type="hidden" name="_csrf" value="">
+                            <input class="dc-dpath" type="hidden" name="path" value="">
+                            <button type="submit" class="btn btn-sm btn-danger dc-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+# Runway plugins
+
+This folder holds **Runway plugin projects**. Each plugin is a **standalone project** (its own build) that
+compiles against the Runway SPI only (`mx.quest:runway-spi`, plus `runway-spi-testkit` for its tests) from the local Maven repository and deploys as a
+folder under a Runway install's `external/plugins/<id>/`. The contract is **SPI `1.0.0`** (Runway `1.0.0`): the
+kernel blocks a plugin that links its internal classes. The SPI jars are not yet published to a Maven repository — see the authoring
+guide, §2.
+
+Each Runway release on the releases page (<https://g.quest.mx/quest/runway/releases>) carries the zips of these
+plugins built for it, beside the kernel's own files and listed in the same `SHA256SUMS`.
+
+## Layout
+
+```
+plugins/
+├── docs/PLUGIN-AUTHORING-GUIDE.md   # THE canonical guide: build any Runway plugin from scratch
+├── demo/                            # the reference "kitchen-sink" plugin — exercises EVERY seam
+├── search/                          # on-site search: box widget + /search + /search/api + a published SiteSearchEngine SPI
+├── search-lucene/                   # a Lucene engine for `search` (requires: search + lucene-provider; per-locale analyzers, heap or disk)
+└── lucene-provider/                 # CODE-LESS library provider: bundles Apache Lucene under lib/ (no mainClass)
+```
+
+The essential **protection** plugin is not here: it is `runway-plugin-protection` at the root of the repository,
+and ships inside the Runway installer.
+
+Each plugin carries a `README.md` and a `plugin.yml` (and, when it has code, its unit tests), and versions independently (its
+version is in its `plugin.yml`). Each also carries a `docs/<NAME>-PLUGIN.md`, and most a
+`scripts/verify-against-host.sh` that checks it against the packaged host. One does not have the verify script:
+**`lucene-provider`** has `docs/LUCENE-PROVIDER-PLUGIN.md` but no verify script — it is a code-less library bundle
+with no code of its own to verify.
+
+## Start here
+
+- **Building a new plugin?** Read [`docs/PLUGIN-AUTHORING-GUIDE.md`](docs/PLUGIN-AUTHORING-GUIDE.md) — it covers
+  the project setup, the `plugin.yml` descriptor, every SPI, settings, permissions, resources, build/install,
+  and the pitfalls. Then **copy the closest existing plugin** as your starting template and strip what you don't
+  need.
+- **Reference plugins by pattern:**
+  - Every seam at once → [`demo/`](demo/).
+  - Publishing your **own** SPI for other plugins → [`search/`](search/) (`SiteSearchEngine`).
+  - Implementing another plugin's SPI (`requires:`) + **consuming a library-provider** (Lucene) → [`search-lucene/`](search-lucene/).
+  - A **code-less library-provider** plugin (bundle a shared library under `lib/`, no `mainClass`) →
+    [`lucene-provider/`](lucene-provider/) (Apache Lucene) — consumed by a `requires:` plugin (`search-lucene`).
+
+## Conventions
+
+- Each plugin project is self-contained, with no external dependencies beyond the host artifacts in `~/.m2`. The
+  authoring guide lives at the top level (`docs/PLUGIN-AUTHORING-GUIDE.md`) and nowhere else is current:
+  `demo/docs/PLUGIN-AUTHORING-GUIDE.md` is only a pointer to it.
+- Plugin **id** (and its install-folder name) is short and path-safe (e.g. `runway-demo`); the Maven artifactId
+  is **`runway-plugin-<id>`** (so `runway-plugin-runway-demo`), because the release zip is named after it,
+  `runway-plugin-<id>-<version>.zip`; the Java package lives **outside** `mx.quest.runway`.
+- Build with JDK 25 (point `JAVA_HOME` at it) and Maven.

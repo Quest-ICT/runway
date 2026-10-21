@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Admin fragment logic. Values from ${@searchAdminModel...(tenantSiteId)}; the on/off ternary keeps the
+     condition in ${} and each branch a standalone #{} (pitfall #12). -->
+<thlogic>
+    <attr sel="#sa-title" th:text="#{search.admin.title}"/>
+    <attr sel="#sa-l-status" th:text="#{search.admin.enabled}"/>
+    <attr sel="#sa-status" th:text="${@searchAdminModel.enabled(tenantSiteId)} ? #{search.on} : #{search.off}"/>
+    <attr sel="#sa-l-engine" th:text="#{search.admin.engine}"/>
+    <attr sel="#sa-engine" th:text="${@searchAdminModel.activeEngineKey(tenantSiteId)}"/>
+    <attr sel="#sa-engines" th:text="${@searchAdminModel.engineCount()}"/>
+    <attr sel="#sa-l-pages" th:text="#{search.admin.pages}"/>
+    <attr sel="#sa-pages" th:text="${@searchAdminModel.searchableItems(tenantSiteId)}"/>
+    <attr sel="#sa-note" th:text="#{search.admin.note}"/>
+
+    <!-- Rebuild index: the form's action is the constant /search/reindex in the static markup (no th:action: the
+         restricted URL/attr context forbids ${@bean}). The hidden field carries the console session's CSRF token
+         (the request attribute _csrf, never a bean), which the kernel's tenant chain demands on this POST. -->
+    <attr sel="#sr-desc" th:text="#{search.reindex.desc}"/>
+    <attr sel="#sr-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#sr-reindex-btn" th:title="#{search.reindex.tip}"/>
+    <attr sel="#sr-reindex-label" th:text="#{search.reindex.button}"/>
+
+    <!-- "Search page" install card: exactly one block shows, gated on the live install status. The install form's
+         action is the constant /search/install-page in the static markup; the live path is bound with th:text
+         (which permits @bean). The hidden field carries the console session's CSRF token, as above. -->
+    <attr sel="#sp-install" th:if="${!@searchAdminModel.pageInstalled(tenantSiteId)}"/>
+    <attr sel="#sp-desc" th:text="#{search.page.card.desc}"/>
+    <attr sel="#sp-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#sp-install-btn" th:title="#{search.page.card.install.tip}"/>
+    <attr sel="#sp-install-label" th:text="#{search.page.card.install}"/>
+    <attr sel="#sp-installed" th:if="${@searchAdminModel.pageInstalled(tenantSiteId)}"/>
+    <attr sel="#sp-badge" th:text="#{search.page.card.badge}"/>
+    <attr sel="#sp-at" th:text="#{search.page.card.at}"/>
+    <attr sel="#sp-path" th:text="${@searchAdminModel.pagePath(tenantSiteId)}"/>
+    <attr sel="#sp-edit" th:text="#{search.page.card.edit}"/>
+
+    <attr sel="#sa-help-label" th:text="#{search.admin.help}"/>
+
+    <!-- "Searches with no results": the list is read ONCE into ${nr} (th:with on the card) and every row binds
+         visitor text with th:text only. The clear form carries the console page's CSRF token (the tenant chain
+         rejects the POST without it) and shows only when there is something to clear. -->
+    <attr sel="#nr-card" th:with="nr=${@searchAdminModel.noResults(tenantSiteId)}"/>
+    <attr sel="#nr-title" th:text="#{search.noresults.title}"/>
+    <attr sel="#nr-intro" th:text="#{search.noresults.intro}"/>
+    <attr sel="#nr-off" th:if="${!@searchAdminModel.noResultsRecording(tenantSiteId)}" th:text="#{search.noresults.off}"/>
+    <attr sel="#nr-h-term" th:text="#{search.noresults.col.term}"/>
+    <attr sel="#nr-h-count" th:text="#{search.noresults.col.count}"/>
+    <attr sel="#nr-h-last" th:text="#{search.noresults.col.lastSeen}"/>
+    <attr sel="#nr-card//#nr-empty" th:if="${nr.isEmpty()}"/>
+    <attr sel="#nr-empty-text" th:text="#{search.noresults.empty}"/>
+    <attr sel="#nr-card//#nr-row" th:each="e : ${nr}"/>
+    <attr sel="#nr-card//#nr-row//.nr-term" th:text="${e.term()}"/>
+    <attr sel="#nr-card//#nr-row//.nr-count" th:text="${e.count()}" th:attr="data-sort=${e.count()}"/>
+    <attr sel="#nr-card//#nr-row//.nr-last" th:text="${@searchAdminModel.lastSeen(e)}"/>
+    <attr sel="#nr-retention"
+          th:text="#{search.noresults.retention(${@searchAdminModel.noResultsRetentionDays(tenantSiteId)},${@searchAdminModel.noResultsMaxTerms()})}"/>
+    <attr sel="#nr-card//#nr-clear-form" th:if="${!nr.isEmpty()}"/>
+    <attr sel="#nr-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#nr-clear" th:title="#{search.noresults.clear.tip}"/>
+    <attr sel="#nr-clear-label" th:text="#{search.noresults.clear}"/>
+</thlogic>

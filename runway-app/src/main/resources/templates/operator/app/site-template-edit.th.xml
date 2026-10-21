@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm Site templates editor (scoped to one template). Two POST forms (save + reset) stay siblings; their
+     actions and the crumb/cancel links carry the template id via concatenation, not |...|. -->
+<thlogic>
+    <attr sel="#ste-crumb" th:text="${template.builtIn()} ? #{op.sitetpl.default.name} : ${template.name()}"
+          th:attr="href='/__app/site-templates/' + ${template.id()}"/>
+    <attr sel="#ste-name" th:text="${name}"/>
+    <attr sel="#ste-desc" th:text="#{${descriptionKey}}"/>
+
+    <attr sel="#ste-badge"
+          th:text="${overridden} ? #{op.sitetpl.status.customized} : #{op.sitetpl.status.inherits}"
+          th:classappend="${overridden} ? 'bg-blue-lt' : 'bg-secondary-lt'"/>
+
+    <!-- Reset is only offered when this template overrides the file. -->
+    <attr sel="#ste-reset-form" th:if="${overridden}"
+          th:attr="action='/__app/site-templates/' + ${template.id()} + '/reset'"/>
+    <attr sel="#ste-reset-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ste-reset-name" th:attr="value=${name}"/>
+    <attr sel="#ste-reset-label" th:text="#{op.sitetpl.resetDefaultBtn}"/>
+
+    <attr sel="#ste-help" th:text="#{op.sitetpl.edit.help}"/>
+    <attr sel="#ste-save-form" th:attr="action='/__app/site-templates/' + ${template.id()} + '/save'"/>
+    <attr sel="#ste-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ste-name-field" th:attr="value=${name}"/>
+    <attr sel="#ste-content-label" th:text="#{op.sitetpl.edit.content}"/>
+    <attr sel="#ste-content" th:text="${content}"/>
+    <attr sel="#ste-cancel" th:text="#{op.sitetpl.edit.cancel}" th:attr="href='/__app/site-templates/' + ${template.id()}"/>
+    <attr sel="#ste-save" th:text="#{op.sitetpl.edit.save}"/>
+</thlogic>

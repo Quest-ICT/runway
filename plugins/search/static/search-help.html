@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Search plugin — help &amp; reference</title>
+    <link rel="stylesheet" href="/__plugin/search/static/search.css">
+    <style>
+        body { max-width: 46rem; margin: 2rem auto; padding: 0 1rem;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; line-height: 1.5; }
+        h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; margin-top: 1.75rem; }
+        code { background: #f3f3f3; padding: .1rem .3rem; border-radius: .25rem; }
+        pre { background: #f6f8fa; padding: .75rem 1rem; border-radius: .375rem; overflow: auto; }
+    </style>
+</head>
+<body>
+<h1>Search — help &amp; reference</h1>
+<p>The Search plugin adds on-site search to your site: an embeddable, query-aware <strong>search box</strong>
+    (a content widget) backed by a pluggable engine. The built-in engine searches the titles, descriptions and text
+    of your published pages and content (entries other plugins publish, …) and needs no setup — search works the moment the plugin
+    is installed and enabled. A change you make in the console (a page saved, an entry published, a setting
+    changed) is searchable at once.</p>
+
+<h2>Install a ready-made search results page</h2>
+<p>On the Search settings page, the <strong>Search page</strong> card installs a ready-made results page (at
+    <code>/search</code>) carrying the box. It then becomes an <strong>ordinary site page</strong> — it appears
+    under <em>Pages</em>, and you can edit its template, restyle it, move it or give it a different URL. Installing
+    never overwrites an existing page, and it follows your site's editorial rules: on a site whose pages need
+    review, the page waits in the review queue; when the quality checks block publishing, it is created as a draft
+    for you to fix in the page editor. The button tells you which happened.</p>
+
+<h2>Or put a search box on any page</h2>
+<p>In any page (or your master chrome), add an anchor where the box should appear:</p>
+<pre>&lt;div id="site-search" data-widget="search/box"&gt;&lt;/div&gt;</pre>
+<p>The <code>id</code> and <code>data-widget</code> must be on the <em>same</em> element. The box submits
+    <code>?q=</code> to your results page (the <strong>Results page path</strong> setting, default
+    <code>/search</code>). The widget is query-aware: when a page carrying it is opened with a non-blank
+    <code>q</code>, it renders the ranked results <em>inline below the box</em>. Everything is styled by this
+    plugin's stylesheet (<code>/__plugin/search/static/search.css</code>) — override any <code>.rw-search*</code>
+    rule from your own CSS to match your theme.</p>
+
+<h2>Settings (per site)</h2>
+<ul>
+    <li><strong>Enable search</strong> — turn the box (and its inline results) on or off.</li>
+    <li><strong>Maximum results</strong> — how many hits the results show (1–100).</li>
+    <li><strong>Results page path</strong> — where the box submits <code>?q=</code> (default <code>/search</code>);
+        change it if you move or rename the results page.</li>
+    <li><strong>Search box placeholder</strong> — the greyed-out prompt text in the box.</li>
+    <li><strong>Excluded content</strong> — pages (by their slug) and entries (by their id) that search leaves out,
+        one per line.</li>
+    <li><strong>Record searches with no results</strong> — off by default; see below.</li>
+    <li><strong>Keep unrepeated terms for (days)</strong> — how long a term nobody searches for again stays on
+        the list (default 90).</li>
+</ul>
+
+<h2>Searches with no results</h2>
+<p>Turn on <strong>Record searches with no results</strong> and the settings page lists what visitors searched for
+    on your site and did not find — most frequent first, with how often and when it was last searched. Each entry
+    is a hint: a page you could add, a title or description that should mention the word visitors use, or a
+    redirect from an old name.</p>
+<p>It is <strong>off by default</strong> because a search term is whatever a visitor typed, and people sometimes type
+    names, email addresses or numbers. When it is on, only the term, a count and the last time are kept — never an
+    IP address, a user or a session. Terms that look like an email address or a phone number are not kept at all.
+    Letter case and extra spaces are ignored, so "Opening&nbsp;&nbsp;Hours" and "opening hours" count together.
+    The list keeps at most 500 terms (the rarest make room for new ones) and forgets a term nobody has searched
+    for in the number of days you set. <strong>Clear list</strong> forgets everything at once; it cannot be
+    undone. If you turn recording off, the list stays until you clear it or its terms age out.</p>
+<p>The list is kept in your site's folder, so a full backup carries it. A <strong>transfer copy</strong> of the site
+    (the download meant for someone outside your organisation) leaves it out, because it is what visitors typed.</p>
+<h2>Rebuild the index</h2>
+<p>Search notices every change made through the console by itself. If files were changed some other way (copied in
+    by hand), <strong>Rebuild index</strong> on the Search settings page re-reads everything now and tells you how
+    many items the index holds.</p>
+
+<h2>A better engine</h2>
+<p>Search is backed by a <code>SiteSearchEngine</code> extension point. Installing a companion plugin such as
+    <strong>search-lucene</strong> (which builds a full-text index over your page bodies) transparently upgrades
+    the engine — the box and the inline results are unchanged. The <em>Active engine</em> line on the Search
+    settings page shows which engine is serving your site.</p>
+</body>
+</html>

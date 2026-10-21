@@ -1,0 +1,239 @@
+/*
+ * runway-chrome.css — operator console chrome on top of Tabler. Self-hosted, classpath-only, cache-busted
+ * by ?v= from op-layout. Minimal: realm-distinct topbar accents + region spacing; Tabler carries the rest.
+ */
+
+/* Tabler ships `:root { margin-left: calc(100vw - 100%) }` — a scrollbar-gutter hack that keeps a CENTERED
+   layout from shifting sideways when a vertical scrollbar appears/disappears. The operator console is
+   FULL-WIDTH (body.layout-fluid), so there is no centered container to stabilise: the hack instead shoves the
+   whole page right by the scrollbar width (~15px) whenever content is tall enough to scroll — an asymmetric
+   left margin that flickers as the scrollbar toggles. Neutralise it. `html:root` out-specifies Tabler's
+   `:root`, so no !important is needed; when no scrollbar is present the value was 0 anyway. */
+html:root {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Both consoles wear the same style — a dark topbar (data-bs-theme=dark gives light text) closed by a subtle
+   1px INSET bottom line, no colored border — and differ only by tint so the two realms are never confused:
+   the application console is a neutral slate; the tenant (site) console is a green. */
+.rw-topbar-app {
+    background-color: #1f2937; /* slate — the application realm */
+    box-shadow: inset 0 -1px 0 0 #374151;
+}
+.rw-topbar-admin {
+    background-color: #1a2e25; /* green — the tenant (site) realm */
+    box-shadow: inset 0 -1px 0 0 #2b4a3c;
+}
+
+/* The realm legend ("Runway App Management" / "<site> site management") sits by the logo as plain light text
+   (not a pill), and the menu is held 3rem off it on wide screens (Bootstrap ms-md-5 in the markup). */
+.rw-realm-legend {
+    font-size: 1.05rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, .82);
+}
+
+/* The operator menu bar collapses to the hamburger at a custom, EM-based breakpoint (72em ≈ 1150px at the
+   default 16px font) rather than one of Bootstrap's fixed px ones. Chosen because each realm's bar is wide —
+   a brand legend + up to six nav groups + the language/user cluster — and cramps well before Bootstrap's `md`
+   (768px). An em query TRACKS the browser font size, so a larger font collapses the bar earlier and the
+   right-hand controls can never clip off the edge (a fixed px breakpoint would let them). These rules mirror
+   Bootstrap's own `.navbar-expand-{bp}` output at that one breakpoint; the markup uses `navbar-expand-rw`,
+   which is NOT a Bootstrap class, so below 72em the navbar falls back to Bootstrap's default collapsed
+   behaviour (toggler shown, menu inside `.collapse`). */
+@media (min-width: 72em) {
+    .navbar-expand-rw { flex-wrap: nowrap; justify-content: flex-start; }
+    .navbar-expand-rw .navbar-nav { flex-direction: row; }
+    .navbar-expand-rw .navbar-nav .dropdown-menu { position: absolute; }
+    .navbar-expand-rw .navbar-nav .nav-link { padding-right: .5rem; padding-left: .5rem; }
+    .navbar-expand-rw .navbar-collapse { display: flex !important; flex-basis: auto; }
+    .navbar-expand-rw .navbar-toggler { display: none; }
+    /* At expanded width the user cluster (source-ordered before the menu) moves to the far right, and the menu
+       is held 3rem off the realm legend. Both only apply above the breakpoint. */
+    .rw-topbar .order-rw-last { order: 6; }
+    .rw-menu-gap { margin-left: 3rem; }
+}
+
+/* Below the breakpoint Tabler centres each stacked nav link (`.navbar .navbar-nav .nav-link{justify-content:
+   center}`) and only overrides it inside its own `.navbar-expand-{bp}` queries — which our custom class does
+   not reproduce. Left-align the collapsed menu's links; scoped to `.navbar-collapse` so the always-visible
+   language/user controls are untouched. At expanded width the links are content-width in a row, so this is a
+   no-op there. */
+.rw-topbar .navbar-collapse .navbar-nav .nav-link {
+    justify-content: flex-start;
+}
+
+/* Keep dropdown carets next to their label (not shoved to the row's far right) in the collapsed menu. */
+.rw-topbar .navbar-collapse .navbar-nav .dropdown-toggle::after {
+    margin-left: .5rem;
+}
+
+/* Pack the hamburger + logo/legend hard against the LEFT and push the user cluster (locale + username) to the
+   RIGHT. Bootstrap's default navbar `justify-content: space-between` instead floats the brand
+   into the middle; flex-start on the flex container + an auto left margin on the right cluster is the correct
+   pattern (no forced inter-item gaps, so it does not overflow as readily). Applies at all widths; above the
+   breakpoint the expanded menu's flex-grow already fills the middle, so the auto margin is a harmless no-op. */
+.rw-topbar > .container-xl {
+    justify-content: flex-start;
+}
+.rw-topbar .navbar-nav.order-rw-last {
+    margin-left: auto;
+}
+
+/* The per-page pretitle repeated the realm name ("Runway App Management" / "<site> site management") above the
+   heading on every console page — redundant now that the realm legend sits in the topbar next to the logo.
+   Hide it console-wide; the page <h2> title carries the page name. */
+.page-header .page-pretitle {
+    display: none;
+}
+
+/* About → "Bundled components": a full-width section whose ~20 name/version pairs flow into as many ~22rem
+   columns as the card width allows (one on a phone, two or three on a wide screen) — `column-width` keeps it
+   responsive with no media queries. `break-inside: avoid` keeps a name and its version on the same line. */
+.rw-cmp-grid {
+    column-width: 22rem;
+    column-gap: 2rem;
+}
+.rw-cmp-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    break-inside: avoid;
+    padding: .35rem 0;
+    border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+}
+
+.rw-user {
+    font-weight: 600;
+}
+
+/* The notifications (messages) region collapses to nothing when it holds no actual alert, so it never adds
+   dead space. NOTE: `:empty` is NOT usable here — Thymeleaf's `th:if` removes the alert *elements* but leaves
+   the inter-element WHITESPACE as text nodes, so the region is never truly empty. `:has(.alert)` keys off a
+   real alert being present, which is what we actually mean. */
+#op-notifications:not(:has(.alert)) {
+    display: none;
+    margin: 0;
+}
+
+/* ── App-shell scroll model ──────────────────────────────────────────────────────────────────────────────
+   Previously the whole document scrolled, carrying the topbar — the "page header" menu bar — out of view on a
+   long screen (the page editor especially), so navigating the console first meant scrolling back to the top.
+   Bind the console to the viewport instead: the topbar and footer are FIXED bands and ONLY the work area
+   between them scrolls, so the menu, the flash/warning band under it, and the footer all stay in reach.
+   (Tabler's `.page` is a flex column — `flex:0 0 auto` pins the two bands and the middle `flex:1` child, the
+   `.page-wrapper`, owns the scroll.) Nothing in the WORK AREA is pinned — only the surrounding chrome.
+
+   Applied from md (768px) up — the console is a desktop/tablet surface; a phone keeps the natural document
+   scroll. Earlier this was gated at 72em (the navbar's expand width) to dodge a collapsed-hamburger clip, but
+   that left every window narrower than ~1152px with NOTHING pinned; the cap below fixes the clip instead, so
+   the pinning can extend down to md. */
+@media (min-width: 768px) {
+    body.layout-fluid .page {
+        height: 100vh;
+        height: 100dvh;          /* track mobile browser chrome where supported */
+        overflow: hidden;        /* the inner .page-wrapper is the sole scroll region */
+    }
+    /* The topbar's #op-topbar placeholder is th:replace'd by the realm fragment (root
+       <header class="rw-topbar">), so target the class, not the (gone) id. The footer keeps its id. */
+    body.layout-fluid .rw-topbar,
+    body.layout-fluid #op-foot {
+        flex: 0 0 auto;          /* fixed bands, always visible */
+    }
+    body.layout-fluid .page-wrapper {
+        flex: 1 1 auto;
+        min-height: 0;           /* let the flex child shrink so its own overflow engages */
+        overflow-y: auto;
+    }
+    /* Pin the flash/warning band to the top of the scroll region (right under the topbar) — ONLY when it holds
+       a real alert (`:has(.alert)`, not `:not(:empty)`, which the leftover whitespace would always satisfy and
+       so paint a phantom band + eat vertical space with no message). The body-bg backing stops scrolled content
+       bleeding through the tinted alerts. */
+    body.layout-fluid #op-notifications:has(.alert) {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding-top: 1rem;
+        margin-bottom: 0;
+        background-color: var(--tblr-body-bg, #f6f7f9);
+    }
+}
+/* Collapsed-hamburger safety (md up to the 72em expand width): the open menu is capped and scrolls internally
+   so it can never grow the fixed topbar band past the viewport and clip its own lower items or the footer. */
+@media (min-width: 768px) and (max-width: 71.99em) {
+    body.layout-fluid .rw-topbar .navbar-collapse {
+        max-height: calc(100dvh - 7rem);
+        overflow-y: auto;
+    }
+}
+
+/* Footer: Tabler's `.footer` sets a roomy `padding: 2rem 0`; as a thin fixed band at the bottom of the console
+   that is far too tall, so trim the vertical padding right down (the #op-foot id out-specifies `.footer`, so no
+   !important is needed). */
+#op-foot {
+    padding-top: .4rem;
+    padding-bottom: .4rem;
+}
+
+/* Trim the dead space above the work area now that the topbar is pinned right over it. TWO Tabler defaults
+   made that gap: (1) `.page-body { margin-top: var(--tblr-page-padding-y) ≈1.5rem }` and (2)
+   `.page-header { margin-top: var(--tblr-page-padding-y) }`. Zero the page-body margin and cut the page-header
+   margin to a hair — this is what the operator's `-1.5rem` negative margin was really compensating for, done
+   cleanly (positive values, no risk of pulling content up over the topbar / clipping). The page-header is WORK
+   AREA (it scrolls) — only its spacing is touched, it is not pinned. */
+body.layout-fluid .page-body {
+    margin-top: 0;
+}
+body.layout-fluid .page-header {
+    margin-top: .5rem;
+}
+
+/* Mark the active top-level link (one with no submenu — Dashboard, Plugins, a plugin's own link) by weight
+   only. It used to carry an inset underline as well (box-shadow in currentColor, i.e. white on the dark
+   topbar); it was removed in both consoles, and the bold label alone already says where you are. */
+.rw-topbar .navbar-nav .nav-link.active,
+.rw-topbar .navbar-nav .nav-item.active > .nav-link {
+    font-weight: 600;
+}
+/* The second selector: a selected DROPDOWN group (Settings, Resources, …) marks its li.nav-item, not the link,
+   so the rule above never reached it and the current group showed no mark at all. Same weight, so a group and a direct link read alike. */
+
+/* Skip link (op-layout): Bootstrap's .visually-hidden-focusable keeps it off-screen until it receives keyboard
+   focus; focused, it floats over the top-left corner instead of pushing the app shell down. The <main> it targets
+   takes programmatic focus (tabindex=-1) without drawing a focus ring around the whole work area. */
+.rw-skip-link:focus {
+    position: fixed !important;
+    top: .5rem;
+    left: .5rem;
+    z-index: 1090;
+    padding: .5rem 1rem;
+    background: var(--tblr-bg-surface, #fff);
+    color: var(--tblr-primary, #206bc4);
+    border: 2px solid var(--tblr-primary, #206bc4);
+    border-radius: var(--tblr-border-radius, 4px);
+    box-shadow: var(--tblr-box-shadow, 0 2px 4px rgba(0, 0, 0, .15));
+}
+#op-main:focus { outline: none; }
+
+/* Plugin settings form: each section is its own card, so a reader sees where one group of settings ends and the
+   next begins. The title outweighs the field labels below it, and an anchor jump from the section index lands
+   below the topbar rather than under it. */
+.st-section {
+    scroll-margin-top: 4.5rem;
+}
+.st-section > .card-header .st-sec-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: .25rem;
+}
+.st-index-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}

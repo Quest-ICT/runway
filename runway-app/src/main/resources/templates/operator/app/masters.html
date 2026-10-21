@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>site masters</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ma-pretitle">Application</div>
+                <h2 class="page-title" id="ma-heading">Site masters</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="ma-create-title">Create a tenant superadmin</h3></div>
+                <div class="card-body">
+                    <form id="ma-create-form" method="post" action="/__app/masters/create" class="row g-2">
+                        <input class="ma-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-md-6"><label class="form-label" id="ma-l-user" for="ma-f-user">Username</label>
+                            <input id="ma-f-user" class="form-control" name="username" required autocomplete="off"></div>
+                        <div class="col-md-6"><label class="form-label" id="ma-l-pass" for="ma-f-pass">Password</label>
+                            <input id="ma-f-pass" class="form-control" name="password" type="password" required autocomplete="new-password"></div>
+                        <div class="col-md-6"><label class="form-label" id="ma-l-name" for="ma-f-name">Display name</label>
+                            <input id="ma-f-name" class="form-control" name="displayName"></div>
+                        <div class="col-md-6"><label class="form-label" id="ma-l-email" for="ma-f-email">Recovery email</label>
+                            <input id="ma-f-email" class="form-control" name="email" type="email" maxlength="254" autocomplete="off"></div>
+                        <div class="col-md-6"><label class="form-label" id="ma-l-site" for="ma-f-site">Initial tenancy</label>
+                            <input id="ma-f-site" class="form-control" name="siteId" required></div>
+                        <div class="col-12"><button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-user-shield me-1"></i><span id="ma-create-btn">Create</span></button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <h4 id="ma-assign-title">Assign / unassign a tenancy</h4>
+                        <form id="ma-assign-form" method="post" class="row g-2">
+                            <input class="ma-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-md-5"><select class="form-select a11y-user" name="principalId" aria-label="User"><option class="ma-opt">m</option></select></div>
+                            <div class="col-md-4"><input class="form-control a11y-tenancy" name="siteId" placeholder="tenancy id" aria-label="Tenancy id"></div>
+                            <div class="col-md-3"><button type="submit" class="btn btn-success w-100" id="ma-assign-btn">Assign</button></div>
+                        </form>
+                        <form id="ma-unassign-form" method="post" class="row g-2 mt-1">
+                            <input class="ma-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-md-5"><select class="form-select a11y-user" name="principalId" aria-label="User"><option class="ma-opt">m</option></select></div>
+                            <div class="col-md-4"><input class="form-control a11y-tenancy" name="siteId" placeholder="tenancy id" aria-label="Tenancy id"></div>
+                            <div class="col-md-3"><button type="submit" class="btn btn-outline-danger w-100" id="ma-unassign-btn">Unassign</button></div>
+                        </form>
+                    </div>
+                    <div class="col-12">
+                        <h4 id="ma-reset-title">Reset a password</h4>
+                        <form id="ma-reset-form" method="post" class="row g-2">
+                            <input class="ma-csrf" type="hidden" name="_csrf" value="">
+                            <div class="col-md-6"><select class="form-select a11y-user" name="principalId" aria-label="User"><option class="ma-opt">m</option></select></div>
+                            <div class="col-md-4"><input class="form-control a11y-newpass" name="password" type="password" placeholder="New password" aria-label="New password"></div>
+                            <div class="col-md-2"><button type="submit" class="btn btn-outline-secondary w-100" id="ma-reset-btn">Reset</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.masters">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="user" id="ma-h-user">Username</th>
+                            <th scope="col" data-col-key="name" id="ma-h-name">Display name</th>
+                            <th scope="col" data-col-key="tenancies" id="ma-h-tenancies">Tenancies</th>
+                            <th scope="col" data-nosort id="ma-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="ma-empty"><td colspan="4" class="text-secondary text-center" id="ma-empty-text">No tenant superadmins.</td></tr>
+                        <tr id="ma-row">
+                            <td><span class="m-user">user</span> <span class="m-suspended badge bg-red-lt">suspended</span></td>
+                            <td class="m-name text-secondary">—</td>
+                            <td class="m-tenancies text-secondary">—</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary m-edit-btn" data-bs-toggle="modal">Edit</button>
+                                <div class="modal modal-blur fade m-edit-modal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><span class="m-edit-title">Edit superadmin</span> · <span class="m-edit-user text-secondary">user</span></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form class="m-edit-form m-0" method="post">
+                                                <div class="modal-body text-wrap">
+                                                    <input class="m-csrf" type="hidden" name="_csrf" value="">
+                                                    <label class="form-label w-100 mb-3"><span class="m-edit-l-name">Display name</span>
+                                                        <input class="form-control mt-1 m-edit-name" name="displayName" maxlength="128" autocomplete="off"></label>
+                                                    <label class="form-label w-100 mb-0"><span class="m-edit-l-email">Recovery email</span>
+                                                        <input class="form-control mt-1 m-edit-email" name="email" type="email" maxlength="254" autocomplete="off"></label>
+                                                    <small class="form-hint m-edit-email-hint">Used for "Forgot your password?". Blank means this superadmin cannot reset a forgotten password.</small>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-link link-secondary m-edit-cancel" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary m-edit-save">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <form class="m-suspend d-inline m-0" method="post">
+                                    <input class="m-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning m-suspend-btn">Suspend</button>
+                                </form>
+                                <form class="m-resume d-inline m-0" method="post">
+                                    <input class="m-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-success m-resume-btn">Resume</button>
+                                </form>
+                                <form class="m-delete d-inline m-0" method="post">
+                                    <input class="m-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger m-del-btn">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>template files</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">
+                    <a id="stf-crumb" href="/__app/site-templates">Site templates</a>
+                </div>
+                <h2 class="page-title" id="stf-heading">Default</h2>
+                <div class="text-secondary mt-1" id="stf-sub">Files a new site from this template is born with.</div>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <a id="stf-export" class="btn btn-outline-secondary" href="#">
+                    <i class="fa-solid fa-file-zipper me-1"></i><span id="stf-export-label">Export</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-12" id="stf-details-card">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="stf-details-title">Name and description</h3></div>
+                <div class="card-body">
+                    <form id="stf-details-form" method="post" action="#" class="row g-2">
+                        <input id="stf-details-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-md-4"><label class="form-label" id="stf-l-name" for="stf-name">Name</label>
+                            <input id="stf-name" class="form-control" name="name" maxlength="128" autocomplete="off"></div>
+                        <div class="col-md-8"><label class="form-label" id="stf-l-desc" for="stf-desc">Description</label>
+                            <input id="stf-desc" class="form-control" name="description" maxlength="1000" autocomplete="off"></div>
+                        <div class="col-12"><small class="form-hint" id="stf-details-hint">Shown in the template list and when creating a site. The id stays the same.</small></div>
+                        <div class="col-12"><button type="submit" class="btn btn-primary" id="stf-details-save">Save</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.sitetemplate.files">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="file" id="stf-h-file">File</th>
+                            <th scope="col" data-col-key="desc" id="stf-h-desc">What it is</th>
+                            <th scope="col" data-col-key="status" id="stf-h-status">Status</th>
+                            <th scope="col" data-nosort id="stf-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="stf-row">
+                            <td><code class="stf-name">_master.html</code></td>
+                            <td class="stf-desc text-secondary">description</td>
+                            <td><span class="badge stf-badge">Inherits default</span></td>
+                            <td class="text-nowrap">
+                                <a class="stf-edit btn btn-sm btn-outline-primary" href="#">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i><span class="stf-edit-label">Edit</span></a>
+                                <form class="stf-reset d-inline m-0 ms-1" method="post" action="#">
+                                    <input class="stf-csrf" type="hidden" name="_csrf" value="">
+                                    <input class="stf-reset-name" type="hidden" name="name" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary stf-reset-btn">
+                                        <i class="fa-solid fa-rotate-left me-1"></i><span class="stf-reset-label">Reset</span></button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer d-flex" id="stf-footer">
+                    <form class="ms-auto m-0" method="post" action="#" id="stf-reset-all-form">
+                        <input id="stf-ra-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-rotate-left me-1"></i><span id="stf-ra-label">Reset all to platform default</span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

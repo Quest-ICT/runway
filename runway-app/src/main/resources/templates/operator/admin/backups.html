@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>backups</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="bk-pretitle">Site</div>
+                <h2 class="page-title" id="bk-heading">Backups</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title" id="bk-l-make">Create a backup</h3></div>
+                <div class="card-body">
+                    <p class="text-secondary" id="bk-make-hint">A backup is a complete, self-contained copy of
+                        this site — pages, users, settings and styling.</p>
+                    <a class="btn btn-primary me-2" id="bk-download-now" href="/__admin/backups/download">Download a backup now</a>
+                    <p class="text-secondary small" id="bk-full-admin-only">Downloading a full backup is reserved for
+                        the site's administrators, because it carries every account's password hash and the site's
+                        plugin secrets. You can save a backup on the server, or download a transfer copy below.</p>
+                    <form method="post" action="/__admin/backups/create" class="d-inline">
+                        <input id="bk-create-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn" id="bk-create">Save a backup on the server</button>
+                    </form>
+                    <hr>
+                    <p class="text-secondary mb-2" id="bk-transfer-hint">Sending this site to someone else — a
+                        designer, a bug report, a published example? A backup carries this site's user accounts
+                        and its plugin credentials. Use a transfer copy instead: the same content and styling,
+                        with accounts, secrets and hostnames removed.</p>
+                    <a class="btn me-2" id="bk-download-transfer" href="/__admin/backups/download-transfer">Download a transfer copy</a>
+                    <div class="mt-2" id="bk-personal">
+                        <p class="text-secondary small mb-1" id="bk-personal-hint">It also leaves out the personal
+                            data plugins keep for this site:</p>
+                        <ul class="small mb-0" id="bk-personal-list">
+                            <li id="bk-personal-item"><code class="bk-personal-path">plugins/search/no-results.tsv</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3" id="bk-restore-card">
+                <div class="card-header"><h3 class="card-title" id="bk-l-restore">Restore from a file</h3></div>
+                <div class="card-body">
+                    <p class="text-danger" id="bk-restore-warn">Restoring replaces the entire site with the
+                        backup's contents. This cannot be undone.</p>
+                    <form method="post" action="/__admin/backups/restore" enctype="multipart/form-data">
+                        <input id="bk-upload-csrf" type="hidden" name="_csrf" value="">
+                        <input type="file" name="file" accept=".zip" class="form-control mb-2" id="bk-file" aria-labelledby="bk-l-restore" required>
+                        <button type="submit" class="btn btn-danger" id="bk-upload-restore">Upload &amp; restore</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="bk-l-stored">Stored backups</h3></div>
+        <div class="card-body py-2 text-secondary small" id="bk-policy">
+            <span id="bk-policy-schedule">Automatic backups: off.</span>
+            <span id="bk-policy-keep">Kept: the newest 30.</span>
+            <span id="bk-policy-by">Set by the platform operator.</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.backups">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="name" id="bk-h-name">Name</th>
+                    <th scope="col" data-col-key="size" id="bk-h-size">Size</th>
+                    <th scope="col" data-col-key="date" id="bk-h-date">Created</th>
+                    <th scope="col" data-nosort data-col-key="actions" id="bk-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="bk-empty"><td colspan="4" class="text-secondary text-center" id="bk-empty-text">No backups yet.</td></tr>
+                <tr id="bk-row">
+                    <td class="bk-name">name</td>
+                    <td class="bk-size text-secondary">size</td>
+                    <td class="bk-date text-secondary">date</td>
+                    <td>
+                        <a class="btn btn-sm bk-dl" href="#">Download</a>
+                        <form class="d-inline bk-restore-form" method="post" action="#">
+                            <input class="bk-rcsrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-sm btn-danger bk-restore">Restore</button>
+                        </form>
+                        <form class="d-inline bk-delete-form" method="post" action="#">
+                            <input class="bk-dcsrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-sm bk-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

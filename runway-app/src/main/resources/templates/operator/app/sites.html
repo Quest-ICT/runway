@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>sites</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="si-pretitle">Application</div>
+                <h2 class="page-title" id="si-heading">Sites</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-12" id="si-create-card">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="si-create-title">Create a site</h3></div>
+                <div class="card-body">
+                    <form id="si-create-form" method="post" action="/__app/sites/create" class="row g-2">
+                        <input id="si-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-md-3"><label class="form-label" id="si-l-id" for="si-f-id">Site id</label>
+                            <input id="si-f-id" class="form-control" name="siteId" required pattern="[A-Za-z0-9][A-Za-z0-9._-]*"></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-name" for="si-f-name">Name</label>
+                            <input id="si-f-name" class="form-control" name="name" required></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-hosts" for="si-f-hosts">Hosts (comma-sep)</label>
+                            <input id="si-f-hosts" class="form-control" name="hosts" placeholder="example.com, www.example.com"></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-locale" for="si-f-locale">Default locale</label>
+                            <input id="si-f-locale" class="form-control" name="defaultLocale" value="en" required></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-locales" for="si-f-locales">Other locales</label>
+                            <input id="si-f-locales" class="form-control" name="locales" placeholder="es, fr"></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-template" for="si-template">Born from template</label>
+                            <select class="form-select" name="templateId" id="si-template">
+                                <option id="si-template-opt" value="default">Default</option>
+                            </select></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-muser" for="si-f-muser">Superadmin username</label>
+                            <input id="si-f-muser" class="form-control" name="masterUsername" required autocomplete="off"></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-mpass" for="si-f-mpass">Superadmin password</label>
+                            <input id="si-f-mpass" class="form-control" name="masterPassword" type="password" required autocomplete="new-password"></div>
+                        <div class="col-md-3"><label class="form-label" id="si-l-memail" for="si-f-memail">Superadmin email</label>
+                            <input id="si-f-memail" class="form-control" name="masterEmail" type="email"></div>
+                        <div class="col-12"><button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-plus me-1"></i><span id="si-create-btn">Create site</span></button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.sites">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="id" id="si-h-id">ID</th>
+                            <th scope="col" data-col-key="name" id="si-h-name">Name</th>
+                            <th scope="col" data-col-key="hosts" id="si-h-hosts">Hosts</th>
+                            <th scope="col" data-col-key="masters" id="si-h-masters">Superadmins</th>
+                            <th scope="col" data-col-key="status" id="si-h-status">Status</th>
+                            <th scope="col" data-nosort id="si-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="si-empty"><td colspan="6" class="text-secondary text-center" id="si-empty-text">No sites.</td></tr>
+                        <tr id="si-row">
+                            <td><span class="s-id">id</span><span class="s-default badge bg-azure-lt ms-1">default</span></td>
+                            <td class="s-name">name</td>
+                            <td><span class="s-hosts text-secondary">—</span><div class="small text-secondary s-base">base</div></td>
+                            <td class="s-masters text-secondary">—</td>
+                            <td><span class="badge s-badge">status</span><div class="small text-secondary mt-1 s-quota">cap</div><div class="small text-secondary s-storage">storage</div></td>
+                            <td>
+                                <form class="s-suspend d-inline m-0" method="post">
+                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Suspend</button>
+                                </form>
+                                <form class="s-resume d-inline m-0" method="post">
+                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Resume</button>
+                                </form>
+                                <form class="s-delete d-inline m-0" method="post">
+                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger s-delete-btn">Delete</button>
+                                </form>
+                                <form class="s-captcha-off d-inline m-0" method="post">
+                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary s-captcha-btn">Disable CAPTCHA</button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-primary s-edit-btn" data-bs-toggle="modal">Edit</button>
+                                <div class="modal modal-blur fade s-edit-modal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><span class="s-edit-title">Edit site</span> · <span class="s-edit-siteid text-secondary">id</span></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form class="s-edit-form m-0" method="post">
+                                                <div class="modal-body">
+                                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                                    <label class="form-label w-100 mb-3"><span class="s-edit-l-name">Name</span>
+                                                        <input class="form-control mt-1 s-edit-name" name="name" required autocomplete="off"></label>
+                                                    <label class="form-label w-100 mb-3"><span class="s-edit-l-default">Default language</span>
+                                                        <input class="form-control mt-1 s-edit-default" name="defaultLocale" required autocomplete="off" spellcheck="false"></label>
+                                                    <label class="form-label w-100 mb-0"><span class="s-edit-l-locales">Available languages</span>
+                                                        <input class="form-control mt-1 s-edit-locales" name="locales" required autocomplete="off" spellcheck="false" placeholder="en, es"></label>
+                                                    <small class="form-hint s-edit-hint">Comma-separated language tags; the default must be one of them.</small>
+                                                    <label class="form-label w-100 mt-3 mb-0"><span class="s-edit-l-quota">Monthly bandwidth cap</span>
+                                                        <input class="form-control mt-1 s-edit-quota" name="quota" autocomplete="off" spellcheck="false" placeholder="50GB"></label>
+                                                    <small class="form-hint s-edit-quota-hint">Outbound traffic over the last 30 days.</small>
+                                                    <small class="form-hint text-warning s-edit-quota-lock">Set on the server.</small>
+                                                    <label class="form-label w-100 mt-3 mb-0"><span class="s-edit-l-storage">Storage limit</span>
+                                                        <input class="form-control mt-1 s-edit-storage" name="storage" autocomplete="off" spellcheck="false" placeholder="5GB"></label>
+                                                    <small class="form-hint s-edit-storage-hint">The most this site's static files and documents may take.</small>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-link link-secondary s-edit-cancel" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary s-edit-save">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary s-hosts-editbtn" data-bs-toggle="modal">Edit hosts</button>
+                                <div class="modal modal-blur fade s-hosts-modal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><span class="s-hosts-title">Edit hosts</span> · <span class="s-hosts-siteid text-secondary">id</span></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form class="s-hosts-form m-0" method="post">
+                                                <div class="modal-body">
+                                                    <input class="s-csrf" type="hidden" name="_csrf" value="">
+                                                    <label class="form-label s-hosts-label">Hosts (comma-separated)</label>
+                                                    <input class="form-control s-hosts-input" name="hosts" placeholder="example.com, www.example.com" autocomplete="off">
+                                                    <small class="form-hint s-hosts-hint">Comma-separated.</small>
+                                                    <label class="form-label w-100 mt-3 mb-0"><span class="s-base-label">Base URL</span>
+                                                        <input class="form-control mt-1 s-base-input" name="baseUrl" type="url" maxlength="300" autocomplete="off" spellcheck="false"></label>
+                                                    <small class="form-hint s-base-hint">The origin of the site's absolute links.</small>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-link link-secondary s-hosts-cancel" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary s-hosts-save">Save hosts</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12" id="si-demos-card">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="si-demos-title">Install a demo site</h3></div>
+                <div class="card-body">
+                    <p class="text-secondary" id="si-demos-intro">Bundled example sites you can install as independent tenants — each gets its own host and superadmin.</p>
+                    <div id="si-demo-empty" class="text-secondary">All bundled demos are installed.</div>
+                    <div id="si-demo-item" class="border rounded p-3 mb-2">
+                        <form class="row g-2 align-items-end m-0" method="post" action="/__app/sites/install-demo">
+                            <input class="d-csrf" type="hidden" name="_csrf" value="">
+                            <input class="d-demoid" type="hidden" name="demoId" value="">
+                            <div class="col-md-3">
+                                <div class="fw-bold d-name">Demo</div>
+                                <div class="text-secondary small d-id">id</div>
+                            </div>
+                            <div class="col-md-3"><label class="form-label d-l-host" for="si-demo-host">Host</label>
+                                <input id="si-demo-host" class="form-control d-host" name="host" value=""></div>
+                            <div class="col-md-2"><label class="form-label d-l-user" for="si-demo-user">Admin username</label>
+                                <input id="si-demo-user" class="form-control d-user" name="masterUsername" required autocomplete="off"></div>
+                            <div class="col-md-2"><label class="form-label d-l-pass" for="si-demo-pass">Admin password</label>
+                                <input id="si-demo-pass" class="form-control d-pass" name="masterPassword" type="password" required autocomplete="new-password"></div>
+                            <div class="col-md-2">
+                                <label class="form-check"><input class="form-check-input d-default" type="checkbox" name="setAsDefault" value="true"><span class="form-check-label d-l-default">Make default</span></label>
+                                <button type="submit" class="btn btn-sm btn-primary mt-1"><i class="fa-solid fa-wand-magic-sparkles me-1"></i><span class="d-btn">Install</span></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

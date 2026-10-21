@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#ma-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#ma-heading" th:text="#{op.masters.heading}"/>
+    <attr sel="#ma-create-title" th:text="#{op.masters.create}"/>
+    <attr sel="#ma-create-btn" th:text="#{op.masters.createBtn}"/>
+    <attr sel="#ma-assign-title" th:text="#{op.masters.assign}"/>
+    <attr sel="#ma-assign-btn" th:text="#{op.masters.assignBtn}"/>
+    <attr sel="#ma-unassign-btn" th:text="#{op.masters.unassignBtn}"/>
+    <attr sel="#ma-reset-title" th:text="#{op.users.reset}"/>
+    <attr sel="#ma-reset-btn" th:text="#{op.users.resetBtn}"/>
+    <attr sel="#ma-l-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#ma-l-pass" th:text="#{op.login.password}"/>
+    <attr sel="#ma-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#ma-l-site" th:text="#{op.masters.initialTenancy}"/>
+    <attr sel="#ma-l-email" th:text="#{op.masters.recoveryEmail}"/>
+
+    <attr sel=".ma-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ma-assign-form" th:attr="action='/__app/masters/assign'"/>
+    <attr sel="#ma-unassign-form" th:attr="action='/__app/masters/unassign'"/>
+    <attr sel="#ma-reset-form" th:attr="action='/__app/masters/reset-password'"/>
+    <!-- Accessible names for the compact forms' unlabelled fields; the placeholders are localized too. -->
+    <attr sel=".a11y-user" th:attr="aria-label=#{op.a11y.user}"/>
+    <attr sel=".a11y-tenancy" th:attr="aria-label=#{op.a11y.tenancy},placeholder=#{op.a11y.tenancy.ph}"/>
+    <attr sel=".a11y-newpass" th:attr="aria-label=#{op.a11y.newPassword},placeholder=#{op.a11y.newPassword}"/>
+    <attr sel=".ma-opt" th:each="m : ${masters}" th:value="${m.principalId()}" th:text="${m.username()}"/>
+
+    <attr sel="#ma-h-user" th:text="#{op.users.col.user}"/>
+    <attr sel="#ma-h-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#ma-h-tenancies" th:text="#{op.masters.col.tenancies}"/>
+    <attr sel="#ma-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <attr sel="#ma-empty" th:if="${masters.isEmpty()}"/>
+    <attr sel="#ma-empty-text" th:text="#{op.masters.empty}"/>
+    <attr sel="#ma-row" th:each="m, iter : ${masters}" th:id="${null}"/>
+    <!-- Edit (display name + recovery email) as a per-row modal keyed by row index, like App users. -->
+    <attr sel="#ma-row//.m-edit-btn" th:text="#{op.users.edit}"
+          th:attr="data-bs-target='#ma-edit-modal-' + ${iter.index}"/>
+    <attr sel="#ma-row//.m-edit-modal"
+          th:attr="id='ma-edit-modal-' + ${iter.index},aria-labelledby='ma-edit-title-' + ${iter.index}"/>
+    <attr sel="#ma-row//.m-edit-title" th:text="#{op.masters.edit.title}"
+          th:attr="id='ma-edit-title-' + ${iter.index}"/>
+    <attr sel="#ma-row//.m-edit-user" th:text="${m.username()}"/>
+    <attr sel="#ma-row//.m-edit-form" th:attr="action='/__app/masters/' + ${m.principalId()} + '/edit'"/>
+    <attr sel="#ma-row//.m-edit-l-name" th:text="#{op.users.col.name}"/>
+    <attr sel="#ma-row//.m-edit-name" th:attr="value=${m.displayName()}"/>
+    <attr sel="#ma-row//.m-edit-l-email" th:text="#{op.masters.recoveryEmail}"/>
+    <attr sel="#ma-row//.m-edit-email" th:attr="value=${m.recoveryEmail()}"/>
+    <attr sel="#ma-row//.m-edit-email-hint" th:text="#{op.masters.recoveryEmail.hint}"/>
+    <attr sel="#ma-row//.m-edit-cancel" th:text="#{op.sites.hosts.cancel}"/>
+    <attr sel="#ma-row//.m-edit-save" th:text="#{op.users.edit.save}"/>
+    <attr sel="#ma-row//.m-user" th:text="${m.username()}"/>
+    <attr sel="#ma-row//.m-suspended" th:if="${!m.enabled()}" th:text="#{op.users.suspendedBadge}"/>
+    <!-- Suspend while enabled, Resume while suspended (the service also refuses the guarded cases). -->
+    <attr sel="#ma-row//.m-suspend" th:if="${m.enabled()}"
+          th:attr="action='/__app/masters/' + ${m.principalId()} + '/suspend'"/>
+    <attr sel="#ma-row//.m-suspend-btn" th:text="#{op.users.suspend}"
+          th:attr="title=#{op.masters.suspend.tip},data-confirm=#{op.masters.suspend.confirm(${m.username()})}"/>
+    <attr sel="#ma-row//.m-resume" th:if="${!m.enabled()}"
+          th:attr="action='/__app/masters/' + ${m.principalId()} + '/resume'"/>
+    <attr sel="#ma-row//.m-resume-btn" th:text="#{op.users.resume}"/>
+    <attr sel="#ma-row//.m-name" th:text="${m.displayName()}"/>
+    <attr sel="#ma-row//.m-tenancies"
+          th:text="${m.sites().isEmpty() ? '—' : #strings.listJoin(m.sites(), ', ')}"/>
+    <attr sel="#ma-row//.m-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ma-row//.m-delete" th:attr="action='/__app/masters/' + ${m.principalId()} + '/delete'"/>
+    <attr sel="#ma-row//.m-del-btn" th:attr="data-confirm='Delete tenant superadmin ' + ${m.username()} + '?'"/>
+</thlogic>

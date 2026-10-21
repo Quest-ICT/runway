@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Bandwidth</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="bw-pretitle">Site</div>
+                <h2 class="page-title" id="bw-heading">Bandwidth</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-danger" role="alert" id="bw-over">Over the cap: the public site answers 503.</div>
+
+    <div class="row row-cards mb-3">
+        <div class="col-sm-4">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="bw-l-24h">Last 24 hours</div>
+                <div class="h1 mb-0" id="bw-24h">0</div>
+            </div></div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="bw-l-7d">Last 7 days</div>
+                <div class="h1 mb-0" id="bw-7d">0</div>
+            </div></div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="bw-l-30d">Last 30 days</div>
+                <div class="h1 mb-0" id="bw-30d">0</div>
+                <div class="text-secondary small mt-1" id="bw-cap">Cap set by the platform operator.</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="bw-l-daily">Daily transfer (sent)</h3></div>
+        <div class="card-body">
+            <div id="bw-row" class="d-flex align-items-center mb-1">
+                <div class="text-secondary me-2 bw-day" style="width:3.5rem;font-variant-numeric:tabular-nums">day</div>
+                <div class="progress flex-fill me-2" style="height:0.9rem">
+                    <div class="progress-bar bw-bar" role="progressbar" style="width:0"></div>
+                </div>
+                <div class="text-secondary bw-val" style="width:5rem;text-align:right;font-variant-numeric:tabular-nums">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

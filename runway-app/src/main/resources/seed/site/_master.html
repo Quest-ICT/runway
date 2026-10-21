@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title id="m-title">Site</title>
+<meta id="m-desc" name="description" content="">
+<style>
+  /* ------------------------------------------------------------------------
+     Starter theme. Everything is here on purpose: a site owns its own
+     presentation and never loads anything from the platform at render time,
+     so this file has no external stylesheet, no web font and no remote image.
+     It works offline, behind a strict CSP, and on an air-gapped install.
+     Edit freely — this is your copy.
+     ------------------------------------------------------------------------ */
+
+  :root {
+    --ink:        #16202b;   /* body text */
+    --ink-soft:   #4a5a67;   /* secondary text */
+    --ground:     #fbfbf9;   /* page background */
+    --surface:    #ffffff;   /* cards, header */
+    --line:       #e6e6e1;   /* hairlines */
+    --accent:     #0d6e63;   /* links, buttons, eyebrows */
+    --accent-ink: #ffffff;   /* text on accent */
+    --accent-wash:#e8f2f0;   /* tinted panels */
+
+    --serif: "Iowan Old Style", Charter, "Bitstream Charter", Cambria, Georgia, serif;
+    --sans:  system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --measure: 64rem;        /* content width */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#e8ecec; --ink-soft:#a3b1b8; --ground:#10161a; --surface:#161e23;
+      --line:#26323a; --accent:#4fbfae; --accent-ink:#0b1114; --accent-wash:#172a29;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap { max-width: var(--measure); margin: 0 auto; padding: 0 1.5rem; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px;
+  }
+
+  /* Keyboard users can jump past the nav; visible only when focused. */
+  .skip {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--accent); color: var(--accent-ink);
+    padding: .6rem 1rem; z-index: 10;
+  }
+  .skip:focus { left: 0; }
+
+  /* --- header ------------------------------------------------------------ */
+  .site-header { background: var(--surface); border-bottom: 1px solid var(--line); }
+  .site-header .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; padding-top: 1.1rem; padding-bottom: 1.1rem;
+  }
+  .brand {
+    font-family: var(--serif); font-size: 1.3rem; font-weight: 600;
+    color: var(--ink); letter-spacing: -.01em;
+  }
+  .site-nav { display: flex; gap: 1.75rem; font-size: .95rem; }
+  .site-nav a { color: var(--ink-soft); font-weight: 500; padding-bottom: 2px; }
+  .site-nav a:hover { color: var(--ink); text-decoration: none; }
+  .site-nav a.is-active {
+    color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  /* --- type -------------------------------------------------------------- */
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.015em; }
+  h1 { font-size: clamp(2.1rem, 5vw, 3rem); line-height: 1.12; margin: 0 0 1rem; text-wrap: balance; }
+  h2 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 .6rem; text-wrap: balance; }
+  h3 { font-size: 1.1rem; margin: 0 0 .4rem; }
+  p { margin: 0 0 1.1rem; text-wrap: pretty; }
+  .lede { font-size: 1.2rem; color: var(--ink-soft); max-width: 42rem; }
+
+  .eyebrow {
+    font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 .9rem;
+  }
+
+  /* --- hero -------------------------------------------------------------- */
+  .hero {
+    padding: 5rem 0 4rem;
+    background:
+      radial-gradient(120% 100% at 12% 0%, var(--accent-wash) 0%, rgba(0,0,0,0) 62%);
+    border-bottom: 1px solid var(--line);
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.6rem; }
+  .btn {
+    display: inline-block; padding: .7rem 1.4rem; border-radius: 3px;
+    font-weight: 600; font-size: .95rem;
+    background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
+  }
+  .btn:hover { text-decoration: none; opacity: .92; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+
+  /* --- sections & cards -------------------------------------------------- */
+  main { padding-bottom: 4rem; }
+  .section { padding: 3.5rem 0; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
+  @media (max-width: 46rem) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 4px; padding: 1.5rem;
+  }
+  .card p:last-child { margin-bottom: 0; }
+  .card .num {
+    font-family: var(--serif); font-size: .95rem; color: var(--accent);
+    display: block; margin-bottom: .5rem;
+  }
+
+  .prose { max-width: 42rem; }
+  .facts { list-style: none; padding: 0; margin: 1.5rem 0 0; max-width: 42rem; }
+  .facts li {
+    display: flex; gap: 1rem; padding: .8rem 0; border-top: 1px solid var(--line);
+  }
+  .facts li span:first-child {
+    font-weight: 600; min-width: 9rem; color: var(--ink-soft);
+    font-size: .9rem; letter-spacing: .02em;
+  }
+
+  .callout {
+    background: var(--accent-wash); border-left: 3px solid var(--accent);
+    padding: 1.25rem 1.5rem; border-radius: 0 4px 4px 0; margin: 2rem 0 0;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* --- footer ------------------------------------------------------------ */
+  .site-footer {
+    border-top: 1px solid var(--line); color: var(--ink-soft);
+    font-size: .9rem; background: var(--surface);
+  }
+  .site-footer .wrap {
+    padding-top: 1.5rem; padding-bottom: 1.5rem;
+    display: flex; flex-wrap: wrap; gap: .5rem 1rem; justify-content: space-between;
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<a class="skip" id="skip-link" href="#content">Skip to content</a>
+
+<header id="site-header" class="site-header">
+  <div class="wrap">
+    <span id="brand" class="brand">Site</span>
+    <nav class="site-nav" id="site-nav" aria-label="Main">
+      <a id="nav-home" href="/">Home</a>
+      <a id="nav-about" href="/about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main id="content">
+  <p>Content.</p>
+</main>
+
+<footer id="site-footer" class="site-footer">
+  <div class="wrap">
+    <span>&copy; <span id="year">2026</span> <span id="foot-brand">Site</span></span>
+    <span id="foot-note">Built with Runway</span>
+  </div>
+</footer>
+
+</body>
+</html>

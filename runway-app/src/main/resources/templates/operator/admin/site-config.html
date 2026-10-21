@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Site config</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="cfg-pretitle">Site</div>
+                <h2 class="page-title" id="cfg-heading">Site config</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" id="cfg-app-note" role="alert">
+        <div class="text-secondary" id="cfg-app-note-text">Hostnames and this site's identifier are managed by
+            the platform operator and cannot be changed here.</div>
+    </div>
+
+    <form method="post" action="/__admin/config">
+        <input id="cfg-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-general">General</h3></div>
+            <div class="card-body">
+                <div class="mb-0">
+                    <label class="form-label" id="cfg-l-name" for="cfg-name">Site name</label>
+                    <input class="form-control" id="cfg-name" name="name" type="text" value="">
+                    <small class="form-hint" id="cfg-h-name">The site's public display name.</small>
+                </div>
+                <dl class="row mt-3 mb-0" id="cfg-addresses">
+                    <dt class="col-sm-3" id="cfg-l-hosts">Addresses</dt>
+                    <dd class="col-sm-9" id="cfg-hosts">example.com</dd>
+                    <dt class="col-sm-3" id="cfg-l-base">Links built on</dt>
+                    <dd class="col-sm-9 mb-0"><code id="cfg-base">https://example.com</code>
+                        <div class="form-hint" id="cfg-h-base">Set by the platform operator.</div></dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-lang">Languages</h3></div>
+            <div class="card-body">
+                <div class="form-hint mb-2" id="cfg-h-lang">Tick every language this site offers, and mark one
+                    as the default. The default is always offered.</div>
+                <div id="cfg-locales">
+                    <!-- One row per language the site currently offers: an availability checkbox (always
+                         checked here — these are the offered ones) and a default radio. Removing a language is
+                         un-ticking its checkbox; adding one uses the blank row below. -->
+                    <div id="cfg-loc-row" class="row g-2 align-items-center mb-2">
+                        <div class="col-auto">
+                            <label class="form-check form-switch m-0">
+                                <input class="form-check-input cfg-loc-cb" name="locale" type="checkbox" value="">
+                                <span class="form-check-label cfg-loc-label">en</span>
+                            </label>
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-check m-0">
+                                <input class="form-check-input cfg-loc-default" name="defaultLocale" type="radio" value="">
+                                <span class="form-check-label cfg-loc-default-label">default</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label" id="cfg-l-addlang" for="cfg-addlang">Add a language</label>
+                    <input class="form-control cfg-loc-add" id="cfg-addlang" name="locale" type="text" value=""
+                           style="max-width:16rem">
+                    <small class="form-hint" id="cfg-h-addlang">A BCP 47 language tag, e.g. fr or pt-BR.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-contact">Contact</h3></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" id="cfg-l-email" for="cfg-email">Email</label>
+                    <input class="form-control" id="cfg-email" name="contactEmail" type="email" value="">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="cfg-l-phone" for="cfg-phone">Phone</label>
+                    <input class="form-control" id="cfg-phone" name="contactPhone" type="text" value="">
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" id="cfg-l-address" for="cfg-address">Address</label>
+                    <textarea class="form-control" id="cfg-address" name="contactAddress" rows="3"></textarea>
+                    <small class="form-hint" id="cfg-h-contact">Shown by templates that surface a contact block.
+                        The kernel does not send mail — a contact form is a plugin feature.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-params">Template parameters</h3></div>
+            <div class="card-body">
+                <div class="form-hint mb-2" id="cfg-params-help">Static key/value pairs exposed to every page as
+                    ${params.key}. A page's own parameters override these.</div>
+                <div id="cfg-params">
+                    <div id="cfg-param-row" class="row g-2 mb-2">
+                        <div class="col-5">
+                            <input class="form-control cfg-param-key" name="paramKey" type="text" value="">
+                        </div>
+                        <div class="col-7">
+                            <input class="form-control cfg-param-value" name="paramValue" type="text" value="">
+                        </div>
+                    </div>
+                    <div id="cfg-param-blank" class="row g-2 mb-2">
+                        <div class="col-5">
+                            <input class="form-control cfg-param-key" name="paramKey" type="text" value="">
+                        </div>
+                        <div class="col-7">
+                            <input class="form-control cfg-param-value" name="paramValue" type="text" value="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editorial workflow: how strictly publishing is governed. Changing it needs APPROVE_PAGES; without it
+             the radios render disabled (so nothing is posted and the level is kept) with a note saying why. -->
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-editorial">Editorial workflow</h3></div>
+            <div class="card-body">
+                <div class="form-hint mb-2" id="cfg-h-editorial">How strictly page publishing is governed on this
+                    site.</div>
+                <label class="form-check mb-2">
+                    <input class="form-check-input" id="cfg-ed-advisory" name="editorial" type="radio" value="advisory">
+                    <span class="form-check-label"><strong id="cfg-ed-advisory-label">Advisory</strong>
+                        <span class="d-block text-secondary" id="cfg-ed-advisory-help">Quality checks are shown,
+                            nothing is blocked.</span></span>
+                </label>
+                <label class="form-check mb-2">
+                    <input class="form-check-input" id="cfg-ed-enforced" name="editorial" type="radio" value="enforced">
+                    <span class="form-check-label"><strong id="cfg-ed-enforced-label">Enforced</strong>
+                        <span class="d-block text-secondary" id="cfg-ed-enforced-help">A page with quality errors
+                            cannot be published.</span></span>
+                </label>
+                <label class="form-check mb-0">
+                    <input class="form-check-input" id="cfg-ed-reviewed" name="editorial" type="radio" value="reviewed">
+                    <span class="form-check-label"><strong id="cfg-ed-reviewed-label">Reviewed</strong>
+                        <span class="d-block text-secondary" id="cfg-ed-reviewed-help">Enforced, and pages are
+                            published only by users who may approve pages.</span></span>
+                </label>
+                <div class="form-hint mt-2" id="cfg-ed-locked">Only a user who may approve pages can change
+                    this.</div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="cfg-save">Save</button>
+    </form>
+
+    <form method="post" action="/__admin/config/embeds" id="cfg-embeds-form">
+        <input id="cfg-embeds-csrf" type="hidden" name="_csrf" value="">
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="cfg-l-embeds">Embedded content</h3></div>
+            <div class="card-body">
+                <p class="text-secondary" id="cfg-embeds-intro">Third-party hosts your pages may embed.</p>
+                <p class="text-secondary" id="cfg-embeds-none">The platform operator has not approved any.</p>
+                <label class="form-check" id="cfg-embed">
+                    <input class="form-check-input cfg-embed-input" type="checkbox" name="hosts" value="">
+                    <span class="form-check-label"><span class="cfg-embed-label fw-bold">YouTube</span>
+                        <code class="cfg-embed-source">https://www.youtube-nocookie.com</code>
+                        <span class="cfg-embed-dirs text-secondary small">frame-src</span></span>
+                </label>
+                <button type="submit" class="btn btn-primary mt-2" id="cfg-embeds-save">Save</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Runway demo</title></head>
+<body>
+<!-- The demo's console screen content (@ConsoleScreen). The kernel's shell layout pulls in #content by name. Markup
+     only: every binding is in console.th.xml. Every state-changing action is a POST form carrying the console's CSRF
+     token (.rd-csrf); the path check is a GET form because it only reads. -->
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="rd-pretitle">Site</div>
+                <h2 class="page-title" id="rd-heading">Runway demo</h2>
+            </div>
+        </div>
+    </div>
+
+    <div id="rd-flash" class="alert alert-success" role="status"><span id="rd-flash-text">done</span></div>
+    <div id="rd-error" class="alert alert-danger" role="alert"><span id="rd-error-text">error</span></div>
+
+    <div class="row row-cards">
+        <!-- PluginInfo + RunwaySpi: who am I, built against what, running on what. -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="rd-about-title">This plugin</h3></div>
+                <div class="card-body">
+                    <p class="mb-1"><span id="rd-version-label">Version</span>: <code id="rd-version">2.0.1</code></p>
+                    <p class="mb-1"><span id="rd-built-label">Built against SPI</span>: <code id="rd-built">0.6.0</code></p>
+                    <p class="mb-0"><span id="rd-running-label">Running on SPI</span>: <code id="rd-running">0.6.0</code></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SitePages: the starter page, installed through the site's editorial rules. -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="rd-page-title">Demo page</h3></div>
+                <div class="card-body">
+                    <p class="text-secondary" id="rd-page-desc">A ready-made page carrying the notice and feedback
+                        widgets.</p>
+                    <p id="rd-page-installed" class="mb-0"><span id="rd-page-at">Installed at</span>
+                        <a id="rd-page-link" href="/demo"><code id="rd-page-path">/demo</code></a></p>
+                    <form id="rd-page-form" method="post" action="/__admin/runway-demo/install-page" class="m-0">
+                        <input class="rd-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn btn-primary" id="rd-page-install">Install the demo page</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- PluginSiteFiles (+ siteData.personal): the per-site notes. -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title" id="rd-notes-title">Notes</h3>
+                    <span class="ms-auto text-secondary" id="rd-notes-count">0</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary small" id="rd-notes-desc">Kept in the plugin's own folder of this site;
+                        declared personal data, so transfer copies leave them out.</p>
+                    <form id="rd-note-form" method="post" action="/__admin/runway-demo/notes" class="mb-3">
+                        <input class="rd-csrf" type="hidden" name="_csrf" value="">
+                        <label class="form-label" for="rd-note-text" id="rd-note-label">New note</label>
+                        <textarea class="form-control mb-2" id="rd-note-text" name="text" rows="2"
+                                  maxlength="1000"></textarea>
+                        <button type="submit" class="btn btn-outline-primary" id="rd-note-add">Add note</button>
+                    </form>
+                    <ul class="list-unstyled mb-0" id="rd-note-list">
+                        <li id="rd-note-row" class="mb-2">
+                            <span class="badge bg-secondary-lt rd-note-origin">console</span>
+                            <span class="rd-note-text">text</span>
+                            <div class="text-secondary small rd-note-at">time</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ContentSource + ContentChanges: the showcase page. -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="rd-show-title">Showcase page</h3></div>
+                <div class="card-body">
+                    <p class="text-secondary small" id="rd-show-desc">Served by the plugin's content source. Publishing
+                        or unpublishing announces the change, so routing, sitemaps and search follow at once.</p>
+                    <div id="rd-show-live" class="mb-3">
+                        <p class="mb-1"><span id="rd-show-at">Published at</span>
+                            <a id="rd-show-link" href="/demo/showcase"><code id="rd-show-path">/demo/showcase</code></a></p>
+                        <blockquote class="text-secondary" id="rd-show-text">text</blockquote>
+                        <form id="rd-show-unpublish" method="post" action="/__admin/runway-demo/showcase/unpublish"
+                              class="m-0">
+                            <input class="rd-csrf" type="hidden" name="_csrf" value="">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" id="rd-show-unpublish-btn">Unpublish</button>
+                        </form>
+                    </div>
+                    <p class="text-secondary" id="rd-show-none">Nothing is published.</p>
+                    <form id="rd-show-form" method="post" action="/__admin/runway-demo/showcase" class="m-0">
+                        <input class="rd-csrf" type="hidden" name="_csrf" value="">
+                        <label class="form-label" for="rd-show-input" id="rd-show-label">Showcase text</label>
+                        <textarea class="form-control mb-2" id="rd-show-input" name="text" rows="2"
+                                  maxlength="2000"></textarea>
+                        <button type="submit" class="btn btn-outline-primary" id="rd-show-publish">Publish</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ContentCatalogView: the site's published content surface, the path check, the manual refresh. -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title" id="rd-cat-title">Content surface</h3>
+                    <span class="ms-auto text-secondary" id="rd-cat-total">0</span>
+                </div>
+                <div class="card-body">
+                    <form id="rd-check-form" method="get" action="/__admin/runway-demo" class="row g-2 mb-3">
+                        <div class="col-auto">
+                            <label class="visually-hidden" for="rd-check-path" id="rd-check-label">Path</label>
+                            <input class="form-control" id="rd-check-path" name="path" placeholder="/about">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-outline-secondary" id="rd-check-btn">Check a path</button>
+                        </div>
+                    </form>
+                    <p id="rd-check-result" class="mb-3"><code id="rd-check-echo">/about</code>
+                        <span id="rd-check-unsafe" class="badge bg-red-lt">unsafe</span>
+                        <span id="rd-check-servable" class="badge bg-green-lt">servable</span>
+                        <span id="rd-check-reserved" class="badge bg-yellow-lt">not servable</span>
+                        <span id="rd-check-owner">owned by page</span>
+                        <span id="rd-check-free">no published page owns it</span></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th id="rd-cat-h-source">Source</th>
+                                <th id="rd-cat-h-id">Item</th>
+                                <th id="rd-cat-h-path">Path</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr id="rd-cat-row">
+                                <td class="rd-cat-source">pages</td>
+                                <td class="rd-cat-id">about</td>
+                                <td class="rd-cat-path">/about</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="rd-cat-refresh" method="post" action="/__admin/runway-demo/catalog/refresh" class="m-0">
+                        <input class="rd-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" id="rd-cat-refresh-btn">Refresh the listing</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SiteEventListener: what this node saw change, with the URLs before and after. -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="rd-act-title">Recent changes</h3></div>
+                <div class="card-body">
+                    <p class="text-secondary" id="rd-act-empty">No change seen since the platform started.</p>
+                    <div class="table-responsive" id="rd-act-table">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th id="rd-act-h-at">When</th>
+                                <th id="rd-act-h-cause">Cause</th>
+                                <th id="rd-act-h-item">Item</th>
+                                <th id="rd-act-h-before">URLs before</th>
+                                <th id="rd-act-h-after">URLs after</th>
+                                <th id="rd-act-h-local">Here</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr id="rd-act-row">
+                                <td class="rd-act-at text-nowrap">time</td>
+                                <td class="rd-act-cause">page</td>
+                                <td class="rd-act-item">pages:about</td>
+                                <td class="rd-act-before">/about</td>
+                                <td class="rd-act-after">/about</td>
+                                <td class="rd-act-local">yes</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="mt-3"><a id="rd-help" href="/__plugin/runway-demo/static/notes-help.html" target="_blank" rel="noopener">Help</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Starter master — bindings for the chrome every page shares.
+
+  Seeded into a new tenant, which then OWNS its copy: editing this file changes only sites created
+  afterwards. Decoupled logic, so the sibling .html stays plain markup with no Thymeleaf in it.
+
+  The three head bindings below are the ones that matter for search engines and for anyone sharing a
+  link, and they are per-PAGE values resolved against this one shared master — so every page gets its
+  own title and description without the master knowing anything about individual pages.
+-->
+<thlogic>
+
+    <!-- TITLE: "<page title> · <site name>". Page-specific part first, because that is what survives
+         truncation in a browser tab, a search result and a bookmark. Built by concatenation rather
+         than a |...| literal block, which does not evaluate expressions. -->
+    <attr sel="#m-title" th:text="${pageTitle} + ' · ' + ${site.displayName()}"/>
+
+    <!-- DESCRIPTION: dropped entirely when the page has none. An EMPTY description element is worse
+         than an absent one — engines treat it as a deliberate "this page describes itself as nothing"
+         rather than falling back to their own snippet. Write one per page in the editor. -->
+    <attr sel="#m-desc" th:if="${pageDescription != null and !pageDescription.isEmpty()}"
+          th:attr="content=${pageDescription}"/>
+
+    <!-- Site identity, in the header and the footer. -->
+    <attr sel="#brand" th:text="${site.displayName()}"/>
+    <attr sel="#foot-brand" th:text="${site.displayName()}"/>
+    <attr sel="#year" th:text="${year}"/>
+
+    <!-- Navigation highlight. Each page names which nav item it belongs under via `activeNav` in its
+         .meta.yml, so the header stays correct without per-page copies of the markup. -->
+    <attr sel="#nav-home" th:classappend="${activeNav == 'home'} ? 'is-active' : ''"/>
+    <attr sel="#nav-about" th:classappend="${activeNav == 'about'} ? 'is-active' : ''"/>
+
+</thlogic>

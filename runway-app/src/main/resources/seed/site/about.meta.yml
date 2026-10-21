@@ -1,0 +1,7 @@
+path: /about
+template: _master
+activeNav: about
+title:
+  en: About
+description:
+  en: "About this site — who is behind it and what it is for. Replace this with your own summary."

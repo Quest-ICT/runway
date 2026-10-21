@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Decoupled logic for the tenant dashboard card (gated in plugin.yml by "runway-demo|manage-notes"). A fragment may rely
+  on tenantSiteId, _csrf, ${@<own bean>…}, ${@authz.may('…')} and #{…} messages — nothing else in the console's model —
+  so everything it shows comes from this plugin's own bean, ${@runwayDemoAdminModel…}. Zero Thymeleaf in the .html.
+-->
+<thlogic>
+    <attr sel="#rd-card-title" th:text="|Runway Demo · ${@runwayDemoAdminModel.siteName(tenantSiteId)}|"/>
+    <attr sel="#rd-card-notes" th:text="#{runwaydemo.card.notes(${@runwayDemoAdminModel.noteCount(tenantSiteId)})}"/>
+    <attr sel="#rd-card-spi" th:text="#{runwaydemo.card.versions(${@runwayDemoAdminModel.pluginVersion()},${@runwayDemoAdminModel.builtSpi()},${@runwayDemoAdminModel.runningSpi()})}"/>
+    <attr sel="#rd-card-console" th:text="#{runwaydemo.card.console}"/>
+</thlogic>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Site-config screen logic (decoupled; zero th:* in the .html). The bound tenancy's current values pre-fill
+  the form. The per-language rows iterate on a wrapper (#cfg-loc-row) and bind descendants with the // selector.
+  Each row's checkbox value is the language tag and is pre-checked (these are the offered ones);
+  its default radio is checked when the tag is the site default. The param rows mirror the page editor exactly:
+  one row per stored entry (key/value bind as the parallel paramKey[]/paramValue[] arrays) plus a blank row.
+-->
+<thlogic>
+    <attr sel="#cfg-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#cfg-heading" th:text="#{op.config.heading}"/>
+
+    <attr sel="#cfg-app-note-text" th:text="#{op.config.appNote}"/>
+
+    <attr sel="#cfg-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- General -->
+    <attr sel="#cfg-l-general" th:text="#{op.config.general}"/>
+    <attr sel="#cfg-l-name" th:text="#{op.config.name}"/>
+    <attr sel="#cfg-name" th:attr="value=${siteName},title=#{op.config.name.hint}"/>
+    <attr sel="#cfg-h-name" th:text="#{op.config.name.hint}"/>
+    <!-- How the site is reached and linked: the operator's (Sites screen), shown here read-only (pattern 5). -->
+    <attr sel="#cfg-l-hosts" th:text="#{op.config.hosts}"/>
+    <attr sel="#cfg-hosts" th:text="${site.hosts().isEmpty()} ? #{op.config.hosts.none} : ${#strings.listJoin(site.hosts(), ', ')}"/>
+    <attr sel="#cfg-l-base" th:text="#{op.config.base}"/>
+    <attr sel="#cfg-base" th:text="${effectiveBaseUrl != null} ? ${effectiveBaseUrl} : '—'"/>
+    <attr sel="#cfg-h-base" th:text="${site.baseUrl() != null} ? #{op.config.base.set} : #{op.config.base.derived}"/>
+
+    <!-- Languages: a row per currently-offered locale (checkbox pre-checked = offered; radio = default). -->
+    <attr sel="#cfg-l-lang" th:text="#{op.config.lang}"/>
+    <attr sel="#cfg-h-lang" th:text="#{op.config.lang.hint}"/>
+    <attr sel="#cfg-loc-row" th:each="loc : ${locales}" th:id="${null}"/>
+    <attr sel="#cfg-loc-row//.cfg-loc-cb" th:attr="value=${loc.toLanguageTag()}" th:checked="true"/>
+    <attr sel="#cfg-loc-row//.cfg-loc-label" th:text="${loc.getDisplayLanguage(loc)} + ' (' + ${loc.toLanguageTag()} + ')'"/>
+    <attr sel="#cfg-loc-row//.cfg-loc-default" th:attr="value=${loc.toLanguageTag()}"
+          th:checked="${loc.toLanguageTag() == defaultLocale}"/>
+    <attr sel="#cfg-loc-row//.cfg-loc-default-label" th:text="#{op.config.lang.default}"/>
+    <attr sel="#cfg-l-addlang" th:text="#{op.config.lang.add}"/>
+    <attr sel="#cfg-addlang" th:attr="placeholder=#{op.config.lang.add.ph}"/>
+    <attr sel="#cfg-h-addlang" th:text="#{op.config.lang.add.hint}"/>
+
+    <!-- Contact -->
+    <attr sel="#cfg-l-contact" th:text="#{op.config.contact}"/>
+    <attr sel="#cfg-l-email" th:text="#{op.config.contact.email}"/>
+    <attr sel="#cfg-email" th:attr="value=${contact.email()}"/>
+    <attr sel="#cfg-l-phone" th:text="#{op.config.contact.phone}"/>
+    <attr sel="#cfg-phone" th:attr="value=${contact.phone()}"/>
+    <attr sel="#cfg-l-address" th:text="#{op.config.contact.address}"/>
+    <attr sel="#cfg-address" th:text="${contact.address()}"/>
+    <attr sel="#cfg-h-contact" th:text="#{op.config.contact.hint}"/>
+
+    <!-- Template parameters: one row per stored entry, then a static blank row for adding one. -->
+    <attr sel="#cfg-l-params" th:text="#{op.config.params}"/>
+    <attr sel="#cfg-params-help" th:text="#{op.config.params.help}"/>
+    <attr sel="#cfg-param-row" th:each="p : ${paramEntries}" th:id="${null}"/>
+    <!-- The key/value inputs have only placeholders on screen; aria-label names them for screen readers. -->
+    <attr sel="#cfg-param-row//.cfg-param-key" th:attr="value=${p.key},placeholder=#{op.config.params.key},aria-label=#{op.a11y.paramKey}"/>
+    <attr sel="#cfg-param-row//.cfg-param-value" th:attr="value=${p.value},placeholder=#{op.config.params.value},aria-label=#{op.a11y.paramValue}"/>
+    <attr sel="#cfg-param-blank//.cfg-param-key" th:attr="placeholder=#{op.config.params.key},aria-label=#{op.a11y.paramKey}"/>
+    <attr sel="#cfg-param-blank//.cfg-param-value" th:attr="placeholder=#{op.config.params.value},aria-label=#{op.a11y.paramValue}"/>
+
+    <!-- Editorial workflow: the current level checked; disabled (not posted ⇒ level kept) without APPROVE_PAGES. -->
+    <attr sel="#cfg-l-editorial" th:text="#{op.config.editorial}"/>
+    <attr sel="#cfg-h-editorial" th:text="#{op.config.editorial.help}"/>
+    <attr sel="#cfg-ed-advisory" th:checked="${editorialLevel == 'advisory'}" th:disabled="${!mayChangeEditorial}"/>
+    <attr sel="#cfg-ed-advisory-label" th:text="#{op.editorial.advisory}"/>
+    <attr sel="#cfg-ed-advisory-help" th:text="#{op.editorial.advisory.help}"/>
+    <attr sel="#cfg-ed-enforced" th:checked="${editorialLevel == 'enforced'}" th:disabled="${!mayChangeEditorial}"/>
+    <attr sel="#cfg-ed-enforced-label" th:text="#{op.editorial.enforced}"/>
+    <attr sel="#cfg-ed-enforced-help" th:text="#{op.editorial.enforced.help}"/>
+    <attr sel="#cfg-ed-reviewed" th:checked="${editorialLevel == 'reviewed'}" th:disabled="${!mayChangeEditorial}"/>
+    <attr sel="#cfg-ed-reviewed-label" th:text="#{op.editorial.reviewed}"/>
+    <attr sel="#cfg-ed-reviewed-help" th:text="#{op.editorial.reviewed.help}"/>
+    <attr sel="#cfg-ed-locked" th:if="${!mayChangeEditorial}" th:text="#{op.config.editorial.locked}"/>
+
+    <attr sel="#cfg-save" th:text="#{op.config.save}"/>
+
+    <!-- Embedded content: the operator's approved hosts, each switched on or off for this site's public pages. -->
+    <attr sel="#cfg-embeds-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#cfg-l-embeds" th:text="#{op.config.embeds}"/>
+    <attr sel="#cfg-embeds-intro" th:text="#{op.config.embeds.intro}"/>
+    <attr sel="#cfg-embeds-none" th:if="${embedHosts.isEmpty()}" th:text="#{op.config.embeds.none}"/>
+    <attr sel="#cfg-embed" th:each="h : ${embedHosts}" th:id="${null}"/>
+    <attr sel="#cfg-embed//.cfg-embed-input" th:value="${h.id()}" th:checked="${embedChosen.contains(h.id())}"/>
+    <attr sel="#cfg-embed//.cfg-embed-label" th:text="${h.label()}"/>
+    <attr sel="#cfg-embed//.cfg-embed-source" th:text="${h.source()}"/>
+    <attr sel="#cfg-embed//.cfg-embed-dirs" th:text="${#strings.listJoin(h.directives(), ', ')}"/>
+    <attr sel="#cfg-embeds-save" th:unless="${embedHosts.isEmpty()}" th:text="#{op.config.embeds.save}"/>
+</thlogic>

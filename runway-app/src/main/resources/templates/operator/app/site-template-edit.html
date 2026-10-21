@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>edit site template</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">
+                    <a id="ste-crumb" href="#">Default</a>
+                </div>
+                <h2 class="page-title"><code id="ste-name">_master.html</code></h2>
+                <div class="text-secondary mt-1" id="ste-desc">description</div>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <span class="badge me-2" id="ste-badge">Inherits default</span>
+                <form class="d-inline m-0" method="post" action="#" id="ste-reset-form">
+                    <input id="ste-reset-csrf" type="hidden" name="_csrf" value="">
+                    <input id="ste-reset-name" type="hidden" name="name" value="">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-rotate-left me-1"></i><span id="ste-reset-label">Reset to default</span></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-secondary" id="ste-help">
+                        Saving changes only what future sites from this template are created with.</p>
+                    <form method="post" action="#" id="ste-save-form">
+                        <input id="ste-csrf" type="hidden" name="_csrf" value="">
+                        <input id="ste-name-field" type="hidden" name="name" value="">
+                        <label class="form-label" id="ste-content-label" for="ste-content">Content</label>
+                        <textarea id="ste-content" name="content" class="form-control font-monospace" rows="24"
+                                  spellcheck="false" autocomplete="off">content</textarea>
+                        <div class="form-footer d-flex">
+                            <a class="btn btn-link" href="#" id="ste-cancel">Cancel</a>
+                            <button type="submit" class="btn btn-primary ms-auto">
+                                <i class="fa-solid fa-floppy-disk me-1"></i><span id="ste-save">Save</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>platform settings</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ps-pretitle">Application</div>
+                <h2 class="page-title" id="ps-heading">Platform settings</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" action="/__app/settings">
+                        <input id="ps-csrf" type="hidden" name="_csrf" value="">
+
+                        <div class="mb-4">
+                            <label class="form-label" id="ps-l-default" for="ps-default-site">Default site</label>
+                            <select id="ps-default-site" name="defaultSiteId" class="form-select">
+                                <option id="ps-ds-none" value="">(none)</option>
+                                <option id="ps-ds-opt" value="">site</option>
+                            </select>
+                            <small class="form-hint" id="ps-h-default">
+                                The site that answers requests whose host is not bound to another site.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" id="ps-l-pw" for="ps-strength">Password strength</label>
+                            <select id="ps-strength" name="passwordStrength" class="form-select">
+                                <option id="ps-ps-default" value="">Use default</option>
+                                <option id="ps-ps-opt" value="">STANDARD</option>
+                            </select>
+                            <small class="form-hint" id="ps-h-pw">
+                                Argon2id memory-cost profile for new passwords. Applies after the next restart.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" id="ps-l-node" for="ps-node">Node name</label>
+                            <input id="ps-node" name="nodeName" type="text" class="form-control"
+                                   value="" maxlength="64" autocomplete="off" spellcheck="false">
+                            <small class="form-hint" id="ps-h-node">
+                                A name for this node, shown on the About page. Blank uses the server host name.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-label" id="ps-l-comp">Response compression</div>
+                            <small class="form-hint d-block mb-2" id="ps-h-comp">
+                                Compress text responses before sending. Applies immediately.</small>
+                            <label class="form-check form-switch">
+                                <input id="ps-comp" class="form-check-input" type="checkbox"
+                                       name="compressionEnabled" value="true">
+                                <span class="form-check-label" id="ps-comp-lbl">Enable response compression</span>
+                            </label>
+                            <label class="form-check form-switch">
+                                <input id="ps-brotli" class="form-check-input" type="checkbox"
+                                       name="brotliEnabled" value="true">
+                                <span class="form-check-label" id="ps-brotli-lbl">Brotli</span>
+                            </label>
+                            <label class="form-check form-switch">
+                                <input id="ps-gzip" class="form-check-input" type="checkbox"
+                                       name="gzipEnabled" value="true">
+                                <span class="form-check-label" id="ps-gzip-lbl">gzip</span>
+                            </label>
+                            <small class="form-hint text-secondary mt-1 d-block" id="ps-comp-lock">Set on the server.</small>
+                            <small class="form-hint text-warning mt-1 d-block" id="ps-brotli-warn">
+                                Brotli's native library did not load on this server; it falls back to gzip.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-label" id="ps-l-mail">Platform mail (SMTP)</div>
+                            <small class="form-hint d-block mb-2" id="ps-h-mail">
+                                Used for password recovery and other application messages. Not used for a site's
+                                own contact-form mail.</small>
+                            <div class="row g-2">
+                                <div class="col-md-8">
+                                    <label class="form-label" id="ps-l-smtp-host" for="ps-smtp-host">SMTP host</label>
+                                    <input id="ps-smtp-host" name="smtpHost" type="text" class="form-control"
+                                           value="" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" id="ps-l-smtp-port" for="ps-smtp-port">Port</label>
+                                    <input id="ps-smtp-port" name="smtpPort" type="number" min="1" max="65535"
+                                           class="form-control" value="" placeholder="587">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label class="form-label" id="ps-l-smtp-from" for="ps-smtp-from">From address</label>
+                                <input id="ps-smtp-from" name="smtpFrom" type="email" class="form-control"
+                                       value="" autocomplete="off" spellcheck="false">
+                            </div>
+                            <label class="form-check form-switch mt-2">
+                                <input id="ps-smtp-auth" class="form-check-input" type="checkbox"
+                                       name="smtpAuth" value="true">
+                                <span class="form-check-label" id="ps-smtp-auth-lbl">Requires authentication</span>
+                            </label>
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label" id="ps-l-smtp-user" for="ps-smtp-user">Username</label>
+                                    <input id="ps-smtp-user" name="smtpUsername" type="text" class="form-control"
+                                           value="" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" id="ps-l-smtp-pass" for="ps-smtp-pass">Password</label>
+                                    <input id="ps-smtp-pass" name="smtpPassword" type="password"
+                                           class="form-control" value="" autocomplete="new-password">
+                                    <small class="form-hint" id="ps-smtp-pass-hint">
+                                        A password is stored; leave blank to keep it.</small>
+                                </div>
+                            </div>
+                            <label class="form-check form-switch mt-2">
+                                <input id="ps-smtp-starttls" class="form-check-input" type="checkbox"
+                                       name="smtpStarttls" value="true">
+                                <span class="form-check-label" id="ps-smtp-starttls-lbl">Use STARTTLS</span>
+                            </label>
+                            <label class="form-check form-switch">
+                                <input id="ps-smtp-ssl" class="form-check-input" type="checkbox"
+                                       name="smtpSsl" value="true">
+                                <span class="form-check-label" id="ps-smtp-ssl-lbl">Use implicit TLS (SMTPS)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-footer">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-floppy-disk me-1"></i><span id="ps-save">Save settings</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <div class="form-label" id="ps-l-test">Send test email</div>
+                    <small class="form-hint d-block mb-2" id="ps-h-test">
+                        Verify the platform mail account. Save your changes above first.</small>
+                    <form method="post" action="/__app/settings/test-email" class="row g-2 align-items-end">
+                        <input id="ps-test-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col">
+                            <label class="form-label" id="ps-l-test-to" for="ps-test-to">Recipient</label>
+                            <input id="ps-test-to" name="testTo" type="email" class="form-control"
+                                   value="" placeholder="(the From address)">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn" id="ps-test-btn">
+                                <i class="fa-solid fa-paper-plane me-1"></i><span id="ps-test-btn-lbl">Send test</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <div class="form-label" id="ps-l-cache">Template cache</div>
+                    <small class="form-hint d-block mb-2" id="ps-h-cache">
+                        Console edits refresh templates automatically. Clear the cache only after changing template
+                        files outside the console. Affects this node only.</small>
+                    <form method="post" action="/__app/settings/clear-template-cache" class="m-0">
+                        <input id="ps-cache-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn" id="ps-cache-btn">
+                            <i class="fa-solid fa-broom me-1"></i><span id="ps-cache-btn-lbl">Clear template cache</span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

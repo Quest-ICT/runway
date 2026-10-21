@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Documents screen. Each row repeats over ${documents}. The Download link is shown only for an enabled
+     document (a disabled one 404s publicly); Toggle flips the disabled state, Delete removes the file. -->
+<thlogic>
+    <attr sel="#dc-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#dc-heading" th:text="#{op.documents.heading}"/>
+
+    <attr sel="#dc-l-upload" th:text="#{op.documents.upload}"/>
+    <attr sel="#dc-upload-hint" th:text="#{op.documents.upload.hint(${maxMb})}"/>
+    <attr sel="#dc-ucsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#dc-upload" th:text="#{op.documents.uploadBtn}"/>
+
+    <attr sel="#dc-l-list" th:text="#{op.documents.list}"/>
+    <attr sel="#dc-h-name" th:text="#{op.documents.col.name}"/>
+    <attr sel="#dc-h-size" th:text="#{op.documents.col.size}"/>
+    <attr sel="#dc-h-status" th:text="#{op.documents.col.status}"/>
+    <attr sel="#dc-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <attr sel="#dc-empty" th:if="${documents.isEmpty()}"/>
+    <attr sel="#dc-empty-text" th:text="#{op.documents.empty}"/>
+
+    <attr sel="#dc-row" th:each="d : ${documents}" th:id="${null}"/>
+    <attr sel="#dc-row//.dc-name" th:text="${d.path()}"/>
+    <attr sel="#dc-row//.dc-size" th:text="${d.displaySize()}" th:attr="data-sort=${d.sizeBytes()}"/>
+    <attr sel="#dc-row//.dc-status"
+          th:classappend="${d.disabled()} ? 'bg-secondary-lt' : 'bg-green-lt'"
+          th:text="${d.disabled()} ? #{op.documents.disabled} : #{op.documents.enabled}"/>
+    <attr sel="#dc-row//.dc-download" th:if="${!d.disabled()}"
+          th:href="@{/static/doc/{n}(n=${d.path()})}" th:text="#{op.documents.download}"/>
+    <attr sel="#dc-row//.dc-tcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#dc-row//.dc-tpath" th:attr="value=${d.path()}"/>
+    <attr sel="#dc-row//.dc-tdisable" th:attr="value=${!d.disabled()}"/>
+    <attr sel="#dc-row//.dc-toggle" th:text="${d.disabled()} ? #{op.documents.enable} : #{op.documents.disable}"/>
+    <attr sel="#dc-row//.dc-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#dc-row//.dc-dpath" th:attr="value=${d.path()}"/>
+    <attr sel="#dc-row//.dc-delete" th:text="#{op.documents.deleteBtn}"/>
+</thlogic>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Starter About page. Identical wiring to the home page: same master, same seams, its own content.
+  Copy this pair (.html + .th.xml + .meta.yml) as the pattern for any further page you add.
+-->
+<thlogic>
+    <attr sel="html" th:attr="lang=${#locale.language}"/>
+
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+</thlogic>

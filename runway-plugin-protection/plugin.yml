@@ -1,0 +1,110 @@
+# Essential protection plugin — the kernel's security floor (DoS/abuse rate limit + login brute-force lockout).
+# The thin jar (runway-plugin-protection.jar) and this descriptor are deployed together in
+# external/plugins/protection/. The id MUST be 'protection' (the kernel security-floor allowlist).
+id: protection
+name: Essential Protection
+# The essential plugin ships with the kernel, in the same release, on the kernel's version line (docs/SPI-STABILITY.md, "The essential-plugin exception"):
+# 1.0.0 from Runway 1.0.0-rc1 (plugin versions are plain MAJOR.MINOR.PATCH, so the rc suffix lives only on the kernel
+# tag). The number went from 1.5.0 (0.5.0-beta14) back to 1.0.0 once, at rc1; seeding compares SHA-256 hashes, not
+# versions, and no plugin may `requires:` an essential plugin, so nothing keys on it.
+version: 1.0.0
+essential: true
+# The mandatory floor (SPI 1.0.0): every plugin with a mainClass declares one; the kernel's own plugin declares the
+# kernel's SPI, so the floor rule can never block it and trip the fail-closed security floor. It also keeps an
+# older kernel from registering a plugin that links SPI types it lacks: without a floor, a rollback from
+# 0.5.0-beta14 to beta13 over a refreshed protection folder died on a NoClassDefFoundError naming neither the plugin
+# nor the cause; with it, every kernel since 0.5.0-beta10 refuses the plugin with a reason naming both SPI levels.
+requiresSpi: ">=1.0.0"
+mainClass: mx.quest.protection.ProtectionConfig
+
+# App-level settings (bound from external/plugin-settings/protection.yml as runway.plugin.protection.*).
+# ONLY the platform-wide abuse-floor knobs (the per-IP rate-limit token bucket) are a generic-form schema here —
+# a restart-applied PLATFORM concern, rendered as the generic form on this plugin's settings page. The operator
+# LOGIN protection (honeypot, lockout, CAPTCHA) is deliberately NOT a schema: it renders as this plugin's own
+# immediate-apply PANEL (templates/admin-app.html) BELOW that same form, editing via ProtectionConfigStore
+# (protection-app.yml) so a change takes effect on the next login with no restart. Both live on the ONE plugin
+# settings page (/__app/plugins/protection/settings) — login config has a single home, never shadowed by a second
+# editor. Per-site login protection likewise lives in sites/<id>/plugins/protection.yml (the /__admin/protection
+# screen), so that tenant-owned plugin data travels in the site backup. ProtectionProperties.Login is the SEED.
+settings:
+  # EXEMPTION. CIDRs (and bare IPs) the abuse floor never throttles and never auto-blocks — the escape hatch
+  # for a client that is SUPPOSED to be high-volume: your own SEO audit, a synthetic prober, a load test, a
+  # first-party crawler, a monitoring probe. Everything has to be named here — loopback included: loopback is
+  # never BLOCKED (IpBlocklist.isAllowlisted refuses a manual or auto block of 127.0.0.0/8 and ::1), but it IS
+  # rate-limited like any client (RateLimitEdgeGuard consults only this list before the token bucket). That is
+  # deliberate: behind a same-host reverse proxy that does not forward the client address to a trusted peer, every
+  # request arrives from loopback, and exempting it would switch the rate limit off for the whole internet. A
+  # same-host probe that must never see a 429 is listed here (127.0.0.1/32), knowing what that implies.
+  #
+  # This value ALWAYS bound and reached the guard — it was simply not declared, which is the WORSE state, and
+  # it has real consequences: a same-host SEO audit locked the admin IP out for 15 minutes and returned
+  # 13 FAIL / 25 WARN, every one a 429 rather than a defect, on a clean deployment; only the audit harness's
+  # control request also returning 429 showed it was not a regression.
+  #
+  # Undeclared was worse than absent because the settings form writes the COMPLETE DECLARED KEY SET on save:
+  # an operator who found this key in the source, set it, and got protection would have lost it silently the
+  # next time anyone saved this page — locked out again with nothing to point at. That is the identical trap
+  # the auto-block block below records, on the one setting whose whole job is preventing a self-lockout.
+  #
+  # Counter-intuitive, learned the same day: PROBING DURING A BLOCK FEEDS IT. Once an address is blocked,
+  # requests stop reaching the limiter and hit the blocklist instead, so the rate-limit counter freezes while
+  # blocklist-auto climbs. The correct response to being blocked is to STOP and wait out `block-seconds`.
+  - { key: allowlist,                    type: list,                 label: protection.settings.allowlist,
+      group: exempt, help: protection.help.allowlist }
+  - { key: rate-limit.capacity,          type: int,     default: 120, range: "1..100000", label: protection.settings.rl.capacity,
+      group: ratelimit, help: protection.help.rl.capacity }
+  # A refill of 0 would never let an address recover once its burst is spent: the range starts above it.
+  - { key: rate-limit.refill-per-second, type: decimal, default: 2, range: "0.01..10000", label: protection.settings.rl.refill,
+      group: ratelimit, help: protection.help.rl.refill }
+  # AUTO-ESCALATION. These govern what happens AFTER the rate limit trips: an address that breaches
+  # `breach-threshold` times within `window-seconds` is auto-blocked for `block-seconds`. An auto-block answers
+  # 429 with the remaining time in Retry-After (it is the limiter escalating, not a policy ban); an operator ban,
+  # which has no honest retry time to offer, answers 403. An auto-block always ends: block-seconds is at least 1.
+  # Previously the thresholds above were tunable while the CONSEQUENCE was fixed at 15 minutes and
+  # invisible — an operator could not answer "how long am I blocked for?" from configuration. The values
+  # DID bind, but being undeclared here meant any save of this form silently dropped a hand-edited key.
+  # This branch fires with NO human in the loop, on real visitors, so its duration is the difference
+  # between a speed bump and locking out a customer's NAT gateway for an afternoon.
+  # Auto-blocks are IN-MEMORY ONLY and clear on restart; only manual operator blocks are persisted.
+  - { key: rate-limit.auto-block.enabled,          type: boolean, default: true, label: protection.settings.ab.enabled,
+      group: autoblock, help: protection.help.ab.enabled }
+  - { key: rate-limit.auto-block.breach-threshold, type: int,     default: 60,  range: "1..100000", label: protection.settings.ab.threshold,
+      group: autoblock, help: protection.help.ab.threshold, showWhen: rate-limit.auto-block.enabled }
+  - { key: rate-limit.auto-block.window-seconds,   type: int,     default: 60,  range: "1..86400",  label: protection.settings.ab.window,
+      group: autoblock, help: protection.help.ab.window, showWhen: rate-limit.auto-block.enabled }
+  - { key: rate-limit.auto-block.block-seconds,    type: int,     default: 900, range: "1..604800", label: protection.settings.ab.duration,
+      group: autoblock, help: protection.help.ab.duration, showWhen: rate-limit.auto-block.enabled }
+  # "Remember this device": lets a device that logged in successfully (solving the CAPTCHA once) skip the login
+  # CAPTCHA for N days via a signed, per-realm/per-site, host-only cookie. Platform security-floor concern, so it
+  # is app-level and governs both realms; restart-applied. Off ⇒ the CAPTCHA is always shown.
+  - { key: remember-device.enabled,      type: boolean, default: true, label: protection.settings.rd.enabled,
+      group: device, help: protection.help.rd.enabled }
+  - { key: remember-device.days,         type: int,     default: 30,  range: "1..365", label: protection.settings.rd.days,
+      group: device, help: protection.help.rd.days, showWhen: remember-device.enabled }
+# Sections of the settings form, in this order (presentation only).
+settingGroups:
+  - { id: ratelimit, label: protection.group.ratelimit, help: protection.group.ratelimit.help }
+  - { id: autoblock, label: protection.group.autoblock, help: protection.group.autoblock.help }
+  - { id: exempt,    label: protection.group.exempt,    help: protection.group.exempt.help }
+  - { id: device,    label: protection.group.device,    help: protection.group.device.help }
+
+# A grantable permission gating the plugin's configuration surface (app realm).
+# defaultRoles is EMPTY: the control point starts ungranted — the app admin (SYSTEMADMIN wildcard) and
+# superadmin hold it; the seed SYSTEMOPERATOR role starts blank and is granted it explicitly if needed.
+permissions:
+  - { id: settings, realm: application, label: protection.perm.settings, defaultRoles: [] }
+
+# Console menu entries. The app-realm LOGIN-protection config has NO menu entry: it renders as this plugin's own
+# panel (templates/admin-app.html) on its settings page (/__app/plugins/protection/settings), reached from the
+# Plugins list — a plugin's config belongs on its plugin-settings page, not a bespoke menu item. What remains here:
+# the app DoS ACTIVITY screen, placed by REGION under the console ACTIVITY dropdown beside Bandwidth (it
+# is live abuse monitoring, not config, so it needs its own screen + entry); and the per-site login-protection screen
+# in the tenant realm, placed by REGION under the console SETTINGS dropdown alongside every other plugin's config
+# entry (it IS per-site configuration). An entry is hidden from a principal who fails the named permission (UX only
+# — the controllers still enforce): the app entry on the plugin's own protection|settings control point (the app
+# master/wildcard always passes), the tenant entry on the kernel CONFIGURE_SITE permission (as SEO/Icons do).
+menu:
+  - { realm: application, region: activity, order: 71, label: protection.menu.dos,
+      path: "/__app/dos", permission: "protection|settings" }
+  - { realm: tenant, region: settings, order: 70, label: protection.menu.protection,
+      path: "/__admin/protection", permission: "CONFIGURE_SITE" }

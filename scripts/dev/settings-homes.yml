@@ -1,0 +1,83 @@
+# Where each bound runway.* setting is managed when it is not a field of Settings -> Server settings or a policy card
+# (those are declared in runway-app/src/main/resources/kernel-settings.yml).
+#
+# Read by scripts/dev/gen-settings-reference.py (docs/SETTINGS-REFERENCE.md) and by SettingsParityTest, which fails
+# when a bound key is in neither place, or when an entry here names a key that no longer exists. The rule: every
+# editable parameter is in the Web UI in its section unless that is strictly impossible, and then the reason is
+# written down. Add a new runway.* property to kernel-settings.yml (via gen-kernel-settings.py) or here.
+
+# Edited on another console screen.
+elsewhere:
+  runway.compression.enabled: "Settings → Platform settings, Response compression (applies at once)"
+  runway.compression.brotli.enabled: "Settings → Platform settings, Response compression (applies at once)"
+  runway.compression.gzip.enabled: "Settings → Platform settings, Response compression (applies at once)"
+  runway.node.name: "Settings → Platform settings, Node name (the console's value wins over this key)"
+  runway.security.password-strength: "Settings → Platform settings, Password strength (applies to new passwords after a restart; the console's value wins over this key)"
+  runway.bandwidth.quota.per-site: "Sites → Edit, Monthly bandwidth cap, per site (applies at once)"
+
+# Set only in the host's external/application.yml (or the environment), with the reason it cannot be in the console.
+host-only:
+  runway.app-activity.enabled: >-
+    It switches off the operator activity log. If the console could turn it off, an operator could silence the record
+    of their own actions.
+  runway.backups.offsite-dir: >-
+    A folder on the server that receives full site archives (user records, encrypted plugin secrets). Set from a
+    browser it could point into a web-served folder or another site's folder; choosing and mounting the share is
+    the server administrator's job. Shown read-only on Backups.
+  runway.cluster.enabled: &cluster >-
+    Read before the application is built (the cluster member and the shared session store are created at
+    startup), and every node must hold the same value; one node's console cannot change the others.
+  runway.cluster.cluster-name: *cluster
+  runway.cluster.topology: *cluster
+  runway.cluster.session-ttl: *cluster
+  runway.cluster.sessions-map-name: *cluster
+  runway.cluster.events-topic-name: *cluster
+  runway.cluster.embedded.discovery: *cluster
+  runway.cluster.embedded.members: *cluster
+  runway.cluster.embedded.port: *cluster
+  runway.cluster.embedded.port-auto-increment: *cluster
+  runway.cluster.client.addresses: *cluster
+  runway.cluster.client.smart-routing: *cluster
+  runway.console.hosts: >-
+    The host names the operator console answers on. A wrong value would lock every operator out of the console, so
+    the console cannot be the place to change it: the file on the server is the way back in. Read at startup; each
+    node of a cluster reads its own.
+  runway.demo.first-run.id: &demo >-
+    Used once, on the first start of an unattended evaluation box, before any operator exists to sign in. The
+    console equivalent is Sites → Install a demo site.
+  runway.demo.first-run.host: *demo
+  runway.demo.first-run.master-username: *demo
+  runway.demo.first-run.master-password: *demo
+  runway.plugins.root: >-
+    Read before the application starts: the plugin loader finds the plugins there before the console exists, and
+    the folder decides what code the server runs.
+  runway.security.app-master-id: >-
+    The trust anchor that pins the undeletable application superadmin, read before the application starts; set by
+    the setup wizard and never edited by hand.
+  runway.security.secret-key: >-
+    The key that encrypts every other stored secret. Typing it into a browser would put it on the wire, and
+    changing it would make every stored secret unreadable; the installer keeps it in a root-only file.
+  runway.storage.external: &storage >-
+    Read before the application starts: the data folder holds application.yml, platform.yml and every site, so the
+    console cannot live anywhere until it is known.
+  runway.storage.sites: *storage
+  runway.storage.backups: >-
+    Read before the application starts, like the data folder, and it receives full site archives (the same reason
+    as runway.backups.offsite-dir).
+  runway.storage.stats: &retired >-
+    Retired before 1.0 and has no effect; a value set in application.yml is reported once at startup.
+  runway.storage.logs: *retired
+  runway.tls.enabled: &tls >-
+    Read before the server starts serving: the HTTPS and redirect listeners are built from it at startup, and a
+    wrong value set from the console could make the console itself unreachable. The certificate files and their
+    password belong to the server.
+  runway.tls.keystore: *tls
+  runway.tls.keystore-password: *tls
+  runway.tls.keystore-type: *tls
+  runway.tls.key-alias: *tls
+  runway.tls.sni-host-check: *tls
+  runway.tls.watch-keystore: *tls
+  runway.tls.redirect-http.enabled: *tls
+  runway.tls.redirect-http.port: *tls
+  runway.tls.redirect-http.status: *tls
+  runway.tls.redirect-http.acme-challenges-dir: *tls

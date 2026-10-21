@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Forgot-password page, shared by both realms. The realm supplies brand + accent + form/login URLs as model
+     values; `sent` toggles between the email form and the neutral confirmation (no account enumeration). -->
+<thlogic>
+    <!-- The page language follows the operator locale in force, so a screen reader pronounces it correctly. -->
+    <attr sel="html" th:lang="${#locale.toLanguageTag()}"/>
+    <attr sel="#rc-title" th:text="#{op.recovery.forgot.title}"/>
+    <attr sel="#rc-body" th:classappend="${accentBorder}" th:attr="data-i18n-pw-toggle=#{op.a11y.pwToggle}"/>
+    <attr sel="#rc-brand" th:text="${brand}"/>
+
+    <attr sel="#rc-form-wrap" th:if="${!sent}"/>
+    <attr sel="#rc-form" th:action="${postUrl}"/>
+    <attr sel="#rc-heading" th:text="#{op.recovery.forgot.heading}"/>
+    <attr sel="#rc-lead" th:text="#{op.recovery.forgot.lead}"/>
+    <attr sel="#rc-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#rc-email-label" th:text="#{op.recovery.forgot.email}"/>
+    <attr sel="#rc-submit" th:text="#{op.recovery.forgot.submit}" th:classappend="${accentBtn}"/>
+
+    <!-- ?captcha (a failed challenge) drives the warning alert; ?error (a tripped honeypot) does too — a bot must
+         not learn the trap exists, and a legitimate user never fills it. Removed when neither flag is present. -->
+    <attr sel="#rc-captcha-error" th:if="${param.captcha != null or param.error != null}"/>
+    <attr sel="#rc-captcha-error-text" th:text="#{op.login.captcha}"/>
+
+    <!-- CAPTCHA slot: the plugin's login-view contributor (now also mapped to the recovery request paths) sets
+         captchaActive + the PUBLIC site key + widget class + script src when the scope's captcha is active. The
+         kernel template stays provider-agnostic — visible widget, or the invisible reCAPTCHA v3 hidden field. -->
+    <attr sel="#rc-captcha-widget"
+          th:if="${captchaActive != null and captchaActive and !captchaRecaptchaV3}"
+          th:attr="class=${captchaWidgetClass} + ' mb-3',data-sitekey=${captchaSiteKey}"/>
+    <attr sel="#rc-captcha-v3-token"
+          th:if="${captchaActive != null and captchaActive and captchaRecaptchaV3}"
+          th:attr="name=${captchaTokenField},data-sitekey=${captchaSiteKey}"/>
+    <attr sel="#rc-captcha-js"
+          th:if="${captchaActive != null and captchaActive}"
+          th:src="${captchaScriptUrl}"/>
+
+    <attr sel="#rc-sent-wrap" th:if="${sent}"/>
+    <attr sel="#rc-sent-heading" th:text="#{op.recovery.forgot.sent.heading}"/>
+    <attr sel="#rc-sent-text" th:text="#{op.recovery.forgot.sent.text}"/>
+
+    <attr sel="#rc-back" th:href="${loginUrl}" th:text="#{op.recovery.back}"/>
+
+    <!-- Language switcher: shown only with 2+ offered languages; one link per language (GET /__ui-lang, returning
+         to this page), the active one bold with the realm accent. -->
+    <attr sel="#rc-langswitch" th:if="${operatorLanguages != null and operatorLanguages.size() gt 1}"/>
+    <attr sel="#rc-langswitch/a" th:each="l : ${operatorLanguages}"
+          th:attr="href=@{/__ui-lang(lang=${l},to=${currentPath})},aria-current=${l == uiLocale ? 'true' : null}"
+          th:text="#{'op.lang.' + ${l}}"
+          th:classappend="${l == uiLocale} ? 'fw-bold' : 'text-secondary'"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#as-favicon" th:attr="href='/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#as-tabler-css" th:attr="href='/__assets/vendor/tabler.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-fa-css" th:attr="href='/__assets/vendor/fontawesome/css/all.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-chrome-css" th:attr="href='/__assets/runway-chrome.css?v=' + ${assetVersion}"/>
+    <attr sel="#as-logo" th:src="'/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#as-captcha-v3-js" th:src="'/__assets/captcha-v3.js?v=' + ${assetVersion}"/>
+    <attr sel="#as-tabler-js" th:src="'/__assets/vendor/tabler.min.js?v=' + ${assetVersion}"/>
+    <attr sel="#as-chrome-js" th:src="'/__assets/runway-chrome.js?v=' + ${assetVersion}"/>
+</thlogic>

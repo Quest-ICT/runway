@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dashboard card logic. Values from ${@searchAdminModel...(tenantSiteId)}; the on/off ternary keeps the
+     condition in ${} and each branch a standalone #{} message expression (pitfall #12 — never nest #{} in ${}). -->
+<thlogic>
+    <attr sel="#sc-title" th:text="#{search.card.title}"/>
+    <attr sel="#sc-pages" th:text="${@searchAdminModel.searchableItems(tenantSiteId)}"/>
+    <attr sel="#sc-pages-lbl" th:text="#{search.card.pages}"/>
+    <attr sel="#sc-status" th:text="${@searchAdminModel.enabled(tenantSiteId)} ? #{search.on} : #{search.off}"/>
+    <attr sel="#sc-engine" th:text="${@searchAdminModel.activeEngineKey(tenantSiteId)}"/>
+</thlogic>

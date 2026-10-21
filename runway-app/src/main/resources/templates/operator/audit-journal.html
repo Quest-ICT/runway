@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Audit journal</title></head>
+<body>
+<!-- The shared audit-journal card (filters, parsed rows, paging, CSV link), included by the application Activity
+     log and the tenant Logs screen. Bound by AuditView.populate. -->
+<div id="aj-card" class="card">
+    <div class="card-header">
+        <h3 class="card-title" id="aj-title">Audit journal</h3>
+        <div class="card-actions">
+            <a id="aj-csv" class="btn btn-outline-secondary btn-sm" href="#">
+                <i class="fa-solid fa-file-csv me-1"></i><span id="aj-csv-text">Download CSV</span></a>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <form id="aj-form" method="get" action="#" class="row g-2 align-items-end">
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="aj-from" id="aj-l-from">From</label>
+                <input class="form-control" type="date" id="aj-from" name="from" value="">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label" for="aj-to" id="aj-l-to">To</label>
+                <input class="form-control" type="date" id="aj-to" name="to" value="">
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label" for="aj-actor" id="aj-l-actor">Actor</label>
+                <input class="form-control" type="text" id="aj-actor" name="actor" maxlength="100" value="">
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label" for="aj-action" id="aj-l-action">Action</label>
+                <input class="form-control" type="text" id="aj-action" name="action" maxlength="100" value=""
+                       placeholder="page.">
+            </div>
+            <div class="col-lg-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary" id="aj-apply">Filter</button>
+                <a class="btn btn-link" id="aj-reset" href="#">Reset</a>
+            </div>
+        </form>
+        <p class="form-hint mt-2 mb-0" id="aj-bounds">Bounds.</p>
+        <div class="alert alert-warning mt-2 mb-0" role="alert" id="aj-truncated">Truncated.</div>
+    </div>
+    <div class="table-responsive">
+        <table id="aj-table" class="table table-vcenter card-table" data-listing-table="runway.audit">
+            <thead>
+            <tr>
+                <th scope="col" data-col-key="time" id="aj-h-time">Time</th>
+                <th scope="col" data-col-key="actor" id="aj-h-actor">Actor</th>
+                <th scope="col" data-col-key="action" id="aj-h-action">Action</th>
+                <th scope="col" data-col-key="detail" id="aj-h-detail">Detail</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="aj-empty"><td colspan="4" class="text-secondary text-center" id="aj-empty-text">Nothing recorded.</td></tr>
+            <tr class="aj-row">
+                <td class="aj-time text-nowrap text-secondary">time</td>
+                <td class="aj-actor">actor</td>
+                <td><span class="aj-label">label</span><br><code class="aj-key small">key</code></td>
+                <td class="aj-detail text-secondary">detail</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer d-flex align-items-center">
+        <span class="text-secondary" id="aj-page">Page 1</span>
+        <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" id="aj-prev" href="#">Newer</a>
+            <a class="btn btn-outline-secondary btn-sm" id="aj-next" href="#">Older</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

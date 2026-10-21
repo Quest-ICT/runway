@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm activity-log screen: the operator audit journal as a filtered, paged listing (the shared
+     operator/audit-journal card, bound by AuditView.populate). Read-only; gated by VIEW_AUDIT in AppSecurityConfig;
+     retention is a platform setting. -->
+<thlogic>
+    <attr sel="#al-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#al-heading" th:text="#{op.applog.heading}"/>
+    <attr sel="#al-hint" th:text="#{op.applog.hint}"/>
+    <attr sel="#al-journal" th:replace="~{operator/audit-journal :: #aj-card}"/>
+    <!-- The screen's own policy settings (kernel settings card), for whoever may change them. -->
+    <attr sel="#al-config" th:if="${platformAdmin}"/>
+    <attr sel="#al-levels" th:if="${platformAdmin}"/>
+    <attr sel="#al-levels-label" th:text="#{op.loglevels.heading}"/>
+    <attr sel="#al-config-label" th:text="#{op.config.open}"/>
+</thlogic>

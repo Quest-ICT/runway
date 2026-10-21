@@ -1,0 +1,94 @@
+# =============================================================================
+#  Runway Search Plugin — descriptor
+#  On-site search: a built-in full-text engine over page title/description/body,
+#  delivered as a query-aware CONTENT WIDGET (data-widget="search/box") on a
+#  normal editable page — it renders the box, and when the page is opened with
+#  ?q= it renders the results inline. The operator installs a ready-made,
+#  editable results page in one click from the settings (then it behaves like
+#  any site page). The endpoint owns only GET /search/api (JSON) and three
+#  operator-gated, CSRF-checked POSTs: /search/reindex, /search/install-page and
+#  /search/no-results/clear. Publishes its own SPI — the SearchCorpus every engine
+#  builds from, and the SiteSearchEngine a companion plugin (search-lucene) can
+#  implement to upgrade the engine. Links ONLY the Runway SPI (service tier).
+#  The install folder name MUST equal this `id`: external/plugins/search/.
+# =============================================================================
+id: search
+name: Search
+version: 2.3.0
+
+# The @Configuration registered into the host context before refresh. Its package (mx.quest.search) lives
+# OUTSIDE mx.quest.runway so the host never double-scans it. Beans are wired EXPLICITLY (no @ComponentScan).
+mainClass: mx.quest.search.SearchConfig
+
+# Built against the SPI service tier: PluginSettings, PluginSiteFiles, Sites, Messages, AccessCheck, SitePages,
+# ContentCatalogView and SiteEventListener. A kernel below SPI 1.0.0 BLOCKS this plugin at startup with a reason.
+requiresSpi: ">=1.0.0"
+
+# --- Personal data ---------------------------------------------------------------------------------------
+#     no-results.tsv holds search terms visitors typed (recorded only when a site opts in). A TRANSFER copy of a
+#     site (the one meant for someone outside the organisation) leaves it out and lists it in the archive's
+#     manifest; a FULL backup keeps it. Path relative to sites/<id>/plugins/search/.
+siteData:
+  personal:
+    - no-results.tsv
+
+# No hard dependency (always loads); NOT essential. Adds a public /search surface + an embeddable box, backed by
+# a pluggable engine. The built-in engine needs no external index, so search works the moment it is installed.
+
+# --- Grantable control-point permission -----------------------------------------------------------------
+# `settings` is the reserved id that gates this plugin's per-tenant config editor AND the operator-only
+# maintenance actions (reindex, install-page, clear the no-result list). defaultRoles is EMPTY: the control point
+# starts ungranted — admins hold it via the wildcard tier; a tenant superadmin grants it to OPERATOR or a custom role.
+permissions:
+  - { id: settings, realm: tenant, label: search.perm.settings, defaultRoles: [] }
+
+# --- App-level settings (superadmin; PLATFORM concerns only) ----------------------------------------------
+#     Over external/plugin-settings/search.yml, bound to runway.plugin.search.* into SearchProperties; applied
+#     on restart. Only platform knobs live here — the index freshness timer and the per-IP abuse guard. Every
+#     tenant-owned knob (enable, ranking, exclusions, snippet) is per-site below (a tenant must not set a global
+#     timer or an abuse limit).
+settings:
+  - { key: refresh-minutes,             type: int, default: 60,  range: "1..1440",  label: search.set.refresh }
+  - { key: rate-limit.per-ip-per-minute, type: int, default: 30,  range: "0..100000", label: search.set.perMinute }
+  - { key: rate-limit.per-ip-per-hour,   type: int, default: 600, range: "0..1000000", label: search.set.perHour }
+
+# --- Per-tenant settings (tenant-owned BEHAVIOUR; over sites/<id>/plugins/search.yml; applied IMMEDIATELY) --
+#     The whole tenant-owned surface: enable/limit/placeholder, the ranking weights, the exclude list, and the
+#     snippet length. Every default here MUST match a default in SearchSiteConfig.
+siteSettings:
+  - { key: enabled,           type: boolean, default: true,  label: search.set.enabled }
+  - { key: resultLimit,       type: int,     default: 20,    range: "1..100", label: search.set.resultLimit }
+  # Where the box submits ?q= to — the results page carrying this widget (install it from the card below). The
+  # box widget falls back to /search when unset; set this if you move/rename the results page.
+  - { key: resultsPath,       type: string,  default: /search, label: search.set.resultsPath }
+  - { key: placeholder,       type: string,                  label: search.set.placeholder }
+  - { key: exclude,           type: list,                    label: search.set.exclude }
+  - { key: snippetLength,     type: int,     default: 160,   range: "40..400", label: search.set.snippetLength }
+  # Since 2.1.0: a result link carries the words the engine matched (#rw-hl=…), and the page it opens highlights
+  # them (static/highlight.js, loaded only when the marker is present). Off: plain links and no loader on the pages.
+  - { key: highlight,         type: boolean, default: true,  label: search.set.highlight, help: search.help.highlight }
+  - { key: titleWeight,       type: int,     default: 8,     range: "0..1000000", label: search.set.titleWeight }
+  - { key: descriptionWeight, type: int,     default: 4,     range: "0..1000000", label: search.set.descriptionWeight }
+  - { key: bodyWeight,        type: int,     default: 1,     range: "0..1000000", label: search.set.bodyWeight }
+  - { key: allTermsBonus,     type: int,     default: 1000,  range: "0..1000000000", label: search.set.allTermsBonus }
+  - { key: phraseTitleBonus,  type: int,     default: 400,   range: "0..1000000000", label: search.set.phraseTitleBonus }
+  - { key: phraseBodyBonus,   type: int,     default: 300,   range: "0..1000000000", label: search.set.phraseBodyBonus }
+  # Searches with no results (since 2.0.0; developed as the unreleased 1.4.0) — a content-gap list shown on this
+  # page. OFF by default: a search term is free text a visitor typed and may be personal data, so a site opts in. Only term + count + last seen are kept (no IP,
+  # no user); email- and phone-number-like terms are never stored. Every default here MUST match NoResultsLog.
+  - { key: recordNoResults,        type: boolean, default: false, label: search.set.recordNoResults,
+      help: search.help.recordNoResults }
+  - { key: noResultsRetentionDays, type: int,     default: 90,    range: "1..365", label: search.set.noResultsRetention,
+      help: search.help.noResultsRetention, showWhen: recordNoResults }
+
+# --- Per-placement settings of the search box (since 2.1.0; Site → Content widgets, one form per data-widget) ---
+#     results: whether this box lists the results when its page is opened with ?q=. auto (the default) lists them
+#     unless the box is in the master chrome, so a header or footer box does not repeat the results page's list.
+widgetSettings:
+  search:
+    - { key: results, type: enum, default: auto, range: "auto,always,never", label: search.widget.results,
+        help: search.widget.help.results }
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/search/dashboard = templates/dashboard.*) -----
+dashboardCards:
+  - { realm: tenant, order: 40, fragment: dashboard, permission: "search|settings" }

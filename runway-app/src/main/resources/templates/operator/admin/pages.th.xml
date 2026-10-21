@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#pg-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#pg-heading" th:text="#{op.pages.heading}"/>
+    <attr sel="#pg-new" th:text="#{op.pages.new.button}"/>
+    <attr sel="#pg-h-slug" th:text="#{op.pages.col.slug}"/>
+    <attr sel="#pg-h-path" th:text="#{op.pages.col.path}"/>
+    <attr sel="#pg-h-locales" th:text="#{op.pages.col.locales}"/>
+    <attr sel="#pg-h-status" th:text="#{op.pages.col.status}"/>
+    <attr sel="#pg-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <!-- The conflicts panel exists only while conflicts do. Each row explains the RUNTIME consequence, keyed
+         by the conflict kind (page wins / loud clash), with the contested path and the claimants named. -->
+    <attr sel="#pg-conflicts" th:if="${conflicts != null and !conflicts.isEmpty()}"/>
+    <attr sel="#pg-conf-title" th:text="#{op.pages.conflicts.title}"/>
+    <attr sel="#pg-conf-h-path" th:text="#{op.pages.conflicts.col.path}"/>
+    <attr sel="#pg-conf-h-locale" th:text="#{op.pages.conflicts.col.locale}"/>
+    <attr sel="#pg-conf-h-what" th:text="#{op.pages.conflicts.col.what}"/>
+    <attr sel="#pg-conf-row" th:each="conflict : ${conflicts}" th:id="${null}"/>
+    <attr sel="#pg-conf-row//.c-path" th:text="${conflict.path()}"/>
+    <attr sel="#pg-conf-row//.c-locale" th:text="${conflict.localeTag()}"/>
+    <attr sel="#pg-conf-row//.c-what"
+          th:text="${conflict.kind().name() == 'PAGE_SHADOWS_CONTENT'}
+                   ? #{op.pages.conflicts.pageWins(${conflict.pageSlug()}, ${#strings.listJoin(conflict.claims(), ', ')})}
+                   : #{op.pages.conflicts.clash(${#strings.listJoin(conflict.claims(), ', ')})}"/>
+
+    <attr sel="#pg-empty" th:if="${pages.isEmpty()}"/>
+    <attr sel="#pg-empty-text" th:text="#{op.pages.empty}"/>
+    <attr sel="#pg-row" th:each="page : ${pages}" th:id="${null}"/>
+    <attr sel="#pg-row//.p-slug" th:text="${page.slug()}"/>
+    <attr sel="#pg-row//.p-path" th:text="${page.path() != null ? page.path() : '—'}"/>
+    <attr sel="#pg-row//.p-locales"
+          th:text="${page.locales().isEmpty() ? '—' : #strings.listJoin(page.locales(), ', ')}"/>
+    <!-- Editorial status (draft / in review / returned / published / published + pending revision), keyed by
+         PageStatus.key(); data-status carries the raw key for tests and styling. -->
+    <attr sel="#pg-row//.p-badge" th:text="#{'op.pages.status.' + ${statuses.get(page.slug()).key()}}"
+          th:attr="data-status=${statuses.get(page.slug()).key()}"
+          th:classappend="${statuses.get(page.slug()).key() == 'published' ? 'bg-green-lt'
+                          : (statuses.get(page.slug()).key() == 'draft' ? 'bg-yellow-lt'
+                          : (statuses.get(page.slug()).key() == 'in-review' or statuses.get(page.slug()).key() == 'published-pending' ? 'bg-azure-lt'
+                          : 'bg-orange-lt'))}"/>
+    <attr sel="#pg-row//.p-edit" th:text="#{op.pages.edit.action}"
+          th:attr="href='/__admin/pages/' + ${page.slug()} + '/edit'"/>
+    <!-- Publish is offered only to a user who may publish at the site's editorial level; unpublish always. -->
+    <attr sel="#pg-row//.p-toggle-form" th:if="${page.published() or canPublish}"
+          th:attr="action='/__admin/pages/' + ${page.slug()} + (${page.published()} ? '/disable' : '/enable')"/>
+    <attr sel="#pg-row//.p-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#pg-row//.p-toggle" th:text="${page.published()} ? #{op.pages.disable} : #{op.pages.enable}"/>
+</thlogic>

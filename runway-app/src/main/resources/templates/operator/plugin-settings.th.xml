@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The generic plugin settings form (app-level and per-tenant). Fields come laid out in ${sections} (see
+     SettingsForm): an untitled section of ungrouped fields, then each declared group, each with its advanced
+     fields in a collapsed disclosure. Every field row is the shared operator/setting-row fragment. Iterated
+     content uses CLASS selectors under the th:each host (`//` descendant), and the section host's
+     own id is made unique per copy, so the output never repeats an id. -->
+<thlogic>
+    <attr sel="#st-heading" th:text="#{op.settings.heading}"/>
+    <!-- A plugin's form names the plugin; a kernel settings screen names itself (settingsTitleKey). -->
+    <attr sel="#st-plugin" th:text="${settingsTitleKey != null} ? #{${settingsTitleKey}} : ${pluginName}"/>
+    <attr sel="#st-back" th:text="#{op.settings.back}" th:attr="href=${settingsBack}"/>
+    <attr sel="#st-cancel" th:text="#{op.settings.cancel}" th:attr="href=${settingsBack}"/>
+    <attr sel="#st-save" th:text="#{op.settings.save}"/>
+
+    <attr sel="#st-pending" th:if="${!pendingKeys.isEmpty()}"/>
+    <attr sel="#st-pending-text" th:text="#{op.settings.pending} + ' ' + ${#strings.listJoin(pendingKeys, ', ')}"/>
+    <attr sel="#st-stray" th:if="${!strayKeys.isEmpty()}"/>
+    <attr sel="#st-stray-text" th:text="#{op.settings.stray} + ' ' + ${#strings.listJoin(strayKeys, ', ')}"/>
+
+    <!-- Sites that set their own value for a per-site setting inheriting one of these: they keep it. -->
+    <attr sel="#st-overrides" th:if="${siteOverrides != null and !siteOverrides.isEmpty()}"/>
+    <attr sel="#st-overrides//.st-override" th:each="o : ${siteOverrides}"
+          th:text="#{op.settings.siteOverrides(${o.count()},${#messages.msg(o.label())})}"/>
+    <attr sel="#st-form" th:attr="action=${settingsAction}"/>
+    <attr sel="#st-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <!-- Only a kernel settings screen with a field the server sets has the adopt form (adoptAction). -->
+    <attr sel="#st-adopt-form" th:if="${adoptAction != null}" th:attr="action=${adoptAction}"/>
+    <attr sel="#st-adopt-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- The empty state names the scope: an app page lists app-level settings, a site page per-site ones. -->
+    <attr sel="#st-empty" th:if="${fields.isEmpty()}"
+          th:text="${settingsScope == 'tenant'} ? #{op.settings.empty.site} : #{op.settings.empty}"/>
+
+    <!-- The plugin's optional admin fragment, pulled from its own namespace (only when it ships one). A
+         conditional fragment expression, not th:if — th:replace outranks th:if on the same element. -->
+    <attr sel="#st-admin-fragment" th:replace="${adminFragment != null} ? ~{${adminFragment}} : ~{}"/>
+
+    <!-- The section index appears once a form has three or more titled sections; each link targets the id its
+         section gets below (both come from the same index into ${sections}). -->
+    <attr sel="#st-index" th:if="${sections.?[label() != null].size() >= 3}"/>
+    <attr sel="#st-index-label" th:text="#{op.settings.sections}"/>
+    <attr sel="#st-index//.st-index-item" th:each="indexed, indexedStat : ${sections}"
+          th:if="${indexed.label() != null}"/>
+    <attr sel="#st-index//.st-index-link" th:href="'#st-section-' + ${indexedStat.index}"
+          th:text="#{${indexed.label()}}"/>
+
+    <!-- The iterated host carries the template's id, so each copy gets its own (an id must not repeat). -->
+    <attr sel="#st-section" th:each="section : ${sections}" th:attr="id='st-section-' + ${sectionStat.index}"/>
+    <attr sel="#st-section//.st-sec-head" th:if="${section.label() != null}"/>
+    <attr sel="#st-section//.st-sec-title" th:text="#{${section.label()}}"/>
+    <attr sel="#st-section//.st-sec-help" th:if="${section.help() != null}" th:text="#{${section.help()}}"/>
+    <attr sel="#st-section//.st-sec-more" th:if="${section.helpLink() != null}" th:href="${section.helpLink()}"
+          th:text="#{op.settings.learnMore}"/>
+
+    <attr sel="#st-section//.st-field" th:each="field : ${section.fields()}"/>
+    <attr sel="#st-section//.st-field-slot" th:replace="~{operator/setting-row :: .sr-row}"/>
+
+    <!-- `open`/`hidden` are boolean attributes: present (any value) = on; a null value removes them. When every
+         advanced field follows one switch, the disclosure follows it too (runway-chrome.js), so it never opens
+         onto nothing. -->
+    <attr sel="#st-section//.st-adv" th:if="${!section.advanced().isEmpty()}"
+          th:attr="open=${section.advancedOpen() ? 'open' : null},data-show-when=${section.advancedShowWhen()},hidden=${section.advancedHidden() ? 'hidden' : null}"/>
+    <attr sel="#st-section//.st-adv-summary" th:text="#{op.settings.advanced}"/>
+    <attr sel="#st-section//.st-adv-field" th:each="field : ${section.advanced()}"/>
+    <attr sel="#st-section//.st-adv-slot" th:replace="~{operator/setting-row :: .sr-row}"/>
+</thlogic>

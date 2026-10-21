@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>app topbar</title></head>
+<body>
+<header id="topbar" class="navbar navbar-expand-rw d-print-none rw-topbar rw-topbar-app" data-bs-theme="dark">
+    <div class="container-xl">
+        <button id="tb-toggler" class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <h1 class="navbar-brand d-flex align-items-center m-0 me-3">
+            <a id="tb-brand" href="/__app" class="d-flex align-items-center text-reset text-decoration-none">
+                <img src="/__assets/runway.svg" alt="Runway" style="height:1.75rem;width:auto" class="me-2">
+                <span id="tb-realm-badge" class="rw-realm-legend">Runway App Management</span>
+            </a>
+        </h1>
+        <div class="navbar-nav flex-row order-rw-last align-items-center">
+            <div id="tb-langswitch" class="nav-item dropdown">
+                <a href="#" class="nav-link d-flex align-items-center lh-1 p-0 px-2" data-bs-toggle="dropdown" role="button" aria-label="Language" title="Language">
+                    <i class="fa-solid fa-language fa-lg"></i><span id="tb-lang-current" class="ps-1 d-none d-sm-inline"></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                    <a id="tb-lang-item" class="dropdown-item" href="#">language</a>
+                </div>
+            </div>
+            <div class="nav-item dropdown ms-3 ps-3 border-start border-secondary">
+                <a id="tb-usermenu" href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
+                    <i class="fa-solid fa-circle-user fa-lg"></i>
+                    <span class="ps-2"><span id="tb-user" class="rw-user d-none d-sm-inline">operator</span></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                    <a id="tb-account" href="/__app/account" class="dropdown-item">Account</a>
+                    <div class="dropdown-divider"></div>
+                    <form method="post" action="/app/logout" class="m-0">
+                        <input id="tb-csrf" type="hidden" name="_csrf" value="">
+                        <button id="tb-logout" type="submit" class="dropdown-item">Sign out</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <nav class="collapse navbar-collapse" id="navbar-menu" aria-label="Console menu">
+            <ul class="navbar-nav rw-menu-gap">
+                <li class="nav-item"><a id="nav-dashboard" class="nav-link" href="/__app"><i class="fa-solid fa-gauge me-1"></i><span>Dashboard</span></a></li>
+
+                <li id="grp-sites" class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                        <i class="fa-solid fa-sitemap me-1"></i><span id="grp-sites-label">Sites</span></a>
+                    <div class="dropdown-menu">
+                        <a id="nav-sites" class="dropdown-item" href="/__app/sites"><i class="fa-solid fa-list fa-fw me-2"></i><span>Manage sites</span></a>
+                        <a id="nav-backups" class="dropdown-item" href="/__app/backups"><i class="fa-solid fa-box-archive fa-fw me-2"></i><span>Backups</span></a>
+                        <a id="nav-site-templates" class="dropdown-item" href="/__app/site-templates"><i class="fa-solid fa-swatchbook fa-fw me-2"></i><span>Templates</span></a>
+                        <a id="nav-masters" class="dropdown-item" href="/__app/masters"><i class="fa-solid fa-user-shield fa-fw me-2"></i><span>Site master users</span></a>
+                    </div>
+                </li>
+
+                <li id="grp-access" class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                        <i class="fa-solid fa-user-lock me-1"></i><span id="grp-access-label">Access</span></a>
+                    <div class="dropdown-menu">
+                        <a id="nav-users" class="dropdown-item" href="/__app/users"><i class="fa-solid fa-users fa-fw me-2"></i><span>App users</span></a>
+                        <a id="nav-permissions" class="dropdown-item" href="/__app/permissions"><i class="fa-solid fa-key fa-fw me-2"></i><span>Permissions</span></a>
+                    </div>
+                </li>
+
+                <li id="grp-activity" class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                        <i class="fa-solid fa-chart-line me-1"></i><span id="grp-activity-label">Activity</span></a>
+                    <div class="dropdown-menu">
+                        <a id="nav-bandwidth" class="dropdown-item" href="/__app/bandwidth"><i class="fa-solid fa-gauge-high fa-fw me-2"></i><span>Bandwidth</span></a>
+                        <a id="nav-logs" class="dropdown-item" href="/__app/logs"><i class="fa-solid fa-list-ul fa-fw me-2"></i><span>Logs</span></a>
+                        <a id="nav-act-screen" class="dropdown-item aa-link" href="#"><i class="fa-solid fa-plug fa-fw me-2"></i><span class="aa-label">plugin</span></a>
+                    </div>
+                </li>
+
+                <li class="nav-item"><a id="nav-plugins" class="nav-link" href="/__app/plugins"><i class="fa-solid fa-plug me-1"></i><span>Plugins</span></a></li>
+
+                <li id="grp-settings" class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                        <i class="fa-solid fa-gear me-1"></i><span id="grp-settings-label">Settings</span></a>
+                    <div class="dropdown-menu">
+                        <a id="nav-settings" class="dropdown-item" href="/__app/settings"><i class="fa-solid fa-sliders fa-fw me-2"></i><span>Platform settings</span></a>
+                        <a id="nav-server-settings" class="dropdown-item" href="/__app/config/server"><i class="fa-solid fa-server fa-fw me-2"></i><span>Server settings</span></a>
+                        <a id="nav-embed-hosts" class="dropdown-item" href="/__app/embed-hosts"><i class="fa-solid fa-shield-halved fa-fw me-2"></i><span>Embed hosts</span></a>
+                        <a id="nav-about" class="dropdown-item" href="/__app/about"><i class="fa-solid fa-circle-info fa-fw me-2"></i><span>About Runway</span></a>
+                        <div id="nav-set-screen-div" class="dropdown-divider"></div>
+                        <a id="nav-set-screen" class="dropdown-item ss-link" href="#"><i class="fa-solid fa-shield-halved fa-fw me-2"></i><span class="ss-label">plugin</span></a>
+                    </div>
+                </li>
+
+                <li id="nav-plugin-item" class="nav-item"><a class="nav-link pl-link" href="#"><i class="pl-icon fa-solid fa-puzzle-piece me-1"></i><span class="pl-label">plugin</span></a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+</body>
+</html>

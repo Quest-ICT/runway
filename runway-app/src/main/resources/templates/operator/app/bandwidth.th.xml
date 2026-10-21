@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Application-realm bandwidth aggregate: grand totals + a per-site table (busiest first). Aggregate byte
+     counts only — the one deliberate tenant->app crossover. -->
+<thlogic>
+    <attr sel="#ab-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#ab-heading" th:text="#{op.appbandwidth.heading}"/>
+
+    <attr sel="#ab-l-out" th:text="#{op.appbandwidth.sent}"/>
+    <attr sel="#ab-out" th:text="${totalOut}"/>
+    <attr sel="#ab-l-in" th:text="#{op.appbandwidth.received}"/>
+    <attr sel="#ab-in" th:text="${totalIn}"/>
+
+    <attr sel="#ab-l-sites" th:text="#{op.appbandwidth.bySite}"/>
+    <attr sel="#ab-h-site" th:text="#{op.appbandwidth.col.site}"/>
+    <attr sel="#ab-h-sent" th:text="#{op.appbandwidth.col.sent}"/>
+    <attr sel="#ab-h-recv" th:text="#{op.appbandwidth.col.received}"/>
+
+    <attr sel="#ab-empty" th:if="${sites.isEmpty()}"/>
+    <attr sel="#ab-empty-text" th:text="#{op.appbandwidth.empty}"/>
+    <attr sel="#ab-row" th:each="s : ${sites}" th:id="${null}"/>
+    <attr sel="#ab-row//.ab-site" th:text="${s.siteId()}"/>
+    <attr sel="#ab-row//.ab-sent" th:text="${s.outHuman()}" th:attr="data-sort=${s.bytesOut()}"/>
+    <attr sel="#ab-row//.ab-recv" th:text="${s.inHuman()}" th:attr="data-sort=${s.bytesIn()}"/>
+    <!-- The screen's own policy settings (kernel settings card), for whoever may change them. -->
+    <attr sel="#ab-config" th:if="${platformAdmin}"/>
+    <attr sel="#ab-config-label" th:text="#{op.config.open}"/>
+</thlogic>

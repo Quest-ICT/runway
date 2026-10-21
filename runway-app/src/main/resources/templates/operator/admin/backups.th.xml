@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Backups screen. Restore affordances (the restore card + each row's Restore) are shown only to a site
+     administrator (${canRestore}), and so are the FULL-backup downloads (${canDownloadFull}: "Download a backup now"
+     and each row's Download) — a delegated MANAGE_BACKUPS holder gets the transfer copy instead. The controller
+     re-enforces both regardless. -->
+<thlogic>
+    <attr sel="#bk-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#bk-heading" th:text="#{op.backups.heading}"/>
+
+    <attr sel="#bk-l-make" th:text="#{op.backups.make}"/>
+    <attr sel="#bk-make-hint" th:text="#{op.backups.make.hint}"/>
+    <attr sel="#bk-download-now" th:if="${canDownloadFull}" th:text="#{op.backups.downloadNow}"/>
+    <attr sel="#bk-full-admin-only" th:unless="${canDownloadFull}" th:text="#{op.backups.fullAdminOnly}"/>
+    <attr sel="#bk-transfer-hint" th:text="#{op.backups.transfer.hint}"/>
+    <attr sel="#bk-download-transfer" th:text="#{op.backups.transfer.download}"
+          th:attr="title=#{op.backups.transfer.tip}"/>
+    <attr sel="#bk-personal" th:if="${!#lists.isEmpty(transferOmissions)}"/>
+    <attr sel="#bk-personal-hint" th:text="#{op.backups.transfer.personal}"/>
+    <attr sel="#bk-personal-item" th:each="path : ${transferOmissions}" th:id="${null}"/>
+    <attr sel="#bk-personal-item//.bk-personal-path" th:text="${path}"/>
+    <attr sel="#bk-create" th:text="#{op.backups.create}"/>
+    <attr sel="#bk-create-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#bk-restore-card" th:if="${canRestore}"/>
+    <attr sel="#bk-l-restore" th:text="#{op.backups.restore}"/>
+    <attr sel="#bk-restore-warn" th:text="#{op.backups.restore.warn}"/>
+    <attr sel="#bk-upload-restore" th:text="#{op.backups.uploadRestore}"/>
+    <attr sel="#bk-upload-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#bk-l-stored" th:text="#{op.backups.stored}"/>
+    <attr sel="#bk-h-name" th:text="#{op.backups.col.name}"/>
+    <attr sel="#bk-h-size" th:text="#{op.backups.col.size}"/>
+    <attr sel="#bk-h-date" th:text="#{op.backups.col.date}"/>
+    <attr sel="#bk-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <attr sel="#bk-empty" th:if="${backups.isEmpty()}"/>
+    <attr sel="#bk-empty-text" th:text="#{op.backups.empty}"/>
+    <attr sel="#bk-row" th:each="b : ${backups}" th:id="${null}"/>
+    <attr sel="#bk-row//.bk-name" th:text="${b.name()}"/>
+    <attr sel="#bk-row//.bk-size" th:text="${#numbers.formatInteger(b.sizeBytes() / 1024, 1, 'COMMA')} + ' KB'"
+          th:attr="data-sort=${b.sizeBytes()}"/>
+    <attr sel="#bk-row//.bk-date" th:text="${b.modifiedAt()}"/>
+    <attr sel="#bk-row//.bk-dl" th:if="${canDownloadFull}" th:text="#{op.backups.download}"
+          th:attr="href='/__admin/backups/' + ${b.name()} + '/download'"/>
+    <attr sel="#bk-row//.bk-restore-form" th:if="${canRestore}"
+          th:attr="action='/__admin/backups/' + ${b.name()} + '/restore'"/>
+    <attr sel="#bk-row//.bk-rcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#bk-row//.bk-restore" th:text="#{op.backups.restoreBtn}"/>
+    <attr sel="#bk-row//.bk-delete-form" th:attr="action='/__admin/backups/' + ${b.name()} + '/delete'"/>
+    <attr sel="#bk-row//.bk-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#bk-row//.bk-delete" th:text="#{op.backups.deleteBtn}"/>
+
+    <!-- The platform's backup policy for this site: the operator's, shown read-only. -->
+    <attr sel="#bk-policy-schedule"
+          th:text="${backupPolicy.schedule().isEnabled()} ? #{op.backups.policy.scheduled(${backupPolicy.schedule().getCron()})} : #{op.backups.policy.manual}"/>
+    <attr sel="#bk-policy-keep" th:text="#{${backupPolicyKeepKey}(${backupPolicy.retention().getMaxCount()}, ${backupPolicy.retention().getMaxAgeDays()})}"/>
+    <attr sel="#bk-policy-by" th:text="#{op.backups.policy.by}"/>
+</thlogic>

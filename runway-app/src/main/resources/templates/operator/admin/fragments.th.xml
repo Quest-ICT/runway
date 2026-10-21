@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fragments list. One row per ${fragments} entry (a FragmentTemplates.FragmentInfo). The action links /
+     forms are built by concatenating the fragment name into the URL; the // selector reaches controls nested
+     in the row's cells. The empty-state row is removed unless the list is empty so it never
+     shuffles into the listing-table sort. -->
+<thlogic>
+    <attr sel="#fr-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#fr-heading" th:text="#{op.fragments.heading}"/>
+    <attr sel="#fr-new" th:text="#{op.fragments.new.button}"/>
+    <attr sel="#fr-info-text" th:utext="#{op.fragments.info}"/>
+
+    <attr sel="#fr-h-name" th:text="#{op.fragments.col.name}"/>
+    <attr sel="#fr-h-logic" th:text="#{op.fragments.col.logic}"/>
+    <attr sel="#fr-h-size" th:text="#{op.fragments.col.size}"/>
+    <attr sel="#fr-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <attr sel="#fr-empty" th:if="${fragments.isEmpty()}"/>
+    <attr sel="#fr-empty-text" th:text="#{op.fragments.empty}"/>
+
+    <attr sel="#fr-row" th:each="f : ${fragments}" th:id="${null}"/>
+    <attr sel="#fr-row//.fr-name" th:text="${f.name()}"/>
+    <attr sel="#fr-row//.fr-logic"
+          th:classappend="${f.hasLogic()} ? 'bg-azure-lt' : 'bg-secondary-lt'"
+          th:text="${f.hasLogic()} ? #{op.fragments.logic.yes} : #{op.fragments.logic.no}"/>
+    <attr sel="#fr-row//.fr-size" th:text="${f.size()} + ' B'" th:attr="data-sort=${f.size()}"/>
+
+    <attr sel="#fr-row//.fr-edit" th:text="#{op.pages.edit.action}"
+          th:attr="href='/__admin/fragments/' + ${f.name()} + '/edit'"/>
+
+    <attr sel="#fr-row//.fr-reload-form" th:attr="action='/__admin/fragments/' + ${f.name()} + '/reload'"/>
+    <attr sel="#fr-row//.fr-rcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#fr-row//.fr-reload" th:text="#{op.fragments.reload}"/>
+
+    <attr sel="#fr-row//.fr-delete-form" th:attr="action='/__admin/fragments/' + ${f.name()} + '/delete'"/>
+    <attr sel="#fr-row//.fr-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#fr-row//.fr-delete" th:text="#{op.fragments.deleteBtn}"/>
+
+    <!-- Error pages (_ + a status, 400-599): the site's own page for an error, rendered through its master. -->
+    <attr sel="#fr-errors-title" th:text="#{op.fragments.errors.title}"/>
+    <attr sel="#fr-errors-intro" th:text="#{op.fragments.errors.intro}"/>
+    <attr sel="#fr-eh-status" th:text="#{op.fragments.errors.col.status}"/>
+    <attr sel="#fr-eh-name" th:text="#{op.fragments.errors.col.file}"/>
+    <attr sel="#fr-eh-actions" th:text="#{op.pages.col.actions}"/>
+    <attr sel="#fr-err-empty" th:if="${errorPages.isEmpty()}"/>
+    <attr sel="#fr-err-empty-text" th:text="#{op.fragments.errors.empty}"/>
+    <attr sel="#fr-err-row" th:each="e : ${errorPages}" th:id="${null}"/>
+    <attr sel="#fr-err-row//.fr-err-status" th:text="${errorReasons.get(e.name())}"/>
+    <attr sel="#fr-err-row//.fr-err-name" th:text="${e.name()}"/>
+    <attr sel="#fr-err-row//.fr-err-edit" th:text="#{op.pages.edit.action}"
+          th:attr="href='/__admin/fragments/' + ${e.name()} + '/edit'"/>
+    <attr sel="#fr-err-row//.fr-err-delete-form" th:attr="action='/__admin/fragments/' + ${e.name()} + '/delete'"/>
+    <attr sel="#fr-err-row//.fr-err-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#fr-err-row//.fr-err-delete" th:text="#{op.fragments.deleteBtn}"
+          th:attr="data-confirm=#{op.fragments.errors.deleteConfirm(${e.name()})}"/>
+    <attr sel="#fr-err-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#fr-l-err-code" th:text="#{op.fragments.errors.col.status}"/>
+    <attr sel="#fr-err-code-opt" th:each="c : ${suggestedErrorCodes}" th:id="${null}" th:value="${c}"/>
+    <attr sel="#fr-err-create-btn" th:text="#{op.fragments.errors.create}"/>
+    <attr sel="#fr-err-hint" th:text="#{op.fragments.errors.hint}"/>
+</thlogic>

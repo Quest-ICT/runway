@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static files: one folder of sites/<id>/static/ at a time. Rows repeat over ${rows} (folders first); a folder
+     row links into it, a file row opens its public URL. doc/ is the Documents screen's: shown, never changed here.
+     Nested row controls are reached with //; each URL expression holds at most one "__". -->
+<thlogic>
+    <attr sel="#sf-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#sf-heading" th:text="#{op.static.heading}"/>
+    <attr sel="#sf-info-text" th:text="#{op.static.info}"/>
+    <!-- Usage against the storage ceiling the platform operator set (read-only). Over it, files stay; uploads stop. -->
+    <attr sel="#sf-storage" th:text="${storageLimited} ? #{op.static.storage.limited(${storageUsed}, ${storageCeiling})} : #{op.static.storage.unlimited(${storageUsed})}"/>
+    <attr sel="#sf-over" th:if="${storageOver}"/>
+    <attr sel="#sf-over-text" th:text="#{op.static.storage.over}"/>
+
+    <attr sel="#sf-crumb-root" th:attr="aria-current=${folder.isEmpty() ? 'page' : null}"/>
+    <attr sel="#sf-crumb" th:each="c : ${crumbs}" th:id="${null}"/>
+    <attr sel="#sf-crumb//.sf-crumb-link" th:text="${c.name()}" th:href="@{/__admin/static(dir=${c.path()})}"/>
+
+    <attr sel="#sf-docs-note" th:if="${inDocuments}"/>
+    <attr sel="#sf-docs-note-text" th:text="#{op.static.docsNote}"/>
+    <attr sel="#sf-docs-link" th:text="#{op.nav.documents}"/>
+
+    <attr sel="#sf-h-name" th:text="#{op.static.col.name}"/>
+    <attr sel="#sf-h-size" th:text="#{op.static.col.size}"/>
+    <attr sel="#sf-h-modified" th:text="#{op.static.col.modified}"/>
+    <attr sel="#sf-h-actions" th:text="#{op.pages.col.actions}"/>
+
+    <attr sel="#sf-empty" th:if="${rows.isEmpty()}"/>
+    <attr sel="#sf-empty-text" th:text="#{op.static.empty}"/>
+
+    <attr sel="#sf-row" th:each="r : ${rows}" th:id="${null}"/>
+    <attr sel="#sf-row//.sf-folder" th:if="${r.directory()}" th:href="@{/__admin/static(dir=${r.path()})}"/>
+    <attr sel="#sf-row//.sf-folder-name" th:text="${r.name()} + '/'"/>
+    <attr sel="#sf-row//.sf-file" th:unless="${r.directory()}" th:href="${r.publicUrl()}"/>
+    <attr sel="#sf-row//.sf-file-name" th:text="${r.name()}"/>
+    <attr sel="#sf-row//.sf-size" th:text="${r.size()}" th:attr="data-sort=${r.sizeBytes()}"/>
+    <attr sel="#sf-row//.sf-modified"
+          th:text="${r.modified() > 0} ? ${#dates.format(new java.util.Date(r.modified()), 'yyyy-MM-dd HH:mm')} : ''"
+          th:attr="data-sort=${r.modified()}"/>
+    <attr sel="#sf-row//.sf-copy" th:unless="${r.directory()}" th:text="#{op.static.copyUrl}"
+          th:attr="data-copy=${r.publicUrl()},data-copied=#{op.static.copied},title=#{op.static.copyUrl.tip}"/>
+    <attr sel="#sf-row//.sf-docs" th:if="${r.documents()}" th:text="#{op.nav.documents}"/>
+    <attr sel="#sf-row//.sf-delete-form" th:unless="${r.documents()}"/>
+    <attr sel="#sf-row//.sf-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#sf-row//.sf-dpath" th:attr="value=${r.path()}"/>
+    <attr sel="#sf-row//.sf-delete" th:text="#{op.fragments.deleteBtn}"
+          th:attr="data-confirm=${r.directory()} ? #{op.static.deleteFolderConfirm(${r.path()})} : #{op.static.deleteConfirm(${r.path()})}"/>
+
+    <attr sel="#sf-forms" th:unless="${inDocuments}"/>
+    <attr sel="#sf-l-upload" th:text="#{op.static.upload.title}"/>
+    <attr sel="#sf-ucsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#sf-udir" th:attr="value=${folder}"/>
+    <attr sel="#sf-replace-label" th:text="#{op.static.replace}"/>
+    <attr sel="#sf-upload" th:text="#{op.static.upload}"/>
+    <attr sel="#sf-upload-hint" th:text="#{op.static.upload.hint(${maxMiB}, ${allowedTypes})}"/>
+    <attr sel="#sf-l-folder" th:text="#{op.static.folder.title}"/>
+    <attr sel="#sf-fcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#sf-fdir" th:attr="value=${folder}"/>
+    <attr sel="#sf-fcreate" th:text="#{op.static.folder.create}"/>
+</thlogic>

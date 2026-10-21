@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Activity log</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="al-pretitle">Application</div>
+                <h2 class="page-title" id="al-heading">Activity log</h2>
+            </div>
+            <div class="col-auto" id="al-levels">
+                <a id="al-levels-link" class="btn btn-outline-secondary" href="/__app/logs/levels">
+                    <i class="fa-solid fa-sliders me-1"></i><span id="al-levels-label">Log levels</span></a>
+            </div>
+            <div class="col-auto" id="al-config">
+                <a id="al-config-link" class="btn btn-outline-secondary" href="/__app/config/activity">
+                    <i class="fa-solid fa-gear me-1"></i><span id="al-config-label">Settings</span></a>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-secondary" id="al-hint">
+        Sign-ins, password recovery, sign-outs and every change operators make (users, roles and permissions,
+        sites, settings, plugins, backups), newest first.</p>
+    <div id="al-journal">journal</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The body template of the demo's ContentSource (ContentRef.bodyTemplate = __plugin__/runway-demo/showcase). It may rely
+  on exactly the documented render model: ${master} (the tenant's master to wrap in), ${content.*} (id, sourceKey,
+  title, description, bodyHtml, attributes, updatedAt), ${locale} and ${urls[..]}. The tenant's chrome comes from the
+  master through its seams, by the ${master} VARIABLE (never a literal __plugin__/… or master name), so this file is
+  byte-identical for every tenant. bodyHtml is already escaped by DemoShowcaseSource, hence th:utext.
+-->
+<thlogic>
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+
+    <attr sel="#showcase-title" th:text="${content.title}"/>
+    <attr sel="#showcase-body" th:utext="${content.bodyHtml}"/>
+</thlogic>

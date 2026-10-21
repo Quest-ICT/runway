@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Plugin-management screen logic. Row cells use CLASS selectors under the th:each host (`//`
+     descendant), not ids, so the iterated output never repeats an id. -->
+<thlogic>
+    <attr sel="#pl-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#pl-heading" th:text="#{op.plugins.heading}"/>
+    <attr sel="#pl-upload-title" th:text="#{op.plugins.install}"/>
+    <attr sel="#pl-upload-label" th:text="#{op.plugins.archive}"/>
+    <attr sel="#pl-upload-btn" th:text="#{op.plugins.upload}"/>
+    <attr sel="#pl-upload-hint" th:text="#{op.plugins.appliesOnRestart}"/>
+    <attr sel="#pl-upload-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Restart-required banner: present only on drift. -->
+    <attr sel="#pl-restart-banner" th:if="${restartRequired}"/>
+    <attr sel="#pl-restart-text" th:text="#{op.plugins.restartRequired}"/>
+    <attr sel="#pl-restart-btn-text" th:text="#{op.plugins.restartNow}"/>
+    <attr sel="#pl-restart-btn" th:attr="data-confirm=#{op.plugins.confirmRestart}"/>
+    <attr sel="#pl-restart-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Table headers -->
+    <attr sel="#pl-h-id" th:text="#{op.plugins.col.id}"/>
+    <attr sel="#pl-h-name" th:text="#{op.plugins.col.name}"/>
+    <attr sel="#pl-h-version" th:text="#{op.plugins.col.version}"/>
+    <attr sel="#pl-h-status" th:text="#{op.plugins.col.status}"/>
+    <attr sel="#pl-h-required" th:text="#{op.plugins.col.required}"/>
+    <attr sel="#pl-h-actions" th:text="#{op.plugins.col.actions}"/>
+
+    <!-- Empty state: rendered only when there are no rows, so it never sits among data rows. -->
+    <attr sel="#pl-empty" th:if="${plugins.isEmpty()}"/>
+    <attr sel="#pl-empty-text" th:text="#{op.plugins.empty}"/>
+
+    <!-- One row per installation. -->
+    <attr sel="#pl-row" th:each="row : ${plugins}" th:id="${null}"/>
+    <attr sel="#pl-row//.c-id" th:text="${row.id()}"/>
+    <attr sel="#pl-row//.c-name" th:text="${row.name()}"/>
+    <attr sel="#pl-row//.c-version" th:text="${row.version()}"/>
+    <attr sel="#pl-row//.c-badge"
+          th:text="#{'op.plugins.status.' + ${row.status().name().toLowerCase()}}"
+          th:classappend="${row.status().name() == 'LOADED' ? 'bg-green-lt' : (row.status().name() == 'PENDING' ? 'bg-yellow-lt' : (row.status().name() == 'DISABLED' ? 'bg-secondary-lt' : 'bg-red-lt'))}"
+          th:attr="title=${row.blockedReason() != null ? row.blockedReason() : (row.malformedReason() != null ? row.malformedReason() : '')}"/>
+    <!-- Plugin health: host-linkage badge, contained failures, refused contributions, compliance notes. -->
+    <attr sel="#pl-row//.c-host" th:if="${row.linksHost()}" th:attr="title=#{op.plugins.hostLinkage.tip}"/>
+    <attr sel="#pl-row//.c-host-text" th:text="#{op.plugins.hostLinkage}"/>
+    <!-- Why a plugin is blocked (or unusable), in the row itself — not only in the badge's tooltip (SPI 1.0: an old
+         or host-linked plugin is Blocked, and the operator must be able to read why without hovering). -->
+    <attr sel="#pl-row//.c-blocked" th:if="${row.blockedReason() != null or row.malformedReason() != null}"
+          th:text="${row.blockedReason() != null ? row.blockedReason() : row.malformedReason()}"/>
+    <attr sel="#pl-row//.c-failures" th:if="${row.failures() > 0}"
+          th:text="#{op.plugins.failures(${row.failures()})}" th:attr="title=#{op.plugins.failures.tip}"/>
+    <attr sel="#pl-row//.c-notes" th:if="${row.hasHealthNotes()}"/>
+    <attr sel="#pl-row//.c-notes-summary" th:text="#{op.plugins.notes}"/>
+    <attr sel="#pl-row//.c-last-error" th:if="${row.lastError() != null}"
+          th:text="#{op.plugins.lastError(${row.lastErrorAt()}, ${row.lastError()})}"/>
+    <attr sel="#pl-row//.c-refused" th:each="note : ${row.degraded()}" th:text="#{op.plugins.refused(${note})}"/>
+    <attr sel="#pl-row//.c-warning" th:each="note : ${row.warnings()}" th:text="#{op.plugins.warning(${note})}"/>
+
+    <attr sel="#pl-row//.c-required"
+          th:text="${row.requiredBy().isEmpty() ? '—' : #strings.listJoin(row.requiredBy(), ', ')}"/>
+
+    <!-- CSRF for every per-row form. -->
+    <attr sel="#pl-row//.f-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Settings link: only when the plugin declares an app-level settings schema. -->
+    <attr sel="#pl-row//.c-settings" th:if="${row.hasSettings()}"
+          th:attr="href='/__app/plugins/' + ${row.id()} + '/settings'"/>
+
+    <!-- Enable / Disable: only well-formed, present plugins can be toggled. -->
+    <attr sel="#pl-row//.f-enable" th:if="${row.present() and row.wellFormed() and !row.enabledOnDisk()}"
+          th:attr="action='/__app/plugins/' + ${row.id()} + '/enable'"/>
+    <!-- An essential (security-floor) plugin can never be disabled or uninstalled — hidden here + rejected server-side. -->
+    <attr sel="#pl-row//.f-disable" th:if="${row.present() and row.wellFormed() and row.enabledOnDisk() and not row.essential()}"
+          th:attr="action='/__app/plugins/' + ${row.id()} + '/disable'"/>
+    <!-- Retry: only for a plugin a quarantine marker blocks (it broke a boot). -->
+    <attr sel="#pl-row//.f-retry" th:if="${row.quarantined()}"
+          th:attr="action='/__app/plugins/' + ${row.id()} + '/retry'"/>
+    <attr sel="#pl-row//.c-retry-btn" th:attr="data-confirm=#{op.plugins.retry.confirm}"/>
+    <attr sel="#pl-row//.c-retry-text" th:text="#{op.plugins.retry}"/>
+    <attr sel="#pl-row//.f-uninstall" th:if="${row.present() and not row.essential()}"
+          th:attr="action='/__app/plugins/' + ${row.id()} + '/uninstall'"/>
+    <attr sel="#pl-row//.c-essential" th:if="${row.essential()}" th:attr="title=#{op.plugins.essential.tip}"/>
+    <attr sel="#pl-row//.c-essential-text" th:text="#{op.plugins.essential}"/>
+    <attr sel="#pl-row//.c-uninstall-btn"
+          th:attr="data-confirm=${row.requiredBy().isEmpty() ? ('Uninstall ' + row.id() + '?') : ('Warning — ' + row.id() + ' is required by ' + #strings.listJoin(row.requiredBy(), ', ') + '. Uninstall anyway?')}"/>
+    <!-- The screen's own policy settings (kernel settings card), for whoever may change them. -->
+    <attr sel="#pl-config" th:if="${platformAdmin}"/>
+    <attr sel="#pl-config-label" th:text="#{op.config.open}"/>
+</thlogic>

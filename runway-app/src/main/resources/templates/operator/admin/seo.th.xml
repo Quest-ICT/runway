@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SEO screen. Field values pre-fill from the site's stored SiteSeoConfig (${seo}); a null field renders
+     as an empty input. The extra-head textarea is verbatim on output, so its stored value is shown as-is. -->
+<thlogic>
+    <attr sel="#seo-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#seo-heading" th:text="#{op.seo.heading}"/>
+
+    <attr sel="#seo-free-title" th:text="#{op.seo.free.title}"/>
+    <attr sel="#seo-free-text" th:text="#{op.seo.free.text}"/>
+
+    <attr sel="#seo-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#seo-l-social" th:text="#{op.seo.social}"/>
+    <attr sel="#seo-l-ogImage" th:text="#{op.seo.ogImage}"/>
+    <attr sel="#seo-ogImage" th:attr="value=${seo.ogImage()},title=#{op.seo.ogImage.hint}"/>
+    <attr sel="#seo-h-ogImage" th:text="#{op.seo.ogImage.hint}"/>
+    <attr sel="#seo-l-ogType" th:text="#{op.seo.ogType}"/>
+    <attr sel="#seo-ogType" th:attr="value=${seo.ogType()}"/>
+    <attr sel="#seo-h-ogType" th:text="#{op.seo.ogType.hint}"/>
+    <attr sel="#seo-l-twCard" th:text="#{op.seo.twCard}"/>
+    <attr sel="#seo-tw-auto" th:text="#{op.seo.twCard.auto}" th:selected="${seo.twitterCard() == null}"/>
+    <attr sel="#seo-tw-summary" th:selected="${seo.twitterCard() == 'summary'}"/>
+    <attr sel="#seo-tw-large" th:selected="${seo.twitterCard() == 'summary_large_image'}"/>
+    <attr sel="#seo-h-twCard" th:text="#{op.seo.twCard.hint}"/>
+    <attr sel="#seo-l-twSite" th:text="#{op.seo.twSite}"/>
+    <attr sel="#seo-twSite" th:attr="value=${seo.twitterSite()}"/>
+    <attr sel="#seo-h-twSite" th:text="#{op.seo.twSite.hint}"/>
+
+    <attr sel="#seo-l-verify" th:text="#{op.seo.verify}"/>
+    <attr sel="#seo-l-google" th:text="#{op.seo.google}"/>
+    <attr sel="#seo-google" th:attr="value=${seo.googleVerification()}"/>
+    <attr sel="#seo-h-google" th:text="#{op.seo.google.hint}"/>
+    <attr sel="#seo-l-bing" th:text="#{op.seo.bing}"/>
+    <attr sel="#seo-bing" th:attr="value=${seo.bingVerification()}"/>
+    <attr sel="#seo-h-bing" th:text="#{op.seo.bing.hint}"/>
+
+    <attr sel="#seo-l-extra" th:text="#{op.seo.extra}"/>
+    <attr sel="#seo-l-docs" th:text="#{op.seo.docs}"/>
+    <attr sel="#seo-docs-noindex" th:attr="checked=${seo.documentsNoindex()} ? 'checked' : null"/>
+    <attr sel="#seo-l-docs-noindex" th:text="#{op.seo.docs.noindex}"/>
+    <attr sel="#seo-h-docs" th:utext="#{op.seo.docs.help}"/>
+    <attr sel="#seo-extra" th:text="${seo.extraHead()}"/>
+    <attr sel="#seo-h-extra" th:text="#{op.seo.extra.hint}"/>
+
+    <attr sel="#seo-save" th:text="#{op.seo.save}"/>
+</thlogic>

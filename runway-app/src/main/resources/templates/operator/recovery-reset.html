@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title id="rc-title">Choose a new password</title>
+    <link id="as-favicon" rel="icon" type="image/svg+xml" href="/__assets/runway.svg">
+    <link id="as-tabler-css" rel="stylesheet" href="/__assets/vendor/tabler.min.css">
+    <link id="as-fa-css" rel="stylesheet" href="/__assets/vendor/fontawesome/css/all.min.css">
+    <link id="as-chrome-css" rel="stylesheet" href="/__assets/runway-chrome.css">
+</head>
+<body id="rc-body" class="border-top-wide d-flex flex-column" data-i18n-pw-toggle="Show / hide password">
+<div class="page page-center">
+    <main class="container container-tight py-4">
+        <div class="text-center mb-4">
+            <span class="navbar-brand navbar-brand-autodark">
+                <img id="as-logo" src="/__assets/runway.svg" alt="Runway" style="height:1.75rem;width:auto" class="me-2"><span id="rc-brand">Runway</span>
+            </span>
+        </div>
+        <div class="card card-md">
+            <div class="card-body">
+                <div id="rc-reset-wrap">
+                    <h2 class="h2 text-center mb-3" id="rc-reset-heading">Choose a new password</h2>
+                    <p class="text-secondary text-center mb-4" id="rc-reset-lead">
+                        Setting a new password for <strong id="rc-username">account</strong>.</p>
+                    <div id="rc-error" class="alert alert-danger" role="alert">Please check the fields below.</div>
+                    <form id="rc-form" method="post" action="/app/reset" autocomplete="off">
+                        <input id="rc-csrf" type="hidden" name="_csrf" value="">
+                        <input id="rc-token" type="hidden" name="token" value="">
+                        <div class="mb-3">
+                            <label class="form-label" id="rc-pass-label" for="rc-pass">New password</label>
+                            <input id="rc-pass" name="password" type="password" class="form-control"
+                                   autocomplete="new-password" autofocus required minlength="8">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="rc-confirm-label" for="rc-confirm">Confirm new password</label>
+                            <input id="rc-confirm" name="confirm" type="password" class="form-control"
+                                   autocomplete="new-password" required minlength="8">
+                        </div>
+                        <div class="form-footer">
+                            <button type="submit" class="btn w-100" id="rc-reset-submit">Set new password</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="rc-invalid-wrap">
+                    <h2 class="h2 text-center mb-3" id="rc-invalid-heading">Link expired or invalid</h2>
+                    <p class="text-secondary text-center" id="rc-invalid-text">
+                        This password-reset link is invalid or has expired. Request a new one from the sign-in page.</p>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/app/login" id="rc-back" class="text-secondary small">Back to sign in</a>
+                </div>
+            </div>
+        </div>
+        <!-- Pre-auth language switcher: one link per offered UI language (GET /__ui-lang). The return path carries
+             the reset token so switching language keeps the valid link. Shown only with 2+ languages. -->
+        <div class="text-center mt-3" id="rc-langswitch">
+            <i class="fa-solid fa-language text-secondary me-1"></i>
+            <a class="rc-lang-item small mx-1" href="#">language</a>
+        </div>
+    </main>
+</div>
+<script id="as-tabler-js" src="/__assets/vendor/tabler.min.js"></script>
+<script id="as-chrome-js" src="/__assets/runway-chrome.js"></script>
+</body>
+</html>

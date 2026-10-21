@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tenant "Content widgets" screen. Outer th:each loops the placed instances (one card each); an inner
+     th:each loops that instance's settings fields. Both use CLASS selectors under the iterated card
+     (`//` descendant), so ids never repeat; per-input ids are made unique with the type+instance+key so
+     the many forms on one page keep distinct label/for pairs. -->
+<thlogic>
+    <attr sel="#wi-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#wi-heading" th:text="#{op.widgets.heading}"/>
+    <attr sel="#wi-intro" th:text="#{op.widgets.intro}"/>
+
+    <attr sel="#wi-empty" th:if="${instances.isEmpty()}"/>
+    <attr sel="#wi-empty-title" th:text="#{op.widgets.empty.title}"/>
+    <attr sel="#wi-empty-sub" th:utext="#{op.widgets.empty.sub}"/>
+
+    <!-- One card per placed instance -->
+    <attr sel="#wi-card" th:each="inst : ${instances}" th:id="${null}"/>
+    <attr sel="#wi-card//.wi-type" th:text="${inst.type()}"/>
+    <attr sel="#wi-card//.wi-instance" th:text="${inst.instance()}"/>
+    <attr sel="#wi-card//.wi-in-label" th:text="#{op.widgets.placedin}"/>
+    <attr sel="#wi-card//.wi-templates" th:text="${inst.templates()}"/>
+
+    <!-- Not configurable: a note, no form -->
+    <attr sel="#wi-card//.wi-noconf" th:if="${!inst.configurable()}" th:text="#{op.widgets.noconfig}"/>
+
+    <!-- Configurable: the per-instance form (removed entirely when the widget declares no settings) -->
+    <attr sel="#wi-card//.wi-form" th:if="${inst.configurable()}" th:attr="action=${inst.action()}"/>
+    <attr sel="#wi-card//.wi-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#wi-card//.wi-save" th:text="#{op.widgets.save}"/>
+
+    <!-- Inner loop: one row per field. The label is the plugin's declared label resolved as a message key
+         against its own i18n bundle (falls back to the key). Input id/for are made unique per placement. -->
+    <attr sel="#wi-card//.wi-field" th:each="field : ${inst.fields()}"/>
+    <attr sel="#wi-card//.wi-field//.wi-label" th:text="#{${field.label()}}"
+          th:attr="for='f-' + ${inst.type()} + '-' + ${inst.instance()} + '-' + ${field.key()}"/>
+    <attr sel="#wi-card//.wi-field//.wi-help" th:if="${field.help() != null}" th:text="#{${field.help()}}"/>
+    <attr sel="#wi-card//.wi-field//.wi-hint" th:text="${field.hint()}"/>
+
+    <attr sel="#wi-card//.wi-field//.wi-input-text" th:if="${field.inputKind() == 'text'}"
+          th:attr="name=${field.key()},value=${field.value()},id='f-' + ${inst.type()} + '-' + ${inst.instance()} + '-' + ${field.key()}"/>
+    <attr sel="#wi-card//.wi-field//.wi-input-area" th:if="${field.inputKind() == 'area'}"
+          th:text="${field.value()}"
+          th:attr="name=${field.key()},id='f-' + ${inst.type()} + '-' + ${inst.instance()} + '-' + ${field.key()}"/>
+    <attr sel="#wi-card//.wi-field//.wi-input-secret" th:if="${field.inputKind() == 'secret'}"
+          th:attr="name=${field.key()},id='f-' + ${inst.type()} + '-' + ${inst.instance()} + '-' + ${field.key()},placeholder=${field.secretSet() ? '•••••• (set — blank keeps it)' : 'not set'}"/>
+    <attr sel="#wi-card//.wi-field//.wi-input-bool" th:if="${field.inputKind() == 'bool'}"
+          th:attr="name=${field.key()},id='f-' + ${inst.type()} + '-' + ${inst.instance()} + '-' + ${field.key()},checked=${field.value() == 'true' ? 'checked' : null}"/>
+    <attr sel="#wi-card//.wi-field//.wi-bool-label" th:if="${field.inputKind() == 'bool'}" th:text="#{${field.label()}}"/>
+</thlogic>

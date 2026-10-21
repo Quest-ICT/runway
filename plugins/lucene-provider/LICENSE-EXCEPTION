@@ -1,0 +1,44 @@
+Runway — additional permission for plugins
+(an additional permission under section 7 of the GNU Affero General Public License, version 3)
+
+Copyright (C) 2026 Quest ICT SAS de CV
+
+Runway is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation, version 3
+(the file LICENSE), with the additional permission below. Runway is distributed in the hope
+that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+License for more details.
+
+1. Definitions
+
+   "Runway" means the Runway kernel and every Runway plugin whose source carries this file.
+
+   "Published SPI" means the public classes and interfaces of the runway-spi artifact
+   (the package mx.quest.runway.spi and its subpackages), together with the public classes
+   and interfaces of any package named "spi" that a part of Runway publishes for other
+   plugins to use (for example mx.quest.search.spi).
+
+   "Plugin" means an independent module that Runway loads as a plugin, that interacts with
+   Runway only through the Published SPI, and that is not based on any part of Runway other
+   than the Published SPI.
+
+2. Permission
+
+   As an additional permission, the copyright holder gives you permission to combine Runway
+   with Plugins, and to convey and run the resulting combination, without the terms of the
+   GNU Affero General Public License applying to those Plugins. You may license, convey and
+   run your Plugins under terms of your choice, provided that you continue to meet the terms
+   of the GNU Affero General Public License for Runway itself, including offering the
+   Corresponding Source of Runway, and of any modification you make to it, as that license
+   requires.
+
+3. Testing
+
+   Compiling a Plugin's tests against the runway-spi-testkit artifact, and running them, does
+   not by itself make the Plugin subject to the GNU Affero General Public License.
+
+4. Modified versions
+
+   If you modify Runway, you may extend this additional permission to your version, but you
+   are not obliged to do so. If you do not wish to, delete this file from your version.

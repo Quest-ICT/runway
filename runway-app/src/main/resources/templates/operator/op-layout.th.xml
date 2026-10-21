@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The op-layout shell logic. The master is the ENTRY template (master-as-shell): it pulls the realm
+  topbar and the page's content BY NAME via MODEL VARIABLES (never literals — the `__…__` preprocessing trap),
+  using id-selector fragments (the proven RenderSpikeTest pattern: pulling `:: #id` applies that
+  template's own decoupled logic).
+-->
+<thlogic>
+    <!-- The page language follows the operator locale actually in force (OperatorLocaleResolver: cookie, then
+         Accept-Language, then the default), so a screen reader pronounces a Spanish console as Spanish. -->
+    <attr sel="html" th:lang="${#locale.toLanguageTag()}"/>
+    <attr sel="#op-skip" th:text="#{op.a11y.skip}"/>
+    <!-- Localized strings for the chrome scripts, read from body data-* attributes: the password eye
+         toggle's accessible name (runway-chrome.js) and the listing tables' column menu, its caret's name and
+         the keyboard hint (listing-tables.js reads data-lt-<key>; it falls back to English without them). -->
+    <attr sel="body" th:attr="data-i18n-pw-toggle=#{op.a11y.pwToggle},
+                   data-lt-asc=#{op.lt.asc},
+                   data-lt-desc=#{op.lt.desc},
+                   data-lt-clear-this=#{op.lt.clearThis},
+                   data-lt-clear-all=#{op.lt.clearAll},
+                   data-lt-raise=#{op.lt.raise},
+                   data-lt-lower=#{op.lt.lower},
+                   data-lt-primary=#{op.lt.primary},
+                   data-lt-move-left=#{op.lt.moveLeft},
+                   data-lt-move-right=#{op.lt.moveRight},
+                   data-lt-move-start=#{op.lt.moveStart},
+                   data-lt-move-end=#{op.lt.moveEnd},
+                   data-lt-widen=#{op.lt.widen},
+                   data-lt-narrow=#{op.lt.narrow},
+                   data-lt-show-numbers=#{op.lt.showNumbers},
+                   data-lt-order=#{op.lt.order},
+                   data-lt-not-sorted=#{op.lt.notSorted},
+                   data-lt-menu=#{op.lt.menu},
+                   data-lt-key-hint=#{op.lt.keyHint}"/>
+    <attr sel="#op-title" th:text="#{${pageTitleKey}} + ' · ' + ${titleSuffix}"/>
+    <attr sel="#op-foot-brand" th:text="|${appName} ${appVersion}|"/>
+    <attr sel="#op-topbar" th:replace="~{${topbarFragment} :: #topbar}"/>
+    <attr sel="#op-work" th:replace="~{${contentTemplate} :: #content}"/>
+
+    <!-- Flash region: each alert is REMOVED when its attribute is absent, so an empty #op-notifications
+         collapses (CSS :empty) and a bare page shows no dead alert boxes. -->
+    <attr sel="#op-flash" th:if="${flash != null}"/>
+    <attr sel="#op-flash-text" th:text="${flash}"/>
+    <attr sel="#op-error" th:if="${error != null}"/>
+    <attr sel="#op-error-text" th:text="${error}"/>
+    <!-- A plugin-settings save that removed a stored secret because a setting it is bound to changed
+         (PluginSettingDef.secretBoundTo): the value names the setting keys, comma-separated. -->
+    <attr sel="#op-secrets-dropped" th:if="${secretsDropped != null}"/>
+    <attr sel="#op-secrets-dropped-text" th:text="#{op.settings.secretsDropped(${secretsDropped})}"/>
+    <!-- Persistent platform-config warnings (app realm only): removed unless their flag is set, so they never
+         show on the tenant console or once the setting is in place. -->
+    <attr sel="#op-warn-secret" th:if="${secretKeyMissing != null and secretKeyMissing}"/>
+    <attr sel="#op-warn-secret-text" th:text="#{op.warn.secretkey}"/>
+    <attr sel="#op-warn-smtp" th:if="${smtpMissing != null and smtpMissing}"/>
+    <attr sel="#op-warn-smtp-text" th:text="#{op.warn.smtp}"/>
+    <attr sel="#op-warn-smtp-link" th:text="#{op.warn.smtp.link}"/>
+    <!-- Cache-bust the console's own CSS/JS with the build-derived ?v= so a redeploy is always fetched fresh
+         (the 1-day asset cache would otherwise serve the stale copy). The vendor bundles are versioned too (below):
+         they change on upgrades (e.g. the CodeMirror bundle), and the token only moves when a release is cut. -->
+    <attr sel="#op-chrome-css" th:attr="href='/__assets/runway-chrome.css?v=' + ${assetVersion}"/>
+    <attr sel="#op-chrome-js" th:src="'/__assets/runway-chrome.js?v=' + ${assetVersion}"/>
+    <attr sel="#op-lt-css" th:attr="href='/__assets/listing-tables.css?v=' + ${assetVersion}"/>
+    <attr sel="#op-lt-js" th:src="'/__assets/listing-tables.js?v=' + ${assetVersion}"/>
+
+    <!-- CSP nonce: stamp the per-request nonce on EVERY <script> so it authorizes under the
+         script-src 'nonce-<x>' policy — one element selector cannot miss a tag. The src-bearing scripts above use
+         th:src (not th:attr) so this th:attr=nonce never collides with them. cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+
+    <!-- Optional per-page scripts seam. A conditional fragment expression (never a bare th:replace
+         guarded by th:if — th:replace outranks th:if on one element): when `contentScripts` is set it
+         pulls that template's #scripts fragment; when absent it resolves to ~{} so #op-scripts is
+         removed (no dead node, no null-template error). -->
+    <attr sel="#op-scripts"
+          th:replace="${contentScripts != null} ? ~{${contentScripts} :: #scripts} : ~{}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#op-favicon" th:attr="href='/__assets/runway.svg?v=' + ${assetVersion}"/>
+    <attr sel="#op-tabler-css" th:attr="href='/__assets/vendor/tabler.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#op-fa-css" th:attr="href='/__assets/vendor/fontawesome/css/all.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#op-htmx-js" th:src="'/__assets/vendor/htmx.min.js?v=' + ${assetVersion}"/>
+    <attr sel="#op-alpine-js" th:src="'/__assets/vendor/alpine.min.js?v=' + ${assetVersion}"/>
+    <attr sel="#op-tabler-js" th:src="'/__assets/vendor/tabler.min.js?v=' + ${assetVersion}"/>
+</thlogic>

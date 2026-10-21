@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      A CODE-LESS library-provider plugin: there is NO Java source and NO mainClass. `mvn package` produces NO
+      thin jar of its own; it only assembles the installable bundle = plugin.yml + lib/*.jar (the Apache Lucene
+      stack). Inherit spring-boot-starter-parent purely for its dependency-plugin/antrun defaults; the Lucene
+      versions are pinned explicitly below (Lucene is NOT on the Spring Boot BOM), so the jars we bundle are the
+      exact 10.4.0 artifacts every consumer compiles against.
+
+      The plugin VERSION *is* the Lucene version (10.4.0) — the "version tracks the principal library"
+      convention taken to its literal conclusion: a lucene-provider 10.4.0 IS Apache Lucene 10.4.0. Consumers
+      declare `requires: [ "lucene-provider == 10.4.0" ]` (EXACT: they are compiled against these binaries) and
+      compile Lucene as `provided`. Bump this pom's <version> AND the ${lucene.version} together on a Lucene
+      upgrade, and re-cut every consumer that pins `== <new version>`.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-lucene-provider</artifactId>
+    <version>10.4.0</version>
+    <packaging>pom</packaging>
+    <name>Runway Lucene Libraries Provider (Apache Lucene)</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        A code-less Runway library-provider plugin bundling the Apache Lucene stack (core + analysis-common +
+        highlighter + memory + queries) under lib/, so it loads once onto the shared plugin classloader as the
+        single deployment-wide copy of Lucene. Consumers declare `requires: [ "lucene-provider == 10.4.0" ]`
+        and compile Lucene as `provided`. No mainClass, no code. The plugin version IS the Lucene version.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-08-24T00:00:00Z</project.build.outputTimestamp>
+        <maven.compiler.release>25</maven.compiler.release>
+        <!-- The PRINCIPAL library this provider tracks; the plugin version above mirrors it exactly. -->
+        <lucene.version>10.4.0</lucene.version>
+    </properties>
+
+    <!-- Declared only so `dependency:copy` resolves them from the local repo (all are already installed). None
+         is compiled against here — there is no code. They ship in the bundle's lib/, NOT on the app classpath.
+         lucene-highlighter pulls in lucene-memory + lucene-queries transitively; we bundle all three explicitly
+         so the install folder is self-documenting and self-contained (no transitive surprises at run time). -->
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analysis-common</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-highlighter</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-memory</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queries</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 1. Copy EXACTLY the five Lucene jars (version pinned above) into the staged bundle's lib/.
+                    stripVersion=false keeps the versioned filenames (self-documenting the Lucene stack). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bundle-lucene-libs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.lucene</groupId>
+                                    <artifactId>lucene-core</artifactId>
+                                    <version>${lucene.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.lucene</groupId>
+                                    <artifactId>lucene-analysis-common</artifactId>
+                                    <version>${lucene.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.lucene</groupId>
+                                    <artifactId>lucene-highlighter</artifactId>
+                                    <version>${lucene.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.lucene</groupId>
+                                    <artifactId>lucene-memory</artifactId>
+                                    <version>${lucene.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.lucene</groupId>
+                                    <artifactId>lucene-queries</artifactId>
+                                    <version>${lucene.version}</version>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/lucene-provider/lib</outputDirectory>
+                            <stripVersion>false</stripVersion>
+                            <overWriteReleases>true</overWriteReleases>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 2. Assemble both installable forms: target/lucene-provider/ (folder = plugin.yml + lib/) and the
+                    UI-uploadable target/runway-plugin-lucene-provider-<version>.zip (a single wrapping dir). -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/lucene-provider"/>
+                                <!-- lib/ was populated by dependency:copy above; add only the descriptor. -->
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="lucene-provider"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-lucene-provider-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="lucene-provider/**"/>
+                                </zip>
+                                <echo message="Staged install folder (plugin.yml + lib/): ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-lucene-provider-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,5 @@
+/* Runway page-editor host framing. CodeMirror 6 self-injects its own editor styles at runtime;
+   this only sizes/frames the host so the editor sits cleanly inside a Tabler card. */
+.runway-cm-host { display: block; width: 100%; }
+.runway-cm-host .cm-editor { height: 100%; }
+.runway-cm-host .cm-editor.cm-focused { outline: none; box-shadow: 0 0 0 .25rem rgba(66,153,225,.25); }

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Logs</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="lg-pretitle">Site</div>
+                <h2 class="page-title" id="lg-heading">Logs</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="lg-l-access">Access log</h3></div>
+                <div class="card-body">
+                    <pre id="lg-access" class="mb-0" style="max-height:22rem;overflow:auto;white-space:pre-wrap">access</pre>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="lg-l-settings">Log settings</h3></div>
+                <div class="card-body">
+                    <form method="post" action="/__admin/logs">
+                        <input id="lg-csrf" type="hidden" name="_csrf" value="">
+                        <label class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="lg-anon" name="anonymize">
+                            <span class="form-check-label" id="lg-l-anon">Anonymize client IP addresses</span>
+                        </label>
+                        <div class="mb-3">
+                            <label class="form-label" id="lg-l-retention" for="lg-retention">Retention (days)</label>
+                            <input class="form-control" id="lg-retention" name="retentionDays" type="number" min="1" value="30">
+                            <small class="form-hint" id="lg-retention-hint">Capped by the platform.</small>
+                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small" id="lg-retention-clamped" role="status">Above the platform's maximum.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="lg-save">Save</button>
+                    </form>
+                    <p class="text-secondary mt-3 mb-0" id="lg-dropped">dropped</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lg-journal">audit journal</div>
+</div>
+</body>
+</html>

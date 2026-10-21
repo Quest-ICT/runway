@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Protection</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="pr-pretitle">Site</div>
+                <h2 class="page-title" id="pr-heading">Login protection</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" id="pr-intro" role="alert">
+        <div class="text-secondary" id="pr-intro-text">These settings govern this site's login. Changes apply
+            immediately, and affect only this site.</div>
+    </div>
+
+    <div class="alert alert-warning" id="pr-nocipher" role="alert">
+        <span id="pr-nocipher-text">No encryption key is configured, so a captcha secret cannot be stored.
+            Configure runway.security.secret-key to enable it.</span>
+    </div>
+
+    <form method="post" action="/__admin/protection">
+        <input id="pr-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="pr-l-honeypot-card">Deterrents</h3></div>
+            <div class="card-body">
+                <label class="form-check form-switch">
+                    <input id="pr-honeypot" class="form-check-input" type="checkbox" name="honeypotEnabled" value="true">
+                    <span class="form-check-label" id="pr-honeypot-lbl">Enable the hidden honeypot field</span>
+                </label>
+                <small class="form-hint" id="pr-honeypot-hint">A trap field a human never fills; a bot that fills
+                    it is rejected.</small>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="pr-l-captcha-card">External CAPTCHA</h3></div>
+            <div class="card-body">
+                <label class="form-check form-switch mb-3">
+                    <input id="pr-captcha" class="form-check-input" type="checkbox" name="captchaEnabled" value="true">
+                    <span class="form-check-label" id="pr-captcha-lbl">Require a CAPTCHA challenge</span>
+                </label>
+                <div class="mb-3">
+                    <label class="form-label" id="pr-l-provider" for="pr-provider">Provider</label>
+                    <select id="pr-provider" name="provider" class="form-select">
+                        <option id="pr-provider-opt" value="">provider</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="pr-l-siteKey" for="pr-siteKey">Site key (public)</label>
+                    <input class="form-control" id="pr-siteKey" name="siteKey" type="text" value="">
+                    <small class="form-hint" id="pr-h-siteKey">The public site key rendered into the challenge widget.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" id="pr-l-secretKey" for="pr-secretKey">Secret key</label>
+                    <input class="form-control" id="pr-secretKey" name="secretKey" type="password" value="" autocomplete="off">
+                    <small class="form-hint" id="pr-h-secretKey">Verified server-side, stored encrypted. Leave blank
+                        to keep the current secret.</small>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" id="pr-l-score" for="pr-score">Score threshold (reCAPTCHA v3)</label>
+                    <input class="form-control" id="pr-score" name="scoreThreshold" type="number" min="0" max="1"
+                           step="0.05" value="">
+                    <small class="form-hint" id="pr-h-score">The minimum score a v3 response must meet (0.0–1.0).</small>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="pr-save">Save</button>
+    </form>
+</div>
+</body>
+</html>

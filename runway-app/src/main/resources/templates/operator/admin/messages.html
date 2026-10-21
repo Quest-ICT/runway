@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Messages</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="msg-pretitle">Site</div>
+                <h2 class="page-title" id="msg-heading">Messages</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" id="msg-intro" role="alert">
+        <h4 class="alert-title" id="msg-intro-title">Your site's translations</h4>
+        <div class="text-secondary" id="msg-intro-text">Edit the strings your pages resolve with
+            <code>#{key}</code>, one value per language. Leave a language blank to translate it later — a
+            missing value shows as <code>??key??</code> on the page. Changes apply on the next page load.</div>
+    </div>
+
+    <form method="post" action="/__admin/messages">
+        <input id="msg-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title" id="msg-l-list">Messages</h3>
+                <!-- Client-side filter: narrows the (long) list by key or value as you type. All rows stay in the
+                     DOM (just hidden); the incremental save posts only the cells that actually changed, so an
+                     edit hidden behind the filter/pager is still saved. -->
+                <div class="card-actions">
+                    <div class="input-group input-group-sm" style="width:16rem;max-width:60vw">
+                        <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input id="msg-search" type="search" class="form-control" autocomplete="off"
+                               placeholder="Filter by key or value">
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table" id="msg-table">
+                    <thead>
+                    <tr>
+                        <th scope="col" data-col-key="keep" class="w-1" id="msg-h-keep">Keep</th>
+                        <th scope="col" data-col-key="key" id="msg-h-key">Key</th>
+                        <th scope="col" id="msg-h-locale">Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr id="msg-row" class="msg-data-row">
+                        <td class="text-center">
+                            <input id="msg-keep" class="form-check-input m-0" type="checkbox" name="keep"
+                                   value="" checked>
+                        </td>
+                        <td>
+                            <input id="msg-key" class="form-control font-monospace" type="text" name="key"
+                                   value="" readonly>
+                        </td>
+                        <td>
+                            <div class="mb-1" id="msg-val-wrap">
+                                <span class="form-label-description text-secondary" id="msg-val-lang">en</span>
+                                <input id="msg-val" class="form-control" type="text" name="value_en" value="">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr id="msg-empty">
+                        <td colspan="3" class="text-secondary text-center" id="msg-empty-text">No messages yet.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pager footer (client-side). Buttons are type=button so they never submit the form. Hidden until
+                 there are enough rows / an active filter. -->
+            <div class="card-footer d-flex align-items-center" id="msg-pager" style="display:none">
+                <span class="text-secondary" id="msg-count" data-all="{0} messages"
+                      data-filtered="{0} of {1} messages">…</span>
+                <ul class="pagination pagination-sm m-0 ms-auto" id="msg-pagination">
+                    <li class="page-item"><button type="button" class="page-link" id="msg-prev">Previous</button></li>
+                    <li class="page-item"><span class="page-link" id="msg-pageinfo">1 / 1</span></li>
+                    <li class="page-item"><button type="button" class="page-link" id="msg-next">Next</button></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="msg-l-add">Add a message</h3></div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label" id="msg-l-newkey" for="msg-newkey">Key</label>
+                    <input id="msg-newkey" class="form-control font-monospace" type="text" name="newKey" value=""
+                           placeholder="section.title">
+                </div>
+                <div class="mb-1" id="msg-newval-wrap">
+                    <label class="form-label" id="msg-newval-lang">en</label>
+                    <input id="msg-newval" class="form-control" type="text" name="newValue_en" value="">
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center">
+            <button type="submit" class="btn btn-primary" id="msg-save">Save</button>
+            <span id="msg-save-status" class="ms-3" role="status" aria-live="polite"
+                  data-saved="Messages saved." data-failed="Could not save the messages."></span>
+        </div>
+    </form>
+</div>
+
+<!-- Pulled into op-layout's #op-scripts seam (contentScripts). Two independent modules: (1) client-side filter +
+     pagination so a site with hundreds of messages stays a short page (every row stays in the DOM, only hidden);
+     (2) incremental save — the button posts only the changed cells, keeping the native form POST as the no-JS
+     fallback. -->
+<div id="scripts">
+    <script id="msg-js" src="/__assets/messages.js" defer></script>
+
+    <!-- Incremental save: the "Save" button posts ONLY the changed cells (and removed keys) to
+         /__admin/messages/apply as JSON, instead of the whole grid. The native <form> POST stays as the no-JS
+         fallback (this intercepts the submit event). Cells are tracked by data-key/data-locale identity, so a
+         dirty cell survives filtering/paging; a value-only save stays on the page, add/remove reload the grid. -->
+    
+</div>
+</body>
+</html>

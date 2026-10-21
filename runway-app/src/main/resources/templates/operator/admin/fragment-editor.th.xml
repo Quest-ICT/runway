@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fragment-editor logic. Decoupled from the HTML (zero th:* in the .html). The raw file bodies fill the
+  textareas that CodeMirror mounts over. Create vs edit differ in exactly two places, both driven by the
+  ${creating} flag: the form action (POST /__admin/fragments to create, POST /__admin/fragments/<name> to
+  overwrite) and the name field (an editable, submitted input on create; a fixed, read-only, UNNAMED input
+  on edit — so a crafted `name` param can never retarget an edit, the name comes only from the POST path).
+-->
+<thlogic>
+    <attr sel="#fe-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#fe-heading" th:text="${creating} ? #{op.fragments.new.heading} : #{op.fragments.edit.heading} + ' · ' + ${name}"/>
+    <attr sel="#fe-back" th:text="#{op.fragments.back}"/>
+    <!-- The action is computed in the controller (formAction): a /__admin/… literal here would trip
+         Thymeleaf's __…__ preprocessing, so we bind the value, never a literal. -->
+    <attr sel="#fe-form" th:attr="action=${formAction}"/>
+    <attr sel="#fe-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Name: submitted+editable on create; on edit it is read-only and its `name` attribute is removed so it
+         is not POSTed (the path variable is the identity). -->
+    <attr sel="#fe-l-name-card" th:text="#{op.fragments.name}"/>
+    <attr sel="#fe-l-name" th:text="#{op.fragments.name}"/>
+    <attr sel="#fe-name" th:attr="value=${name}"/>
+    <attr sel="#fe-name" th:readonly="${!creating}" th:name="${creating} ? 'name' : null"/>
+    <attr sel="#fe-name-help" th:text="#{op.fragments.name.help}"/>
+
+    <attr sel="#fe-l-body" th:text="#{op.fragments.body}"/>
+    <attr sel="#fe-body" th:text="${body}"/>
+    <attr sel="#fe-l-logic" th:text="#{op.fragments.logic}"/>
+    <attr sel="#fe-cm-hint" th:text="#{op.a11y.codeEditorHint}"/>
+    <attr sel="#fe-logic-help" th:text="#{op.pages.edit.logic.help}"/>
+    <attr sel="#fe-logic" th:text="${logic}"/>
+
+    <attr sel="#fe-save" th:text="#{op.fragments.save}"/>
+    <!-- CSP nonce: stamp the per-request nonce on every script tag (src scripts use th:src, so this th:attr never clashes); cspNonce is "" when CSP is OFF. -->
+    <attr sel="script" th:attr="nonce=${cspNonce}"/>
+    <!-- Every /__assets reference carries ?v=<assetVersion> (AssetVersion): a versioned asset is cached for a
+         day, so a new release must change the URL or browsers keep the old file. Scripts use th:src (never
+         th:attr), so the nonce th:attr on `script` never clashes. the screen guard (OperatorA11yGuardTest) fails on a miss. -->
+    <attr sel="#fe-cm-css" th:attr="href='/__assets/vendor/codemirror.min.css?v=' + ${assetVersion}"/>
+    <attr sel="#fe-cm-js" th:src="'/__assets/vendor/codemirror.min.js?v=' + ${assetVersion}"/>
+</thlogic>

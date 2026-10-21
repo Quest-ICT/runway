@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm per-template file list. Row nested cells via `//` + class; the description resolves a
+     dynamic i18n key `#{${f.descriptionKey()}}`; badges/heading use Thymeleaf-level ternaries. -->
+<thlogic>
+    <attr sel="#stf-crumb" th:text="#{op.sitetpl.heading}"/>
+    <attr sel="#stf-heading" th:text="${template.builtIn()} ? #{op.sitetpl.default.name} : ${template.name()}"/>
+    <attr sel="#stf-sub" th:text="#{op.sitetpl.files.sub}"/>
+    <attr sel="#stf-export" th:attr="href='/__app/site-templates/' + ${template.id()} + '/export'"/>
+    <attr sel="#stf-export-label" th:text="#{op.sitetpl.export}"/>
+
+    <!-- Name and description (an operator template only: the built-in default's name is the localized one). -->
+    <attr sel="#stf-details-card" th:unless="${template.builtIn()}"/>
+    <attr sel="#stf-details-title" th:text="#{op.sitetpl.details.title}"/>
+    <attr sel="#stf-details-form" th:attr="action='/__app/site-templates/' + ${template.id()} + '/details'"/>
+    <attr sel="#stf-details-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stf-l-name" th:text="#{op.sitetpl.field.name}"/>
+    <attr sel="#stf-name" th:attr="value=${template.name()}"/>
+    <attr sel="#stf-l-desc" th:text="#{op.sitetpl.field.desc}"/>
+    <attr sel="#stf-desc" th:attr="value=${template.description()}"/>
+    <attr sel="#stf-details-hint" th:text="#{op.sitetpl.details.hint}"/>
+    <attr sel="#stf-details-save" th:text="#{op.sitetpl.details.save}"/>
+
+    <attr sel="#stf-h-file" th:text="#{op.sitetpl.col.file}"/>
+    <attr sel="#stf-h-desc" th:text="#{op.sitetpl.col.desc}"/>
+    <attr sel="#stf-h-status" th:text="#{op.sitetpl.col.status}"/>
+    <attr sel="#stf-h-actions" th:text="#{op.sitetpl.col.actions}"/>
+
+    <attr sel="#stf-row" th:each="f : ${files}" th:id="${null}"/>
+    <attr sel="#stf-row//.stf-name" th:text="${f.name()}"/>
+    <attr sel="#stf-row//.stf-desc" th:text="#{${f.descriptionKey()}}"/>
+    <attr sel="#stf-row//.stf-badge"
+          th:text="${f.overridden()} ? #{op.sitetpl.status.customized} : #{op.sitetpl.status.inherits}"
+          th:classappend="${f.overridden()} ? 'bg-blue-lt' : 'bg-secondary-lt'"/>
+    <attr sel="#stf-row//.stf-edit"
+          th:attr="href='/__app/site-templates/' + ${template.id()} + '/edit?name=' + ${f.name()}"/>
+    <attr sel="#stf-row//.stf-edit-label" th:text="#{op.sitetpl.editBtn}"/>
+    <attr sel="#stf-row//.stf-reset" th:if="${f.overridden()}"
+          th:attr="action='/__app/site-templates/' + ${template.id()} + '/reset'"/>
+    <attr sel="#stf-row//.stf-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stf-row//.stf-reset-name" th:attr="value=${f.name()}"/>
+    <attr sel="#stf-row//.stf-reset-label" th:text="#{op.sitetpl.resetBtn}"/>
+
+    <attr sel="#stf-footer" th:if="${anyOverridden}"/>
+    <attr sel="#stf-reset-all-form" th:attr="action='/__app/site-templates/' + ${template.id()} + '/reset-all'"/>
+    <attr sel="#stf-ra-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stf-ra-label" th:text="#{op.sitetpl.resetAll}"/>
+</thlogic>

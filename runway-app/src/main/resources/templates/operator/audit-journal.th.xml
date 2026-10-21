@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logic for the shared audit-journal card (AuditView.populate). Every logged value is bound with th:text, so a
+     crafted actor or detail can never inject markup. Paging/CSV URLs are built and URL-encoded server-side. -->
+<thlogic>
+    <attr sel="#aj-title" th:text="#{${auditTitleKey}}"/>
+    <attr sel="#aj-table" th:attr="data-listing-table=${auditTableKey}"/>
+    <attr sel="#aj-csv" th:href="${auditCsvUrl}"/>
+    <attr sel="#aj-csv-text" th:text="#{op.audit.csv}"/>
+
+    <attr sel="#aj-form" th:action="${auditResetUrl}"/>
+    <attr sel="#aj-l-from" th:text="#{op.audit.from}"/>
+    <attr sel="#aj-from" th:value="${auditFilter.from()}"/>
+    <attr sel="#aj-l-to" th:text="#{op.audit.to}"/>
+    <attr sel="#aj-to" th:value="${auditFilter.to()}"/>
+    <attr sel="#aj-l-actor" th:text="#{op.audit.actor}"/>
+    <attr sel="#aj-actor" th:value="${auditFilter.actor()}"/>
+    <attr sel="#aj-l-action" th:text="#{op.audit.action}"/>
+    <attr sel="#aj-action" th:value="${auditFilter.action()}"/>
+    <attr sel="#aj-apply" th:text="#{op.audit.apply}"/>
+    <attr sel="#aj-reset" th:href="${auditResetUrl}" th:text="#{op.audit.reset}"/>
+    <attr sel="#aj-bounds" th:text="#{op.audit.bounds(${auditPageSize},${auditMaxExport})}"/>
+    <attr sel="#aj-truncated" th:if="${auditTruncated}" th:text="#{op.audit.truncated(${auditScanned})}"/>
+
+    <attr sel="#aj-h-time" th:text="#{op.audit.col.time}"/>
+    <attr sel="#aj-h-actor" th:text="#{op.audit.col.actor}"/>
+    <attr sel="#aj-h-action" th:text="#{op.audit.col.action}"/>
+    <attr sel="#aj-h-detail" th:text="#{op.audit.col.detail}"/>
+    <attr sel="#aj-empty" th:if="${auditRows.isEmpty()}"/>
+    <attr sel="#aj-empty-text" th:text="#{op.audit.empty}"/>
+    <attr sel=".aj-row" th:each="r : ${auditRows}"/>
+    <attr sel=".aj-row//.aj-time" th:text="${r.time()}" th:attr="data-sort=${r.sortKey()}"/>
+    <attr sel=".aj-row//.aj-actor" th:text="${r.actor()}"/>
+    <attr sel=".aj-row//.aj-label" th:text="${r.label()}"/>
+    <attr sel=".aj-row//.aj-key" th:text="${r.action()}"/>
+    <attr sel=".aj-row//.aj-detail" th:text="${r.detail()}"/>
+
+    <attr sel="#aj-page" th:text="#{op.audit.page(${auditPageNumber})}"/>
+    <attr sel="#aj-prev" th:if="${auditPrevUrl != null}" th:href="${auditPrevUrl}" th:text="#{op.audit.newer}"/>
+    <attr sel="#aj-next" th:if="${auditNextUrl != null}" th:href="${auditNextUrl}" th:text="#{op.audit.older}"/>
+</thlogic>

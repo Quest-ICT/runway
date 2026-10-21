@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Application-realm backups: create-a-site-from-backup, plus per-site backup/download/restore. Each site
+     card repeats over ${rows}; its stored backups repeat over ${row.stored()}. -->
+<thlogic>
+    <attr sel="#ab-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#ab-heading" th:text="#{op.appbackups.heading}"/>
+
+    <attr sel="#cs-l" th:text="#{op.appbackups.create}"/>
+    <attr sel="#cs-hint" th:text="#{op.appbackups.create.hint}"/>
+    <attr sel="#cs-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#cs-l-id" th:text="#{op.appbackups.newId}"/>
+    <attr sel="#cs-l-name" th:text="#{op.appbackups.name}"/>
+    <attr sel="#cs-l-hosts" th:text="#{op.appbackups.hosts}"/>
+    <attr sel="#cs-l-file" th:text="#{op.appbackups.file}"/>
+    <attr sel="#cs-submit" th:text="#{op.appbackups.createBtn}"/>
+
+    <attr sel="#ab-l-sites" th:text="#{op.appbackups.perSite}"/>
+    <attr sel="#ab-empty" th:if="${rows.isEmpty()}" th:text="#{op.appbackups.noSites}"/>
+
+    <attr sel="#site-card" th:each="row : ${rows}" th:id="${null}"/>
+    <attr sel="#site-card//.sc-id" th:text="${row.siteId()}"/>
+    <attr sel="#site-card//.sc-download" th:text="#{op.appbackups.download}"
+          th:attr="href='/__app/backups/' + ${row.siteId()} + '/download'"/>
+    <attr sel="#site-card//.sc-transfer" th:text="#{op.appbackups.transfer}"
+          th:attr="href='/__app/backups/' + ${row.siteId()} + '/download-transfer',title=#{op.appbackups.transfer.tip}"/>
+    <attr sel="#site-card//.sc-save-form" th:attr="action='/__app/backups/' + ${row.siteId()} + '/save'"/>
+    <attr sel="#site-card//.sc-save-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#site-card//.sc-save" th:text="#{op.appbackups.save}"/>
+    <attr sel="#site-card//.sc-restore-form" th:attr="action='/__app/backups/' + ${row.siteId()} + '/restore'"/>
+    <attr sel="#site-card//.sc-restore-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#site-card//.sc-restore" th:text="#{op.appbackups.restore}"/>
+    <!-- The per-site restore file input has no visible label; it is named by the site it restores. -->
+    <attr sel="#site-card//.sc-restore-file" th:attr="aria-label=#{op.appbackups.a11y.file(${row.siteId()})}"/>
+
+    <attr sel="#site-card//.stored-item" th:each="b : ${row.stored()}"/>
+    <attr sel="#site-card//.stored-item//.si-name" th:text="${b.name()}"/>
+    <attr sel="#site-card//.stored-item//.si-size"
+          th:text="${#numbers.formatInteger(b.sizeBytes() / 1024, 1, 'COMMA')} + ' KB'"/>
+    <attr sel="#site-card//.stored-item//.si-restore-form"
+          th:attr="action='/__app/backups/' + ${row.siteId()} + '/' + ${b.name()} + '/restore'"/>
+    <attr sel="#site-card//.stored-item//.si-rcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#site-card//.stored-item//.si-restore" th:text="#{op.appbackups.restore}"/>
+    <attr sel="#site-card//.stored-item//.si-delete-form"
+          th:attr="action='/__app/backups/' + ${row.siteId()} + '/' + ${b.name()} + '/delete'"/>
+    <attr sel="#site-card//.stored-item//.si-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#site-card//.stored-item//.si-delete" th:text="#{op.appbackups.deleteBtn}"/>
+    <!-- The screen's own policy settings (kernel settings card), for whoever may change them. -->
+    <attr sel="#ab-config" th:if="${platformAdmin}"/>
+    <attr sel="#ab-config-label" th:text="#{op.config.open}"/>
+    <!-- runway.backups.offsite-dir: shown read-only; it is set on the server only (docs/SETTINGS-REFERENCE.md). -->
+    <attr sel="#ab-offsite" th:text="${offsiteDir != null} ? #{op.appbackups.offsite(${offsiteDir})} : #{op.appbackups.offsite.none}"/>
+</thlogic>

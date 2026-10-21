@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App-realm Essential Protection panel logic. This fragment renders on the KERNEL-owned plugin settings page
+  (/__app/plugins/protection/settings), which does not populate the plugin's model — so every field pre-fills from
+  the plugin's own bean via ${@appProtectionPanel.*} (not controller-set attributes). The captcha SECRET is never
+  written into the input (value stays empty); a "configured" placeholder is shown, and a blank submit keeps it. The
+  _csrf token comes from the enclosing page. ids are global selectors, so `/` vs `//` doesn't apply.
+-->
+<thlogic>
+    <attr sel="#pr-heading" th:text="#{protection.screen.heading}"/>
+    <attr sel="#pr-intro-text" th:text="#{protection.screen.app.intro}"/>
+
+    <!-- The "no encryption key" hint is REMOVED when a cipher is available (so the alert only shows when needed). -->
+    <attr sel="#pr-nocipher" th:if="${!@appProtectionPanel.secretStorable()}"/>
+    <attr sel="#pr-nocipher-text" th:text="#{protection.screen.noCipher}"/>
+
+    <attr sel="#pr-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#pr-l-honeypot-card" th:text="#{protection.screen.deterrents}"/>
+    <attr sel="#pr-honeypot" th:checked="${@appProtectionPanel.honeypotEnabled()}"/>
+    <attr sel="#pr-honeypot-lbl" th:text="#{protection.screen.honeypot}"/>
+    <attr sel="#pr-honeypot-hint" th:text="#{protection.screen.honeypot.hint}"/>
+
+    <attr sel="#pr-l-lockout-card" th:text="#{protection.screen.lockout}"/>
+    <attr sel="#pr-l-attempts" th:text="#{protection.screen.attempts}"/>
+    <attr sel="#pr-attempts" th:value="${@appProtectionPanel.maxAttempts()}"/>
+    <attr sel="#pr-h-attempts" th:text="#{protection.screen.attempts.hint}"/>
+    <attr sel="#pr-l-window" th:text="#{protection.screen.window}"/>
+    <attr sel="#pr-window" th:value="${@appProtectionPanel.windowSeconds()}"/>
+    <attr sel="#pr-h-window" th:text="#{protection.screen.window.hint}"/>
+    <attr sel="#pr-l-lockout" th:text="#{protection.screen.lockoutSecs}"/>
+    <attr sel="#pr-lockout" th:value="${@appProtectionPanel.lockoutSeconds()}"/>
+    <attr sel="#pr-h-lockout" th:text="#{protection.screen.lockoutSecs.hint}"/>
+
+    <attr sel="#pr-l-captcha-card" th:text="#{protection.screen.captcha}"/>
+    <attr sel="#pr-captcha" th:checked="${@appProtectionPanel.captchaEnabled()}"/>
+    <attr sel="#pr-captcha-lbl" th:text="#{protection.screen.captcha.enable}"/>
+    <attr sel="#pr-l-provider" th:text="#{protection.screen.provider}"/>
+    <attr sel="#pr-provider-opt" th:each="p : ${@appProtectionPanel.providers()}" th:value="${p}" th:id="${null}"
+          th:text="#{'protection.screen.provider.' + ${p}}" th:selected="${p == @appProtectionPanel.provider()}"/>
+    <attr sel="#pr-l-siteKey" th:text="#{protection.screen.siteKey}"/>
+    <attr sel="#pr-siteKey" th:value="${@appProtectionPanel.siteKey()}"/>
+    <attr sel="#pr-h-siteKey" th:text="#{protection.screen.siteKey.hint}"/>
+    <attr sel="#pr-l-secretKey" th:text="#{protection.screen.secretKey}"/>
+    <!-- The secret is MASKED: no value ever goes into the input. The placeholder tells the operator whether one is
+         stored; leaving the field blank on submit keeps it. Dedicated th:placeholder (not th:attr — th:attr forbids
+         @bean access in its restricted context, pitfall). -->
+    <attr sel="#pr-secretKey"
+          th:placeholder="${@appProtectionPanel.secretConfigured()} ? #{protection.screen.secretKey.set} : #{protection.screen.secretKey.unset}"/>
+    <attr sel="#pr-h-secretKey" th:text="#{protection.screen.secretKey.hint}"/>
+    <attr sel="#pr-l-score" th:text="#{protection.screen.score}"/>
+    <attr sel="#pr-score" th:value="${@appProtectionPanel.scoreThreshold()}"/>
+    <attr sel="#pr-h-score" th:text="#{protection.screen.score.hint}"/>
+
+    <attr sel="#pr-save" th:text="#{protection.screen.save}"/>
+</thlogic>

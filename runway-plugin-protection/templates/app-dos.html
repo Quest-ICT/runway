@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>DoS activity</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="dos-pretitle">Application</div>
+                <h2 class="page-title" id="dos-heading">DoS activity</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" id="dos-intro" role="alert">
+        <div class="text-secondary" id="dos-intro-text">The platform-wide abuse floor. Offenders are IPs the
+            rate limiter is throttling; blocked IPs are turned away before the login. Manual blocks survive a
+            restart; auto blocks expire on their own.</div>
+    </div>
+
+    <!-- Manual block form -->
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="dos-l-block-card">Block an address</h3></div>
+        <div class="card-body">
+            <form method="post" action="/__app/dos/block">
+                <input id="dos-block-csrf" type="hidden" name="_csrf" value="">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label" id="dos-l-ip" for="dos-ip">IP or CIDR</label>
+                        <input class="form-control" id="dos-ip" name="ip" type="text" placeholder="203.0.113.7" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label" id="dos-l-reason" for="dos-reason">Reason</label>
+                        <input class="form-control" id="dos-reason" name="reason" type="text">
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label" id="dos-l-seconds" for="dos-seconds">Duration (seconds)</label>
+                        <input class="form-control" id="dos-seconds" name="seconds" type="number" min="0" value="900">
+                        <small class="form-hint" id="dos-h-seconds">0 blocks indefinitely.</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-danger" id="dos-block-submit">Block</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current blocklist -->
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="dos-l-blocks-card">Blocked addresses</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="dos-blocks-empty">No addresses are currently blocked.</p>
+            <div class="table-responsive">
+                <table class="table" data-listing-table="runway.app.dos.blocks">
+                    <thead>
+                    <tr>
+                        <th scope="col" id="dos-th-b-ip">IP / CIDR</th>
+                        <th scope="col" id="dos-th-b-reason">Reason</th>
+                        <th scope="col" id="dos-th-b-source">Source</th>
+                        <th scope="col" id="dos-th-b-until">Expires</th>
+                        <th scope="col" id="dos-th-b-actions" data-nosort>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr id="block-row">
+                        <td class="br-ip">ip</td>
+                        <td class="br-reason">reason</td>
+                        <td class="br-source">source</td>
+                        <td class="br-until">until</td>
+                        <td>
+                            <form class="br-unblock-form" method="post" action="/__app/dos/unblock">
+                                <input class="br-unblock-csrf" type="hidden" name="_csrf" value="">
+                                <input class="br-unblock-ip" type="hidden" name="ip" value="">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary br-unblock">Unblock</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blocks that have ended -->
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="dos-l-ended-card">Recently ended blocks</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="dos-ended-hint">Blocks that have expired or been lifted since this
+                server started. Kept in memory only (newest 100), so this list empties on restart — the
+                <code>runway.protect</code> log is the durable record.</p>
+            <p class="text-secondary" id="dos-ended-empty">No blocks have ended yet.</p>
+            <div class="table-responsive">
+                <table class="table" data-listing-table="runway.app.dos.ended">
+                    <thead>
+                    <tr>
+                        <th scope="col" id="dos-th-e-ip">IP / CIDR</th>
+                        <th scope="col" id="dos-th-e-reason">Reason</th>
+                        <th scope="col" id="dos-th-e-source">Source</th>
+                        <th scope="col" id="dos-th-e-ended">Ended</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr id="ended-row">
+                        <td class="er-ip">ip</td>
+                        <td class="er-reason">reason</td>
+                        <td class="er-source">source</td>
+                        <td class="er-ended">ended</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rate-limit offenders -->
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title" id="dos-l-offenders-card">Rate-limit offenders</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="dos-offenders-empty">No offenders yet — the rate limiter is not throttling
+                anyone.</p>
+            <div class="table-responsive">
+                <table class="table" data-listing-table="runway.app.dos.offenders">
+                    <thead>
+                    <tr>
+                        <th scope="col" id="dos-th-o-ip">IP</th>
+                        <th scope="col" id="dos-th-o-requests">Requests</th>
+                        <th scope="col" id="dos-th-o-throttled">Throttled (429)</th>
+                        <th scope="col" id="dos-th-o-blocked">Blocked</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr id="offender-row">
+                        <td class="or-ip">ip</td>
+                        <td class="or-requests" data-sort="0">requests</td>
+                        <td class="or-throttled" data-sort="0">throttled</td>
+                        <td class="or-blocked">blocked</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

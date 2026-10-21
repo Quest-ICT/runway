@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>plugins</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="pl-pretitle">Application</div>
+                <h2 class="page-title" id="pl-heading">Plugins</h2>
+            </div>
+            <div class="col-auto" id="pl-config">
+                <a id="pl-config-link" class="btn btn-outline-secondary" href="/__app/config/plugins">
+                    <i class="fa-solid fa-gear me-1"></i><span id="pl-config-label">Settings</span></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restart-required drift banner -->
+    <div id="pl-restart-banner" class="alert alert-warning d-flex align-items-center" role="alert">
+        <div class="me-3"><i class="fa-solid fa-triangle-exclamation fa-lg"></i></div>
+        <div class="flex-fill"><span id="pl-restart-text">Pending changes require a restart to take effect.</span></div>
+        <form id="pl-restart-form" method="post" action="/__app/plugins/restart" class="ms-3 m-0">
+            <input id="pl-restart-csrf" type="hidden" name="_csrf" value="">
+            <button id="pl-restart-btn" type="submit" class="btn btn-warning" data-confirm="Restart Runway now?">
+                <i class="fa-solid fa-power-off me-1"></i><span id="pl-restart-btn-text">Restart now</span>
+            </button>
+        </form>
+    </div>
+
+    <div class="row row-cards">
+        <!-- Upload (install / upgrade) -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="pl-upload-title">Install a plugin</h3></div>
+                <div class="card-body">
+                    <form id="pl-upload-form" method="post" action="/__app/plugins/upload" enctype="multipart/form-data"
+                          class="row g-2 align-items-end">
+                        <input id="pl-upload-csrf" type="hidden" name="_csrf" value="">
+                        <div class="col-auto">
+                            <label class="form-label" id="pl-upload-label" for="pl-upload-file">Plugin archive (.zip)</label>
+                            <input id="pl-upload-file" type="file" name="file" accept=".zip" class="form-control" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-upload me-1"></i><span id="pl-upload-btn">Upload</span>
+                            </button>
+                        </div>
+                        <div class="col-12"><small class="text-secondary" id="pl-upload-hint">Applies on the next restart.</small></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Installed plugins -->
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.app.plugins">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="id" id="pl-h-id">ID</th>
+                            <th scope="col" data-col-key="name" id="pl-h-name">Name</th>
+                            <th scope="col" data-col-key="version" id="pl-h-version">Version</th>
+                            <th scope="col" data-col-key="status" id="pl-h-status">Status</th>
+                            <th scope="col" data-col-key="required" id="pl-h-required">Required by</th>
+                            <th scope="col" data-nosort id="pl-h-actions" class="w-1">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="pl-empty">
+                            <td colspan="6" class="text-secondary text-center" id="pl-empty-text">No plugins installed.</td>
+                        </tr>
+                        <tr id="pl-row">
+                            <td class="c-id">id</td>
+                            <td class="c-name">name</td>
+                            <td class="c-version">1.0.0</td>
+                            <td>
+                                <span class="badge c-badge">status</span>
+                                <span class="c-host badge bg-orange-lt ms-1"><i class="fa-solid fa-triangle-exclamation me-1"></i><span class="c-host-text">Uses host internals</span></span>
+                                <span class="c-failures badge bg-red-lt ms-1">Failures: 0</span>
+                                <div class="c-blocked small text-danger mt-1">blocked because …</div>
+                                <details class="c-notes mt-1">
+                                    <summary class="c-notes-summary small text-secondary">Details</summary>
+                                    <ul class="small mb-0 ps-3">
+                                        <li class="c-last-error text-danger">last error</li>
+                                        <li class="c-refused">refused</li>
+                                        <li class="c-warning text-secondary">warning</li>
+                                    </ul>
+                                </details>
+                            </td>
+                            <td class="c-required text-secondary">—</td>
+                            <td>
+                                <a class="c-settings btn btn-sm btn-outline-primary" href="#">Settings</a>
+                                <form class="f-enable d-inline m-0" method="post">
+                                    <input class="f-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Enable</button>
+                                </form>
+                                <form class="f-disable d-inline m-0" method="post">
+                                    <input class="f-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Disable</button>
+                                </form>
+                                <form class="f-retry d-inline m-0" method="post">
+                                    <input class="f-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning c-retry-btn"><i class="fa-solid fa-rotate-right me-1"></i><span class="c-retry-text">Retry</span></button>
+                                </form>
+                                <form class="f-uninstall d-inline m-0" method="post">
+                                    <input class="f-csrf" type="hidden" name="_csrf" value="">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger c-uninstall-btn">Uninstall</button>
+                                </form>
+                                <span class="c-essential badge bg-blue-lt ms-1"><i class="fa-solid fa-shield-halved me-1"></i><span class="c-essential-text">Essential</span></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Icons screen. Each slot row is repeated over ${slots}; the preview (with a cache-buster) and the Remove
+     form appear only for a provided slot. Manifest fields pre-fill from ${manifest}. -->
+<thlogic>
+    <attr sel="#ic-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#ic-heading" th:text="#{op.icons.heading}"/>
+
+    <attr sel="#ic-gen-title" th:text="#{op.icons.gen.title}"/>
+    <attr sel="#ic-gen-hint" th:text="#{op.icons.gen.hint}"/>
+    <attr sel="#ic-gen-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ic-gen-btn" th:text="#{op.icons.gen.btn}"/>
+
+    <attr sel="#ic-l-icons" th:text="#{op.icons.icons}"/>
+    <attr sel="#ic-hint" th:text="#{op.icons.hint(${maxKb})}"/>
+
+    <attr sel="#ic-row" th:each="slot : ${slots}" th:id="${null}"/>
+    <attr sel="#ic-row//.ic-preview" th:if="${slot.present()}"
+          th:attr="src=${slot.url()} + '?v=' + ${cb},alt=${slot.url()}"/>
+    <attr sel="#ic-row//.ic-none" th:unless="${slot.present()}"/>
+    <attr sel="#ic-row//.ic-url" th:text="${slot.url()}"/>
+    <attr sel="#ic-row//.ic-badge"
+          th:classappend="${slot.present()} ? 'bg-green-lt' : 'bg-secondary-lt'"
+          th:text="${slot.present()} ? #{op.icons.present} : #{op.icons.absent}"/>
+    <attr sel="#ic-row//.ic-upload-form" th:attr="action='/__admin/icons/' + ${slot.key()} + '/upload'"/>
+    <attr sel="#ic-row//.ic-ucsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ic-row//.ic-upload" th:text="#{op.icons.upload}"/>
+    <!-- The per-slot file input has no visible label; it is named by the slot it fills. -->
+    <attr sel="#ic-row//.ic-file" th:attr="aria-label=#{op.icons.a11y.file(${slot.url()})}"/>
+    <attr sel="#ic-row//.ic-delete-form" th:if="${slot.present()}"
+          th:attr="action='/__admin/icons/' + ${slot.key()} + '/delete'"/>
+    <attr sel="#ic-row//.ic-dcsrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ic-row//.ic-delete" th:text="#{op.icons.remove}"/>
+</thlogic>

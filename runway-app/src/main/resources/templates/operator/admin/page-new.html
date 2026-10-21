@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>new page</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="pn-pretitle">Site</div>
+                <h2 class="page-title" id="pn-heading">New page</h2>
+            </div>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <form id="pn-form" method="post" action="/__admin/pages/new" autocomplete="off">
+                        <input id="pn-csrf" type="hidden" name="_csrf" value="">
+                        <div class="mb-3">
+                            <label class="form-label" id="pn-l-slug" for="pn-slug">Slug</label>
+                            <input id="pn-slug" class="form-control" name="slug" type="text" required>
+                            <div class="form-hint" id="pn-slug-hint">The page id and file name.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pn-l-title" for="pn-title">Title</label>
+                            <input id="pn-title" class="form-control" name="title" type="text">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pn-l-path" for="pn-path">Path</label>
+                            <input id="pn-path" class="form-control" name="path" type="text" placeholder="/">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" id="pn-l-master" for="pn-master">Master</label>
+                            <select id="pn-master" class="form-select" name="master">
+                                <option id="pn-opt-standalone" value="">Standalone (no master)</option>
+                                <option id="pn-opt-master" value="_master">_master</option>
+                            </select>
+                        </div>
+                        <div class="form-footer">
+                            <button type="submit" class="btn btn-primary" id="pn-create">Create page</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

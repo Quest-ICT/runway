@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thlogic>
+    <attr sel="#home-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#home-heading" th:text="#{op.admin.home.heading}"/>
+    <attr sel="#home-lbl-pages" th:text="#{op.nav.pages}"/>
+    <attr sel="#home-count-pages" th:text="${countPages}"/>
+    <attr sel="#home-lbl-users" th:text="#{op.nav.users}"/>
+    <attr sel="#home-count-users" th:text="${countUsers}"/>
+    <attr sel="#home-card-slot" th:each="card : ${dashboardCards}" th:id="${null}"/>
+    <attr sel="#home-card-slot//.home-card-inner" th:replace="~{${card.template()}}"/>
+</thlogic>

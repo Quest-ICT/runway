@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mx.quest</groupId>
+        <artifactId>runway</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>runway-app</artifactId>
+    <name>Runway App</name>
+    <description>
+        The Runway kernel: a Spring Boot (Jetty) multi-site web server + plugin host. Collects
+        runway-spi implementations and plugin contributions; ships only the essential bytes,
+        with domain features delivered as plugins.
+    </description>
+
+    <dependencies>
+        <!-- The extension API this kernel implements and exposes. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Web on Jetty (Tomcat excluded). The rest of the stack
+             (Thymeleaf decoupled-logic, Security, validation, actuator, …) is
+             added as the kernel is built out. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
+        </dependency>
+
+        <!-- Thymeleaf 3.1 (decoupled-logic) — the tenant-site render engine. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!-- Spring Security 7 (managed by the Boot 4 BOM) — the two never-crossing realm chains
+             and the Argon2id password encoder. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!-- Argon2id needs BouncyCastle, which is NOT managed by the Spring Boot BOM — pin it. -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.80</version>
+        </dependency>
+
+        <!-- Typed YAML stores. Jackson 3 (tools.jackson) is Spring Boot 4's default JSON/YAML
+             engine; this adds the YAML dataformat on top of the managed jackson-databind. -->
+        <dependency>
+            <groupId>tools.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <!-- Jakarta Mail (Jakarta Mail API + the Angus reference implementation + Jakarta Activation) — the
+             platform's OWN mail transport, used for APPLICATION-level messages only (password recovery, and any
+             future operator notifications), NEVER for site-generated mail (a site's contact form keeps its own
+             per-site SMTP). This is a CORE capability: the kernel sends platform mail directly through a small
+             PlatformMailer (raw Session/MimeMessage/Transport), so the mail stack
+             ships in the exec jar on the app classloader — one copy deployment-wide. Consumer plugins
+             compile Jakarta Mail as `provided` and resolve THIS copy at runtime via parent-first delegation, so
+             the former code-less `mail-provider` library plugin is retired. Versions pinned to match what that
+             provider bundled (byte-identical). The kernel compiles only against the API; the Angus SMTP impl +
+             Activation are runtime-only (discovered via META-INF/services). No spring.mail.host is set, so Spring
+             Boot's JavaMailSender auto-configuration stays inert — PlatformMailer is the only mail bean. -->
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+            <version>2.1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+            <version>2.0.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-activation</artifactId>
+            <version>2.0.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+            <version>2.1.4</version>
+        </dependency>
+
+        <!-- Bounded in-memory caches over the filesystem stores. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- HTML5 parsing for the page editor's re-seed structural merge (position-tracked, so untouched
+             regions — notably the author's #content — are spliced byte-for-byte). MIT-licensed. -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
+
+        <!-- Pure-Java, zero-dependency SVG rasterizer (single ~500 KB jar) — used to GENERATE the raster
+             icon slots (apple-touch / 192 / 512 PNG + favicon.ico) from one uploaded master SVG. Chosen over
+             Batik for its lean footprint. It renders SVG into a BufferedImage (headless); it runs NO scripts
+             and is loaded with external resources DENIED (no SSRF from a tenant-supplied SVG). MIT-licensed. -->
+        <dependency>
+            <groupId>com.github.weisj</groupId>
+            <artifactId>jsvg</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+
+        <!-- Brotli HTTP response compression. The kernel's single CompressionFilter does gzip with the JDK's
+             own GZIPOutputStream and brotli via brotli4j; Jetty's native gzip stays off so there is one
+             compression decision. The brotli encoder is a native lib shipped as a per-platform artifact
+             (linux-x86_64 covers typical servers, CI and development machines); on any platform without a matching
+             native the filter probes at startup and cleanly falls back to gzip. -->
+        <dependency>
+            <groupId>com.aayushatharva.brotli4j</groupId>
+            <artifactId>brotli4j</artifactId>
+            <version>1.18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aayushatharva.brotli4j</groupId>
+            <artifactId>native-linux-x86_64</artifactId>
+            <version>1.18.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- OPT-IN clustering (runway.cluster.enabled=true; default OFF). Hazelcast provides the distributed
+             session IMap + the cross-node event topic; spring-session-core provides the
+             SessionRepository API over which the kernel hand-rolls a HazelcastSessionRepository. Both stay on
+             the classpath unconditionally — ClusterConfig's class-level @ConditionalOnProperty is what keeps a
+             single-node deployment from wiring any of it. Version PINNED for Hazelcast (unified jar — the client
+             lives in it, so no separate hazelcast-client dependency); NOT hazelcast-spring or
+             spring-session-hazelcast (the latter was dropped in Spring Session 4.x).
+             spring-session-core is BOM-managed by the Boot 4 parent, so it stays unversioned. -->
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
+            <version>5.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-core</artifactId>
+        </dependency>
+
+        <!-- Health/metrics endpoints (the systemd health probe + the app-realm /actuator surface). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Prometheus scrape format for /actuator/prometheus (version managed by the Spring Boot BOM). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Build-time metadata for @ConfigurationProperties (no runtime footprint). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}-${project.version}</finalName>
+        <!--
+          Declaring <resources> replaces the inherited list, so the first two entries restate
+          spring-boot-starter-parent's exactly (application*.yml/.yaml/.properties filtered with @..@, everything
+          else copied as is). The third puts the license, the plugin permission and the third-party notices
+          into the jar's META-INF, so the exec jar fetched on its own still carries its terms.
+        -->
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/application*.yml</include>
+                    <include>**/application*.yaml</include>
+                    <include>**/application*.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <excludes>
+                    <exclude>**/application*.yml</exclude>
+                    <exclude>**/application*.yaml</exclude>
+                    <exclude>**/application*.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>LICENSE-EXCEPTION</include>
+                    <include>THIRD-PARTY-NOTICES</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
+        <plugins>
+            <!--
+              Run the configuration processor. JDK 23+ no longer runs annotation processors found on the plain
+              classpath implicitly, so the `optional` dependency above alone generated NOTHING: no
+              META-INF/spring-configuration-metadata.json, no IDE completion, no documented runway.* keys. Naming it
+              on the processor path (version from the Boot BOM) is the supported fix. The processor also merges
+              src/main/resources/META-INF/additional-spring-configuration-metadata.json — the keys read via @Value or
+              straight from the Environment, which no @ConfigurationProperties class describes.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                    <annotationProcessorPathsUseDepMgmt>true</annotationProcessorPathsUseDepMgmt>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!--
+                      Attach the executable (fat) jar under the `exec` classifier so the PLAIN thin
+                      jar stays runway-app's MAIN artifact. A reactor sibling that compiles `provided`
+                      against runway-app (runway-plugin-protection uses the kernel seams EdgeGuard /
+                      EdgeVerdict / CidrSet / LoginAttemptGate) then resolves real .class files, not a
+                      fat jar's BOOT-INF/classes/ — otherwise a full-reactor `mvn install` / building the
+                      plugin jar fails with "cannot find symbol". The launcher and the dist bundle the
+                      `-exec` jar; nothing depends on the thin jar at runtime.
+                    -->
+                    <classifier>exec</classifier>
+                </configuration>
+                <executions>
+                    <!--
+                      Generate META-INF/build-info.properties (version + build timestamp) so a BuildProperties
+                      bean is available at runtime — surfaced read-only on the app-realm "About Runway" screen.
+                      Merges with the parent's inherited `repackage` execution (matched by id); the repackage still
+                      runs and still produces the `-exec` jar.
+                    -->
+                    <execution>
+                        <id>build-info</id>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

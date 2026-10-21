@@ -1,0 +1,77 @@
+<!-- App-realm Essential Protection panel — rendered BELOW the generic (rate-limit) settings form on
+     /__app/plugins/protection/settings, and ONLY there (a realm-scoped admin-app fragment: the app plugin-settings
+     page keys off this file, never the tenant-oriented admin.html, so app-level login config never leaks into a
+     tenant console). Bare fragment; binding in admin-app.th.xml via ${@appProtectionPanel.*}. Immediate apply — the
+     form POSTs to /__app/protection and the login gate/form guard read the new values on the next login, no restart. -->
+<div class="card mt-3" id="pr-panel">
+    <div class="card-header"><h3 class="card-title" id="pr-heading">Login protection</h3></div>
+    <div class="card-body">
+        <div class="text-secondary mb-3" id="pr-intro-text">These settings govern the operator login. Changes apply
+            immediately — the next login attempt is evaluated against them, with no restart.</div>
+
+        <div class="alert alert-warning" id="pr-nocipher" role="alert">
+            <span id="pr-nocipher-text">No encryption key is configured, so a captcha secret cannot be stored.
+                Configure runway.security.secret-key to enable it.</span>
+        </div>
+
+        <form method="post" action="/__app/protection">
+            <input id="pr-csrf" type="hidden" name="_csrf" value="">
+
+            <h4 class="mt-1 mb-2" id="pr-l-honeypot-card">Deterrents</h4>
+            <label class="form-check form-switch mb-1">
+                <input id="pr-honeypot" class="form-check-input" type="checkbox" name="honeypotEnabled" value="true">
+                <span class="form-check-label" id="pr-honeypot-lbl">Enable the hidden honeypot field</span>
+            </label>
+            <small class="form-hint d-block mb-4" id="pr-honeypot-hint">A trap field a human never fills; a bot that
+                fills it is rejected.</small>
+
+            <h4 class="mb-2" id="pr-l-lockout-card">Per-IP lockout</h4>
+            <div class="mb-3">
+                <label class="form-label" id="pr-l-attempts" for="pr-attempts">Max attempts</label>
+                <input class="form-control" id="pr-attempts" name="maxAttempts" type="number" min="1" value="">
+                <small class="form-hint" id="pr-h-attempts">Failed logins within the window before the IP is locked.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" id="pr-l-window" for="pr-window">Window (seconds)</label>
+                <input class="form-control" id="pr-window" name="windowSeconds" type="number" min="1" value="">
+                <small class="form-hint" id="pr-h-window">The sliding window over which failures accumulate.</small>
+            </div>
+            <div class="mb-4">
+                <label class="form-label" id="pr-l-lockout" for="pr-lockout">Lockout (seconds)</label>
+                <input class="form-control" id="pr-lockout" name="lockoutSeconds" type="number" min="1" value="">
+                <small class="form-hint" id="pr-h-lockout">How long an IP stays locked once the threshold is reached.</small>
+            </div>
+
+            <h4 class="mb-2" id="pr-l-captcha-card">External CAPTCHA</h4>
+            <label class="form-check form-switch mb-3">
+                <input id="pr-captcha" class="form-check-input" type="checkbox" name="captchaEnabled" value="true">
+                <span class="form-check-label" id="pr-captcha-lbl">Require a CAPTCHA challenge</span>
+            </label>
+            <div class="mb-3">
+                <label class="form-label" id="pr-l-provider" for="pr-provider">Provider</label>
+                <select id="pr-provider" name="provider" class="form-select">
+                    <option id="pr-provider-opt" value="">provider</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" id="pr-l-siteKey" for="pr-siteKey">Site key (public)</label>
+                <input class="form-control" id="pr-siteKey" name="siteKey" type="text" value="">
+                <small class="form-hint" id="pr-h-siteKey">The public site key rendered into the challenge widget.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" id="pr-l-secretKey" for="pr-secretKey">Secret key</label>
+                <input class="form-control" id="pr-secretKey" name="secretKey" type="password" value="" autocomplete="off">
+                <small class="form-hint" id="pr-h-secretKey">Verified server-side, stored encrypted. Leave blank to
+                    keep the current secret.</small>
+            </div>
+            <div class="mb-4">
+                <label class="form-label" id="pr-l-score" for="pr-score">Score threshold (reCAPTCHA v3)</label>
+                <input class="form-control" id="pr-score" name="scoreThreshold" type="number" min="0" max="1"
+                       step="0.05" value="">
+                <small class="form-hint" id="pr-h-score">The minimum score a v3 response must meet (0.0–1.0).</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="pr-save">Save</button>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App-realm DoS activity screen logic. The blocklist rows repeat over ${blocks} and the offender rows over
+  ${offenders}; each empty-state <p> is shown only when its list is empty (an empty list renders zero rows, so
+  no dead row sits in the tbody). Nested cells inside a repeated <tr> are reached with `//` (a `/`
+  child selector matches nothing once a cell wraps a control). id selectors are global; class selectors inside
+  the loop are parent-scoped with `//` so the loop variable stays in scope.
+-->
+<thlogic>
+    <attr sel="#dos-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#dos-heading" th:text="#{dos.screen.heading}"/>
+    <attr sel="#dos-intro-text" th:text="#{dos.screen.intro}"/>
+
+    <!-- Manual block form -->
+    <attr sel="#dos-l-block-card" th:text="#{dos.block.card}"/>
+    <attr sel="#dos-block-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#dos-l-ip" th:text="#{dos.block.ip}"/>
+    <attr sel="#dos-l-reason" th:text="#{dos.block.reason}"/>
+    <attr sel="#dos-l-seconds" th:text="#{dos.block.seconds}"/>
+    <attr sel="#dos-h-seconds" th:text="#{dos.block.seconds.hint}"/>
+    <attr sel="#dos-block-submit" th:text="#{dos.block.submit}"/>
+
+    <!-- Blocklist table -->
+    <attr sel="#dos-l-blocks-card" th:text="#{dos.blocks.card}"/>
+    <attr sel="#dos-blocks-empty" th:if="${blocks.isEmpty()}" th:text="#{dos.blocks.empty}"/>
+    <attr sel="#dos-th-b-ip" th:text="#{dos.col.ip}"/>
+    <attr sel="#dos-th-b-reason" th:text="#{dos.col.reason}"/>
+    <attr sel="#dos-th-b-source" th:text="#{dos.col.source}"/>
+    <attr sel="#dos-th-b-until" th:text="#{dos.col.until}"/>
+    <attr sel="#dos-th-b-actions" th:text="#{dos.col.actions}"/>
+
+    <attr sel="#block-row" th:each="b : ${blocks}" th:id="${null}"/>
+    <attr sel="#block-row//.br-ip" th:text="${b.ip()}"/>
+    <attr sel="#block-row//.br-reason" th:text="${b.reason()}"/>
+    <attr sel="#block-row//.br-source" th:text="${b.source()}"/>
+    <attr sel="#block-row//.br-until" th:text="${b.until()}"/>
+    <attr sel="#block-row//.br-unblock-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#block-row//.br-unblock-ip" th:attr="value=${b.ip()}"/>
+    <attr sel="#block-row//.br-unblock" th:text="#{dos.unblock}"/>
+
+    <!-- Offenders table -->
+    <attr sel="#dos-l-ended-card" th:text="#{dos.ended.card}"/>
+    <attr sel="#dos-ended-hint" th:text="#{dos.ended.hint}"/>
+    <attr sel="#dos-ended-empty" th:if="${ended.isEmpty()}" th:text="#{dos.ended.empty}"/>
+    <attr sel="#dos-th-e-ip" th:text="#{dos.th.ended.ip}"/>
+    <attr sel="#dos-th-e-reason" th:text="#{dos.th.ended.reason}"/>
+    <attr sel="#dos-th-e-source" th:text="#{dos.th.ended.source}"/>
+    <attr sel="#dos-th-e-ended" th:text="#{dos.th.ended.ended}"/>
+    <attr sel="#ended-row" th:each="e : ${ended}" th:id="${null}"/>
+    <attr sel="#ended-row//.er-ip" th:text="${e.ip()}"/>
+    <attr sel="#ended-row//.er-reason" th:text="${e.reason()}"/>
+    <attr sel="#ended-row//.er-source" th:text="${e.source()}"/>
+    <attr sel="#ended-row//.er-ended" th:text="${e.endedAt()}"/>
+
+    <attr sel="#dos-l-offenders-card" th:text="#{dos.offenders.card}"/>
+    <attr sel="#dos-offenders-empty" th:if="${offenders.isEmpty()}" th:text="#{dos.offenders.empty}"/>
+    <attr sel="#dos-th-o-ip" th:text="#{dos.col.ip}"/>
+    <attr sel="#dos-th-o-requests" th:text="#{dos.col.requests}"/>
+    <attr sel="#dos-th-o-throttled" th:text="#{dos.col.throttled}"/>
+    <attr sel="#dos-th-o-blocked" th:text="#{dos.col.blocked}"/>
+
+    <attr sel="#offender-row" th:each="o : ${offenders}" th:id="${null}"/>
+    <attr sel="#offender-row//.or-ip" th:text="${o.ip()}"/>
+    <attr sel="#offender-row//.or-requests" th:text="${o.requests()}" th:attr="data-sort=${o.requests()}"/>
+    <attr sel="#offender-row//.or-throttled" th:text="${o.throttled()}" th:attr="data-sort=${o.throttled()}"/>
+    <attr sel="#offender-row//.or-blocked"
+          th:text="${o.blocked()} ? #{dos.yes} : #{dos.no}"/>
+</thlogic>

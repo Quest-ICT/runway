@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Runway Demo — help</title>
+    <link rel="stylesheet" href="/__plugin/runway-demo/static/css/demo.css">
+    <style>
+        body { font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 44rem;
+               margin: 2rem auto; padding: 0 1rem; color: #333; }
+        code { background: #f1f3f5; padding: 0.1em 0.35em; border-radius: 4px; }
+        h1 { font-size: 1.4rem; }
+        h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+<h1>Runway Demo — help</h1>
+<div class="rw-demo-notice rw-demo-notice-info">
+    This page is a <strong>static asset</strong> served from the plugin's own namespace at
+    <code>/__plugin/runway-demo/static/notes-help.html</code>. Runway Demo is the reference plugin: everything it does
+    is there to show plugin authors how a feature is built.
+</div>
+
+<h2>The demo screen</h2>
+<p>The <em>Runway demo</em> entry of the console menu opens the plugin's own screen (it needs the
+    <code>manage-notes</code> permission). From there you can add notes, install a ready-made demo page, publish a
+    short <em>showcase</em> page, look at the site's published content and check whether a path is free, and see the
+    changes the plugin has been told about.</p>
+
+<h2>Notes</h2>
+<p>The demo keeps a small set of per-site notes in its own folder of the site. Notes are:</p>
+<ul>
+    <li>seeded with a welcome note the first time a site's notes are read;</li>
+    <li>added from the demo screen, and by visitors through the public feedback form;</li>
+    <li>appended automatically whenever this plugin's per-site settings are saved;</li>
+    <li>readable as JSON at <code>/demo/notes.json</code> — only with the <code>manage-notes</code> permission (anyone
+        else gets <code>403</code>);</li>
+    <li>kept in full backups, and <strong>left out of transfer copies</strong>: they hold what people typed, so the
+        plugin declares them personal data.</li>
+</ul>
+
+<h2>Pages and endpoints</h2>
+<ul>
+    <li><code>/demo</code> — the demo page, once installed from the demo screen. It is an ordinary site page: edit,
+        move or delete it under Pages.</li>
+    <li><code>/demo/showcase</code> — the showcase page, while one is published.</li>
+    <li><code>/demo/hello.txt</code> — a per-site greeting in the visitor's language.</li>
+    <li><code>/demo/echo.json</code> — echoes what the platform tells the plugin about your request.</li>
+</ul>
+</body>
+</html>

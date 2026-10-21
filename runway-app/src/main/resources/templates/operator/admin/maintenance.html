@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Maintenance</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="maint-pretitle">Site</div>
+                <h2 class="page-title" id="maint-heading">Maintenance</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert" id="maint-status" role="alert">
+        <span id="maint-status-text">Status</span>
+    </div>
+
+    <form method="post" action="/__admin/maintenance">
+        <input id="maint-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="maint-l-card">Maintenance mode</h3></div>
+            <div class="card-body">
+                <label class="form-check form-switch mb-3">
+                    <input class="form-check-input" id="maint-enabled" name="enabled" type="checkbox" value="true">
+                    <span class="form-check-label" id="maint-l-enabled">Take the public site offline for maintenance</span>
+                </label>
+
+                <div class="mb-1">
+                    <label class="form-label" id="maint-l-message" for="maint-message">Visitor message</label>
+                    <textarea class="form-control" id="maint-message" name="message" rows="3"></textarea>
+                    <small class="form-hint" id="maint-h-message">Shown to visitors on the maintenance page. Leave
+                        blank for a default notice. Plain text only.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info d-print-none" id="maint-note" role="alert">
+            <span id="maint-note-text">While maintenance is on, visitors to the public site get a 503 page, but the
+                console and login stay reachable so you can turn it back off.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="maint-save">Save</button>
+    </form>
+</div>
+</body>
+</html>

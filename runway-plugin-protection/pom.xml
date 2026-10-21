@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mx.quest</groupId>
+        <artifactId>runway</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>runway-plugin-protection</artifactId>
+    <packaging>jar</packaging>
+
+    <description>
+        The essential security-floor plugin: a @Primary EdgeGuard (per-IP token-bucket rate limit +
+        IP allow/block lists) and a @Primary LoginAttemptGate (sliding-window brute-force lockout) that fill
+        the kernel's 7c/7d seams. It is a separate artifact loaded by the plugin loader at runtime (NEVER on the
+        kernel's component-scan classpath); its package lives outside mx.quest.runway. The thin jar drops into
+        external/plugins/protection/ alongside its plugin.yml.
+    </description>
+
+    <dependencies>
+        <!-- The released SPI (compile: the plugin genuinely uses it; bundled is fine, it is the host's too). -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- The host: the kernel provides EdgeGuard/LoginAttemptGate/CidrSet/ClientIp at runtime via the parent
+             classloader, so this is provided (compiled against, never bundled into the thin plugin jar). -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-app</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring context / Boot for @Configuration / @ConfigurationProperties — host-provided at runtime. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- The license and the plugin permission travel inside the jar, so a jar fetched on its own
+                 still carries its terms. -->
+            <resource>
+                <directory>${project.basedir}/..</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>LICENSE-EXCEPTION</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
+        <finalName>runway-plugin-protection</finalName>
+        <plugins>
+            <!--
+              Generate META-INF/spring-configuration-metadata.json for runway.plugin.protection.* (IDE completion
+              and type checks for operators editing external/application.yml or plugin-settings/protection.yml).
+              The processor must be on the compiler's PROCESSOR path: JDK 23+ no longer runs processors it merely
+              finds on the classpath, which is why this metadata silently never existed. Same setup as runway-app.
+              The processor is compile-time only; nothing of it reaches the thin plugin jar but the JSON.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                    <annotationProcessorPathsUseDepMgmt>true</annotationProcessorPathsUseDepMgmt>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

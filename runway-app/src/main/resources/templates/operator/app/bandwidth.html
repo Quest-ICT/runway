@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Bandwidth</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="ab-pretitle">Application</div>
+                <h2 class="page-title" id="ab-heading">Bandwidth</h2>
+            </div>
+            <div class="col-auto" id="ab-config">
+                <a id="ab-config-link" class="btn btn-outline-secondary" href="/__app/config/bandwidth">
+                    <i class="fa-solid fa-gear me-1"></i><span id="ab-config-label">Settings</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards mb-3">
+        <div class="col-sm-6">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="ab-l-out">Sent (30 days)</div>
+                <div class="h1 mb-0" id="ab-out">0</div>
+            </div></div>
+        </div>
+        <div class="col-sm-6">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="ab-l-in">Received (30 days)</div>
+                <div class="h1 mb-0" id="ab-in">0</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title" id="ab-l-sites">By site (30 days)</h3></div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.app.bandwidth">
+                <thead>
+                <tr>
+                    <th scope="col" data-col-key="site" id="ab-h-site">Site</th>
+                    <th scope="col" data-col-key="sent" id="ab-h-sent">Sent</th>
+                    <th scope="col" data-col-key="recv" id="ab-h-recv">Received</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="ab-empty"><td colspan="3" class="text-secondary text-center" id="ab-empty-text">No traffic recorded yet.</td></tr>
+                <tr id="ab-row">
+                    <td class="ab-site">site</td>
+                    <td class="ab-sent text-secondary">sent</td>
+                    <td class="ab-recv text-secondary">recv</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

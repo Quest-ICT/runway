@@ -1,0 +1,99 @@
+{
+  "groups": [
+    {
+      "name": "runway.demo.first-run",
+      "description": "Unattended install of a bundled demo site on first start (demo/evaluation deployments). Read by FirstRunDemoInstaller via @Value."
+    }
+  ],
+  "properties": [
+    {
+      "name": "runway.demo.first-run.id",
+      "type": "java.lang.String",
+      "description": "Id of the bundled demo site to install once, when the application is ready. Blank (the default) installs nothing. Skipped when a site with that id already exists, so a restart or upgrade never reinstalls it.",
+      "defaultValue": ""
+    },
+    {
+      "name": "runway.demo.first-run.host",
+      "type": "java.lang.String",
+      "description": "Host name to create the demo site with. Blank uses the demo descriptor's default host.",
+      "defaultValue": ""
+    },
+    {
+      "name": "runway.demo.first-run.master-username",
+      "type": "java.lang.String",
+      "description": "Login of the demo site's tenant superadmin.",
+      "defaultValue": "demo"
+    },
+    {
+      "name": "runway.demo.first-run.master-password",
+      "type": "java.lang.String",
+      "description": "Password of the demo site's tenant superadmin (hashed with Argon2id on install). Required when runway.demo.first-run.id is set; without it nothing is installed and a warning is logged. A secret: set it in the external application.yml.",
+      "defaultValue": ""
+    },
+    {
+      "name": "runway.endpoints.max-body-bytes",
+      "type": "java.lang.Long",
+      "description": "Largest request body, in bytes, the kernel reads into a plugin endpoint's RouteRequest. A larger body is refused before the plugin runs. Default 10 MiB.",
+      "defaultValue": 10485760
+    },
+    {
+      "name": "runway.endpoints.max-form-bytes",
+      "type": "java.lang.Long",
+      "description": "Largest application/x-www-form-urlencoded body, in bytes, the kernel reads for a POST or PUT plugin route before authentication and the CSRF check (413 above it). Kept small because any anonymous client can make the server buffer it; never above max-body-bytes, which still applies to other bodies. Default 256 KiB.",
+      "defaultValue": 262144
+    },
+    {
+      "name": "runway.plugins.max-entry-bytes",
+      "type": "java.lang.Long",
+      "description": "Per-entry decompression cap, in bytes, when installing an uploaded plugin archive (zip-bomb guard). Default 128 MiB, enough for a bundled library jar.",
+      "defaultValue": 134217728
+    },
+    {
+      "name": "runway.plugins.site-files.max-write-bytes",
+      "type": "java.lang.Long",
+      "description": "Largest single write, in bytes, a plugin may make to its per-site subtree (sites/<id>/plugins/<pluginId>/) through the PluginSiteFiles service; also the largest file it may read whole. Default 16 MiB.",
+      "defaultValue": 16777216
+    },
+    {
+      "name": "runway.static-files.default-max-bytes",
+      "type": "java.lang.Long",
+      "description": "Platform default storage ceiling, in bytes, for each site's files (sites/<id>/static/: Static files and Documents). An upload that would take the folder over it is refused; nothing stored is deleted. A site's own ceiling, set on Sites (platform.yml siteStorageCeilings), wins. 0 (the default) = unlimited.",
+      "defaultValue": 0
+    },
+    {
+      "name": "runway.plugins.root",
+      "type": "java.nio.file.Path",
+      "description": "Folder the plugin loader discovers plugins in, read from the environment before the context starts. Blank (the default) means <runway.storage.external>/plugins. The console's plugin install, uninstall, enable and disable use the same folder."
+    },
+    {
+      "name": "runway.storage.stats",
+      "type": "java.nio.file.Path",
+      "description": "Removed before 1.0: it was never read (bandwidth is metered per site, in sites/<id>/stats/). Setting it has no effect; a startup warning names it.",
+      "deprecation": {
+        "level": "error",
+        "reason": "Never had an effect; bandwidth is metered per site."
+      }
+    },
+    {
+      "name": "runway.storage.logs",
+      "type": "java.nio.file.Path",
+      "description": "Removed before 1.0: it only labelled a folder on the About page; the kernel writes no file there. Setting it has no effect; a startup warning names it.",
+      "deprecation": {
+        "level": "error",
+        "reason": "Display-only; the kernel writes no file there."
+      }
+    },
+    {
+      "name": "runway.node.name",
+      "type": "java.lang.String",
+      "description": "Human-friendly name of this node, shown on the About Runway page so a page or log line can be traced to one node behind a load balancer. Blank (the default) falls back to the OS host name. A value saved on the Platform settings page takes precedence.",
+      "defaultValue": ""
+    },
+    {
+      "name": "runway.console.hosts",
+      "type": "java.util.List<java.lang.String>",
+      "description": "The host names the operator console (/__app, /app/login, /app/logout, /app/forgot-password, /app/reset) answers on, compared without case and without the port. Every other host gets a plain 404 for those paths. Empty (the default): the console answers on the default site's host names and on host names that serve no site (the server's IP address, localhost), but not on a host name that serves any other site. Set only in external/application.yml: a wrong value locks the console, and the file is the way back in. Read at startup; each node reads its own.",
+      "defaultValue": []
+    }
+  ]
+}

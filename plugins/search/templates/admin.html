@@ -1,0 +1,95 @@
+<!-- Admin status fragment — the filename `admin` makes the host render it below this plugin's per-tenant
+     settings form. Bare fragment; binding in admin.th.xml. -->
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title" id="sa-title">Search status</h3></div>
+    <div class="card-body">
+        <div class="datagrid">
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="sa-l-status">Enabled</div>
+                <div class="datagrid-content"><span id="sa-status">on</span></div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="sa-l-engine">Active engine</div>
+                <div class="datagrid-content"><span id="sa-engine">search/simple</span>
+                    (<span id="sa-engines">1</span>)</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="sa-l-pages">Searchable items</div>
+                <div class="datagrid-content" id="sa-pages">0</div>
+            </div>
+        </div>
+        <p class="text-secondary small mt-2 mb-0" id="sa-note">
+            Add a search box to any page with a data-widget anchor; when a page is opened with ?q= it shows the
+            results inline.</p>
+        <!-- Rebuild the index now (every engine): a POST carrying the console's CSRF token (it changes state, so a
+             cross-site link must not be able to trigger it); the plain-text result opens in a new tab. -->
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2" id="sr-reindex">
+            <span class="text-secondary small" id="sr-desc">Edited files by hand? Rebuild the index now.</span>
+            <form id="sr-reindex-form" method="post" action="/search/reindex" target="_blank" rel="noopener"
+                  class="m-0 ms-auto">
+                <input id="sr-csrf" type="hidden" name="_csrf" value="">
+                <button id="sr-reindex-btn" type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa-solid fa-rotate me-1"></i><span id="sr-reindex-label">Rebuild index</span></button>
+            </form>
+        </div>
+        <hr>
+        <!-- "Search page" — install a ready-made, editable results page, or show its live path (follows a move).
+             The install is a POST carrying the console's CSRF token (it creates a page); the plain-text result
+             opens in a new tab. -->
+        <div id="sp-install">
+            <p class="text-secondary" id="sp-desc">Install a ready-made search results page carrying the box. It
+                becomes a normal site page — edit, restyle, move or rename it from Pages.</p>
+            <form id="sp-install-form" method="post" action="/search/install-page" target="_blank" rel="noopener"
+                  class="m-0">
+                <input id="sp-csrf" type="hidden" name="_csrf" value="">
+                <button id="sp-install-btn" type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-file-circle-plus me-1"></i><span id="sp-install-label">Install search page</span></button>
+            </form>
+        </div>
+        <div id="sp-installed" class="d-flex align-items-center">
+            <span class="badge bg-success-lt me-2" id="sp-badge">Installed</span>
+            <span id="sp-at">Installed at</span>&nbsp;<code id="sp-path" class="ms-1">/search</code>
+            <span class="text-secondary ms-2" id="sp-edit">— edit it under Pages.</span>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a id="sa-help" href="/__plugin/search/static/search-help.html" target="_blank" rel="noopener">
+            <i class="fa-solid fa-circle-question me-1"></i><span id="sa-help-label">Search help &amp; reference</span></a>
+    </div>
+</div>
+<!-- "Searches with no results" — the content-gap list (opt-in per site). Terms are VISITOR TEXT: bound with th:text
+     only. Clearing is a POST carrying the console session's CSRF token, so no cross-site link can trigger it. -->
+<div class="card mt-3" id="nr-card">
+    <div class="card-header"><h3 class="card-title" id="nr-title">Searches with no results</h3></div>
+    <div class="card-body">
+        <p class="text-secondary" id="nr-intro">What visitors searched for and did not find.</p>
+        <div class="alert alert-info" role="alert" id="nr-off">Recording is off for this site.</div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table" data-listing-table="search.admin.noresults">
+            <thead>
+            <tr>
+                <th data-col-key="term" id="nr-h-term">Search term</th>
+                <th data-col-key="count" id="nr-h-count" class="w-1">Searches</th>
+                <th data-col-key="last" id="nr-h-last" class="w-1">Last searched</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="nr-empty"><td colspan="3" class="text-secondary text-center" id="nr-empty-text">None yet.</td></tr>
+            <tr id="nr-row">
+                <td class="nr-term text-break">term</td>
+                <td class="nr-count text-end">0</td>
+                <td class="nr-last text-secondary text-nowrap">-</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <small class="text-secondary" id="nr-retention">Retention.</small>
+        <form id="nr-clear-form" method="post" action="/search/no-results/clear" class="m-0">
+            <input id="nr-csrf" type="hidden" name="_csrf" value="">
+            <button id="nr-clear" type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="fa-solid fa-eraser me-1"></i><span id="nr-clear-label">Clear list</span></button>
+        </form>
+    </div>
+</div>

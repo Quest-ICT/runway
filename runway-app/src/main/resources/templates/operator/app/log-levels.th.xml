@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Log levels: one row per logger (${rows}: LogLevelService.Row), each with its own small form; a logger the server
+     sets shows locked with where, and no form. The level options repeat over ${levels}. -->
+<thlogic>
+    <attr sel="#ll-crumb" th:text="#{op.applog.heading}"/>
+    <attr sel="#ll-heading" th:text="#{op.loglevels.heading}"/>
+    <attr sel="#ll-intro" th:text="#{op.loglevels.intro}"/>
+    <attr sel="#ll-h-logger" th:text="#{op.loglevels.col.logger}"/>
+    <attr sel="#ll-h-effective" th:text="#{op.loglevels.col.now}"/>
+    <attr sel="#ll-h-set" th:text="#{op.loglevels.col.set}"/>
+
+    <attr sel="#ll-row" th:each="r : ${rows}" th:id="${null}"/>
+    <attr sel="#ll-row//.ll-name" th:text="${r.name()}"/>
+    <attr sel="#ll-row//.ll-what" th:text="#{${'op.loglevels.what.' + r.name()}}"
+          th:if="${r.described()}"/>
+    <attr sel="#ll-row//.ll-effective" th:text="${r.effective()}"
+          th:classappend="${r.chosen() != null} ? 'bg-azure-lt' : ''"/>
+    <attr sel="#ll-row//.ll-form" th:if="${r.lockedBy() == null}"/>
+    <attr sel="#ll-row//.ll-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ll-row//.ll-logger" th:attr="value=${r.name()}"/>
+    <attr sel="#ll-row//.ll-select" th:attr="aria-label=#{op.loglevels.col.set} + ' ' + ${r.name()}"/>
+    <attr sel="#ll-row//.ll-default" th:text="#{op.loglevels.default}" th:selected="${r.chosen() == null}"/>
+    <attr sel="#ll-row//.ll-opt" th:each="l : ${levels}" th:value="${l}" th:text="${l}"
+          th:selected="${l == r.chosen()}"/>
+    <attr sel="#ll-row//.ll-save" th:text="#{op.loglevels.set}"/>
+    <attr sel="#ll-row//.ll-locked" th:if="${r.lockedBy() != null}" th:text="#{op.settings.locked(${r.lockedBy()})}"/>
+
+    <attr sel="#ll-l-other" th:text="#{op.loglevels.other}"/>
+    <attr sel="#ll-other-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ll-l-name" th:text="#{op.loglevels.col.logger}"/>
+    <attr sel="#ll-l-level" th:text="#{op.loglevels.col.set}"/>
+    <attr sel="#ll-other-level//.ll-other-opt" th:each="l : ${levels}" th:value="${l}" th:text="${l}" th:selected="${l == 'DEBUG'}"/>
+    <attr sel="#ll-other-save" th:text="#{op.loglevels.set}"/>
+    <attr sel="#ll-other-hint" th:text="#{op.loglevels.other.hint}"/>
+</thlogic>

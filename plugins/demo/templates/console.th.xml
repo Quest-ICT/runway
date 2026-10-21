@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Decoupled logic of the demo's console screen. `rd` is the Screen record the controller put in the model; besides it,
+  the template uses only what a console screen may rely on: tenantSiteId, _csrf, ${@authz.may(..)} and #{..} messages.
+  `//` reaches nested elements of an iterated row. Form actions are constants in the markup (th:action and th:attr run
+  in a restricted context); every POST form's hidden .rd-csrf field carries the console session's CSRF token.
+-->
+<thlogic>
+    <attr sel="#rd-pretitle" th:text="${rd.site().displayName()}"/>
+    <attr sel="#rd-heading" th:text="#{runwaydemo.console.heading}"/>
+
+    <attr sel="#rd-flash" th:if="${runwayDemoFlash != null}"/>
+    <attr sel="#rd-flash-text" th:text="${runwayDemoFlash}"/>
+    <attr sel="#rd-error" th:if="${runwayDemoError != null}"/>
+    <attr sel="#rd-error-text" th:text="${runwayDemoError}"/>
+
+    <attr sel=".rd-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- This plugin -->
+    <attr sel="#rd-about-title" th:text="#{runwaydemo.console.about}"/>
+    <attr sel="#rd-version-label" th:text="#{runwaydemo.console.version}"/>
+    <attr sel="#rd-version" th:text="${rd.pluginVersion()}"/>
+    <attr sel="#rd-built-label" th:text="#{runwaydemo.console.builtSpi}"/>
+    <attr sel="#rd-built" th:text="${rd.builtSpi()}"/>
+    <attr sel="#rd-running-label" th:text="#{runwaydemo.console.runningSpi}"/>
+    <attr sel="#rd-running" th:text="${rd.runningSpi()}"/>
+
+    <!-- Demo page (SitePages) -->
+    <attr sel="#rd-page-title" th:text="#{runwaydemo.console.page}"/>
+    <attr sel="#rd-page-desc" th:text="#{runwaydemo.console.page.desc}"/>
+    <attr sel="#rd-page-installed" th:if="${!rd.starterPath().isEmpty()}"/>
+    <attr sel="#rd-page-at" th:text="#{runwaydemo.console.page.at}"/>
+    <attr sel="#rd-page-link" th:href="${rd.starterPath()}"/>
+    <attr sel="#rd-page-path" th:text="${rd.starterPath()}"/>
+    <attr sel="#rd-page-form" th:if="${rd.starterPath().isEmpty()}"/>
+    <attr sel="#rd-page-install" th:text="#{runwaydemo.console.page.install}"/>
+
+    <!-- Notes (PluginSiteFiles) -->
+    <attr sel="#rd-notes-title" th:text="#{runwaydemo.console.notes}"/>
+    <attr sel="#rd-notes-count" th:text="${rd.noteCount()}"/>
+    <attr sel="#rd-notes-desc" th:text="#{runwaydemo.console.notes.desc}"/>
+    <attr sel="#rd-note-label" th:text="#{runwaydemo.console.note.new}"/>
+    <attr sel="#rd-note-add" th:text="#{runwaydemo.console.note.add}"/>
+    <attr sel="#rd-note-row" th:each="n : ${rd.notes()}"/>
+    <attr sel="#rd-note-row//.rd-note-origin" th:text="${n.origin()}"/>
+    <attr sel="#rd-note-row//.rd-note-text" th:text="${n.text()}"/>
+    <attr sel="#rd-note-row//.rd-note-at" th:text="${n.createdAt()}"/>
+
+    <!-- Showcase (ContentSource + ContentChanges) -->
+    <attr sel="#rd-show-title" th:text="#{runwaydemo.console.showcase}"/>
+    <attr sel="#rd-show-desc" th:text="#{runwaydemo.console.showcase.desc}"/>
+    <attr sel="#rd-show-live" th:if="${rd.showcaseText() != null}"/>
+    <attr sel="#rd-show-at" th:text="#{runwaydemo.console.showcase.at}"/>
+    <attr sel="#rd-show-path" th:text="${rd.showcasePath()}"/>
+    <attr sel="#rd-show-text" th:text="${rd.showcaseText()}"/>
+    <attr sel="#rd-show-unpublish-btn" th:text="#{runwaydemo.console.showcase.unpublish}"/>
+    <attr sel="#rd-show-none" th:if="${rd.showcaseText() == null}" th:text="#{runwaydemo.console.showcase.empty}"/>
+    <attr sel="#rd-show-label" th:text="#{runwaydemo.console.showcase.text}"/>
+    <attr sel="#rd-show-publish" th:text="#{runwaydemo.console.showcase.publish}"/>
+
+    <!-- Content surface (ContentCatalogView) -->
+    <attr sel="#rd-cat-title" th:text="#{runwaydemo.console.catalog}"/>
+    <attr sel="#rd-cat-total" th:text="${rd.catalogTotal()}"/>
+    <attr sel="#rd-check-label" th:text="#{runwaydemo.console.check.path}"/>
+    <attr sel="#rd-check-path" th:value="${rd.pathCheck() != null ? rd.pathCheck().path() : ''}"/>
+    <attr sel="#rd-check-btn" th:text="#{runwaydemo.console.check}"/>
+    <attr sel="#rd-check-result" th:if="${rd.pathCheck() != null}"/>
+    <attr sel="#rd-check-echo" th:text="${rd.pathCheck() != null ? rd.pathCheck().path() : ''}"/>
+    <attr sel="#rd-check-unsafe" th:if="${rd.pathCheck() != null and !rd.pathCheck().safe()}"
+          th:text="#{runwaydemo.console.check.unsafe}"/>
+    <attr sel="#rd-check-servable" th:if="${rd.pathCheck() != null and rd.pathCheck().servable()}"
+          th:text="#{runwaydemo.console.check.servable}"/>
+    <attr sel="#rd-check-reserved" th:if="${rd.pathCheck() != null and rd.pathCheck().safe() and !rd.pathCheck().servable()}"
+          th:text="#{runwaydemo.console.check.reserved}"/>
+    <attr sel="#rd-check-owner" th:if="${rd.pathCheck() != null and rd.pathCheck().ownerSlug() != null}"
+          th:text="#{runwaydemo.console.check.owner(${rd.pathCheck() != null ? rd.pathCheck().ownerSlug() : ''})}"/>
+    <attr sel="#rd-check-free" th:if="${rd.pathCheck() != null and rd.pathCheck().safe() and rd.pathCheck().ownerSlug() == null}"
+          th:text="#{runwaydemo.console.check.free}"/>
+    <attr sel="#rd-cat-h-source" th:text="#{runwaydemo.console.catalog.source}"/>
+    <attr sel="#rd-cat-h-id" th:text="#{runwaydemo.console.catalog.item}"/>
+    <attr sel="#rd-cat-h-path" th:text="#{runwaydemo.console.catalog.path}"/>
+    <attr sel="#rd-cat-row" th:each="c : ${rd.catalog()}" th:classappend="${c.own() ? 'table-active' : ''}"/>
+    <attr sel="#rd-cat-row//.rd-cat-source" th:text="${c.source()}"/>
+    <attr sel="#rd-cat-row//.rd-cat-id" th:text="${c.id()}"/>
+    <attr sel="#rd-cat-row//.rd-cat-path" th:text="${c.path()}"/>
+    <attr sel="#rd-cat-refresh-btn" th:text="#{runwaydemo.console.catalog.refresh}"/>
+
+    <!-- Recent changes (SiteEventListener) -->
+    <attr sel="#rd-act-title" th:text="#{runwaydemo.console.activity}"/>
+    <attr sel="#rd-act-empty" th:if="${rd.activity().isEmpty()}" th:text="#{runwaydemo.console.activity.empty}"/>
+    <attr sel="#rd-act-table" th:if="${!rd.activity().isEmpty()}"/>
+    <attr sel="#rd-act-h-at" th:text="#{runwaydemo.console.activity.at}"/>
+    <attr sel="#rd-act-h-cause" th:text="#{runwaydemo.console.activity.cause}"/>
+    <attr sel="#rd-act-h-item" th:text="#{runwaydemo.console.activity.item}"/>
+    <attr sel="#rd-act-h-before" th:text="#{runwaydemo.console.activity.before}"/>
+    <attr sel="#rd-act-h-after" th:text="#{runwaydemo.console.activity.after}"/>
+    <attr sel="#rd-act-h-local" th:text="#{runwaydemo.console.activity.local}"/>
+    <attr sel="#rd-act-row" th:each="a : ${rd.activity()}"/>
+    <attr sel="#rd-act-row//.rd-act-at" th:text="${a.at()}"/>
+    <attr sel="#rd-act-row//.rd-act-cause" th:text="${a.cause()}"/>
+    <attr sel="#rd-act-row//.rd-act-item" th:text="${a.item()}"/>
+    <attr sel="#rd-act-row//.rd-act-before" th:text="${#strings.listJoin(a.previousUrls(), ', ')}"/>
+    <attr sel="#rd-act-row//.rd-act-after" th:text="${#strings.listJoin(a.currentUrls(), ', ')}"/>
+    <attr sel="#rd-act-row//.rd-act-local" th:text="${a.local()} ? #{runwaydemo.console.yes} : #{runwaydemo.console.no}"/>
+
+    <attr sel="#rd-help" th:text="#{runwaydemo.console.help}"/>
+</thlogic>

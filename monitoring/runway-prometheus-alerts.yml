@@ -1,0 +1,80 @@
+# Runway — Prometheus alerting rules.
+#
+# Load these into Prometheus (rule_files: in prometheus.yml) alongside a scrape job that hits
+# /actuator/prometheus (see monitoring/README.md for the scrape-token scrape config). The rules use the
+# meters Runway exposes: the built-in `http.server.requests` (route-level), the Runway-specific
+# `runway_http_server_requests_seconds_*` (per-site), the platform gauges (`runway_sites*`,
+# `runway_plugins_loaded`, `runway_logs_dropped`), the JVM metrics Actuator ships, and Prometheus's own `up`.
+#
+# Thresholds are deliberately conservative starting points — tune `for:` windows and comparison values to
+# your traffic. Every rule is annotated so an alert is self-explanatory in a pager.
+groups:
+  - name: runway.availability
+    rules:
+      - alert: RunwayInstanceDown
+        expr: up{job="runway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Runway instance {{ $labels.instance }} is not scrapeable"
+          description: "Prometheus cannot scrape /actuator/prometheus for 2 minutes — the process is down or the scrape token/target is misconfigured."
+
+  - name: runway.requests
+    rules:
+      # Per-site server-error (5xx) rate. Uses the per-site timer's _count series.
+      - alert: RunwaySiteHighServerErrorRate
+        expr: sum by (site) (rate(runway_http_server_requests_seconds_count{outcome="server_error"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Site {{ $labels.site }} is serving 5xx errors"
+          description: "Server-error rate for site {{ $labels.site }} has exceeded 0.1/s for 10 minutes."
+
+      # Per-site average request latency (Timer _sum / _count). A blunt but useful signal.
+      - alert: RunwaySiteHighLatency
+        expr: |
+          sum by (site) (rate(runway_http_server_requests_seconds_sum[5m]))
+            / clamp_min(sum by (site) (rate(runway_http_server_requests_seconds_count[5m])), 1e-9) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Site {{ $labels.site }} is slow"
+          description: "Average request latency for site {{ $labels.site }} has exceeded 2s for 10 minutes."
+
+  - name: runway.platform
+    rules:
+      # The async telemetry queue dropped log lines under load — capacity or disk pressure.
+      - alert: RunwayLogLinesDropped
+        expr: increase(runway_logs_dropped[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Runway is dropping access/audit log lines"
+          description: "{{ $value }} log line(s) were dropped in the last 15 minutes — the telemetry queue is saturated (raise runway.logs.queue-capacity or investigate disk I/O)."
+
+      # Informational: a site is operator-suspended (public traffic 503s). Comment out if suspensions are routine.
+      - alert: RunwaySitesSuspended
+        expr: runway_sites_suspended > 0
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "{{ $value }} site(s) are suspended"
+          description: "One or more sites are operator-suspended; their public traffic is being 503'd."
+
+  - name: runway.jvm
+    rules:
+      - alert: RunwayHighHeapUsage
+        expr: |
+          sum by (instance) (jvm_memory_used_bytes{area="heap"})
+            / sum by (instance) (jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Runway heap usage is high on {{ $labels.instance }}"
+          description: "Heap usage has been above 90% of max for 10 minutes — raise -Xmx or investigate a leak."

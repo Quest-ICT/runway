@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One review item. Everything that comes from page content (diff lines, field values, the editor's name) is
+     author-controlled and bound with th:text only (escaped). The previews are framed from the console's own
+     sandboxed preview endpoint, as in the editor. -->
+<thlogic>
+    <attr sel="#ri-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#ri-heading" th:text="#{op.review.item.heading} + ' · ' + ${live.slug()}"/>
+    <attr sel="#ri-back" th:text="#{op.review.back}"/>
+    <attr sel="#ri-kind" th:text="${item.revision()} ? #{op.review.kind.revision} : #{op.review.kind.first}"
+          th:classappend="${item.revision() ? 'bg-azure-lt' : 'bg-yellow-lt'}"/>
+    <attr sel="#ri-by" th:text="#{op.review.banner.inReview(${item.review().submittedBy()}, ${submittedAt})}"/>
+
+    <!-- Quality -->
+    <attr sel="#ri-l-quality" th:text="#{op.pages.quality.heading}"/>
+    <attr sel="#ri-blocks" th:if="${enforced and hasErrors}" th:text="#{op.review.blocks}"/>
+    <attr sel="#ri-clean" th:if="${findings.isEmpty()}" th:text="#{op.pages.quality.clean}"/>
+    <attr sel="#ri-findings" th:if="${!findings.isEmpty()}"/>
+    <attr sel="#ri-findings//.ri-f" th:each="f : ${findings}" th:attr="data-code=${f.code()},data-severity=${f.severity()}"/>
+    <attr sel="#ri-findings//.ri-f-badge" th:text="${f.severity()}"
+          th:classappend="${f.severity() == 'error' ? 'bg-red-lt' : (f.severity() == 'warning' ? 'bg-yellow-lt' : 'bg-azure-lt')}"/>
+    <attr sel="#ri-findings//.ri-f-msg" th:text="${f.message()}"/>
+
+    <!-- Decision -->
+    <attr sel="#ri-l-decide" th:text="#{op.review.decision}"/>
+    <attr sel="#ri-approve-form" th:attr="action='/__admin/review/' + ${live.slug()} + '/approve'"/>
+    <attr sel="#ri-approve-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ri-fingerprint" th:attr="value=${item.fingerprint()}"/>
+    <attr sel="#ri-approve" th:text="#{op.review.approve}" th:attr="title=#{op.review.approve.tip}"/>
+    <attr sel="#ri-return-form" th:attr="action='/__admin/review/' + ${live.slug()} + '/return'"/>
+    <attr sel="#ri-return-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ri-l-note" th:text="#{op.review.note}"/>
+    <attr sel="#ri-note" th:attr="placeholder=#{op.review.note.ph}"/>
+    <attr sel="#ri-return" th:text="#{op.review.sendBack}" th:attr="title=#{op.review.sendBack.tip}"/>
+
+    <!-- Settings changed (revisions only) -->
+    <attr sel="#ri-meta-card" th:if="${item.revision()}"/>
+    <attr sel="#ri-l-meta" th:text="#{op.review.meta}"/>
+    <attr sel="#ri-mh-field" th:text="#{op.review.meta.field}"/>
+    <attr sel="#ri-mh-before" th:text="#{op.review.live}"/>
+    <attr sel="#ri-mh-after" th:text="#{op.review.proposed}"/>
+    <attr sel="#ri-meta-card//.ri-meta-row" th:each="m : ${metaRows}" th:if="${m.changed()}"/>
+    <attr sel="#ri-meta-card//.ri-m-field"
+          th:text="#{'op.review.field.' + ${m.label()}} + (${m.locale().isEmpty()} ? '' : ' (' + ${m.locale()} + ')')"/>
+    <attr sel="#ri-meta-card//.ri-m-before" th:text="${m.before()}"/>
+    <attr sel="#ri-meta-card//.ri-m-after" th:text="${m.after()}"/>
+    <attr sel="#ri-meta-none" th:if="${!metaChanged}" th:text="#{op.review.meta.none}"/>
+
+    <!-- Previews -->
+    <attr sel="#ri-live-col" th:if="${item.revision()}"/>
+    <attr sel="#ri-l-live" th:text="#{op.review.live}"/>
+    <attr sel="#ri-live" th:attr="src=${liveUrl}"/>
+    <attr sel="#ri-l-proposed" th:text="#{op.review.proposed}"/>
+    <attr sel="#ri-proposed" th:attr="src=${proposedUrl}"/>
+
+    <!-- Source diffs (revisions only; a first publication has nothing live to compare with) -->
+    <attr sel="#ri-body-card" th:if="${item.revision()}"/>
+    <attr sel="#ri-l-body" th:text="#{op.review.diff.body}"/>
+    <attr sel="#ri-body-same" th:if="${!bodyDiff.changed()}" th:text="#{op.review.diff.none}"/>
+    <attr sel="#ri-body-large" th:if="${bodyDiff.tooLarge()}" th:text="#{op.review.diff.tooLarge}"/>
+    <attr sel="#ri-body-table" th:if="${!bodyDiff.rows().isEmpty()}"/>
+    <attr sel="#ri-body-table//.ri-d-row" th:each="d : ${bodyDiff.rows()}" th:classappend="'rw-d-' + ${d.css()}"/>
+    <attr sel="#ri-body-table//.ri-d-mark"
+          th:text="${d.css() == 'added' ? '+' : (d.css() == 'removed' ? '−' : (d.css() == 'fold' ? '⋯' : ''))}"/>
+    <attr sel="#ri-body-table//.ri-d-text"
+          th:text="${d.css() == 'fold'} ? #{op.review.diff.folded(${d.text()})} : ${d.text()}"/>
+    <attr sel="#ri-logic-card" th:if="${item.revision()}"/>
+    <attr sel="#ri-l-logic" th:text="#{op.review.diff.logic}"/>
+    <attr sel="#ri-logic-same" th:if="${!logicDiff.changed()}" th:text="#{op.review.diff.none}"/>
+    <attr sel="#ri-logic-large" th:if="${logicDiff.tooLarge()}" th:text="#{op.review.diff.tooLarge}"/>
+    <attr sel="#ri-logic-table" th:if="${!logicDiff.rows().isEmpty()}"/>
+    <attr sel="#ri-logic-table//.ri-d-row" th:each="d : ${logicDiff.rows()}" th:classappend="'rw-d-' + ${d.css()}"/>
+    <attr sel="#ri-logic-table//.ri-d-mark"
+          th:text="${d.css() == 'added' ? '+' : (d.css() == 'removed' ? '−' : (d.css() == 'fold' ? '⋯' : ''))}"/>
+    <attr sel="#ri-logic-table//.ri-d-text"
+          th:text="${d.css() == 'fold'} ? #{op.review.diff.folded(${d.text()})} : ${d.text()}"/>
+</thlogic>

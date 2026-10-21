@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Web app manifest screen. Fields pre-fill from ${manifest}; posts to /__admin/manifest. -->
+<thlogic>
+    <attr sel="#wm-pretitle" th:text="#{op.realm.tenant}"/>
+    <attr sel="#wm-heading" th:text="#{op.manifest.heading}"/>
+    <attr sel="#wm-hint" th:text="#{op.manifest.hint}"/>
+    <attr sel="#wm-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#wm-l-name" th:text="#{op.icons.name}"/>
+    <attr sel="#wm-name" th:attr="value=${manifest.name()}"/>
+    <attr sel="#wm-l-short" th:text="#{op.icons.shortName}"/>
+    <attr sel="#wm-short" th:attr="value=${manifest.shortName()}"/>
+    <attr sel="#wm-l-desc" th:text="#{op.icons.description}"/>
+    <attr sel="#wm-desc" th:attr="value=${manifest.description()}"/>
+    <attr sel="#wm-l-theme" th:text="#{op.icons.themeColor}"/>
+    <attr sel="#wm-theme" th:attr="value=${manifest.themeColor()}"/>
+    <attr sel="#wm-l-bg" th:text="#{op.icons.backgroundColor}"/>
+    <attr sel="#wm-bg" th:attr="value=${manifest.backgroundColor()}"/>
+    <attr sel="#wm-l-display" th:text="#{op.icons.display}"/>
+    <attr sel="#wm-d-default" th:text="#{op.manifest.display.default}" th:selected="${manifest.display() == null}"/>
+    <attr sel="#wm-d-fullscreen" th:selected="${manifest.display() == 'fullscreen'}"/>
+    <attr sel="#wm-d-standalone" th:selected="${manifest.display() == 'standalone'}"/>
+    <attr sel="#wm-d-minimal" th:selected="${manifest.display() == 'minimal-ui'}"/>
+    <attr sel="#wm-d-browser" th:selected="${manifest.display() == 'browser'}"/>
+    <attr sel="#wm-l-lang" th:text="#{op.icons.lang}"/>
+    <attr sel="#wm-lang" th:attr="value=${manifest.lang()}"/>
+    <attr sel="#wm-save" th:text="#{op.icons.manifestSave}"/>
+</thlogic>

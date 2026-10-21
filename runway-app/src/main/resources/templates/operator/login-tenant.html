@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title id="lg-title">Sign in</title>
+    <link id="as-favicon" rel="icon" type="image/svg+xml" href="/__assets/runway.svg">
+    <link id="as-tabler-css" rel="stylesheet" href="/__assets/vendor/tabler.min.css">
+    <link id="as-fa-css" rel="stylesheet" href="/__assets/vendor/fontawesome/css/all.min.css">
+    <link id="as-chrome-css" rel="stylesheet" href="/__assets/runway-chrome.css">
+</head>
+<body class="border-top-wide border-success d-flex flex-column" data-i18n-pw-toggle="Show / hide password">
+<div class="page page-center">
+    <main class="container container-tight py-4">
+        <div class="text-center mb-4">
+            <span class="navbar-brand navbar-brand-autodark">
+                <img id="as-logo" src="/__assets/runway.svg" alt="Runway" style="height:1.75rem;width:auto" class="me-2"><span id="lg-brand">Site</span>
+            </span>
+        </div>
+        <div class="card card-md">
+            <div class="card-body">
+                <h2 class="h2 text-center mb-4" id="lg-heading">Site sign in</h2>
+                <div id="lg-error" class="alert alert-danger" role="alert">
+                    <span id="lg-error-text">Invalid username or password.</span>
+                </div>
+                <div id="lg-locked" class="alert alert-danger" role="alert">
+                    <span id="lg-locked-text">Too many failed sign-in attempts from your network. Wait a few minutes, then try again.</span>
+                </div>
+                <div id="lg-reverify" class="alert alert-danger" role="alert">
+                    <span id="lg-reverify-text">You were signed out after too many wrong passwords on your account page. Sign in again.</span>
+                </div>
+                <div id="lg-captcha-error" class="alert alert-warning" role="alert">
+                    <span id="lg-captcha-error-text">Captcha verification failed. Please try again.</span>
+                </div>
+                <div id="lg-logout" class="alert alert-success" role="alert">
+                    <span id="lg-logout-text">You have been signed out.</span>
+                </div>
+                <div id="lg-reset" class="alert alert-success" role="alert">
+                    <span id="lg-reset-text">Your password has been reset. Please sign in.</span>
+                </div>
+                <form method="post" action="/login" autocomplete="off">
+                    <input id="lg-csrf" type="hidden" name="_csrf" value="">
+                    <!-- Honeypot: humans never see or fill this (off-screen, out of tab order); a form-filling
+                         bot does, and the LoginFormGuard treats a non-blank value as a bot. name MUST equal
+                         LoginFormGuard.HONEYPOT_FIELD ("website"). Static input, no th binding needed. -->
+                    <div aria-hidden="true"
+                         style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">
+                        <label for="lg-website">Website</label>
+                        <input id="lg-website" name="website" type="text" tabindex="-1" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" id="lg-user-label" for="lg-user">Username</label>
+                        <input id="lg-user" name="username" type="text" class="form-control"
+                               autocomplete="username" autofocus required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" id="lg-pass-label" for="lg-pass">Password</label>
+                        <input id="lg-pass" name="password" type="password" class="form-control"
+                               autocomplete="current-password" required>
+                    </div>
+                    <!-- Shown only when platform mail is configured (otherwise no reset link can be emailed). -->
+                    <div class="mb-2 text-end" id="lg-forgot">
+                        <a href="/forgot-password" id="lg-forgot-link" class="text-secondary small">Forgot your password?</a>
+                    </div>
+                    <!-- CAPTCHA slot (plugin-driven, provider-agnostic). Rendered only when captchaActive.
+                         The visible widget's CSS class + public site key come from model flags the protection
+                         plugin sets; the kernel template holds no provider knowledge and never sees the secret.
+                         reCAPTCHA v3 is invisible: it uses the hidden token field + the v3 client script below. -->
+                    <div id="lg-captcha-widget" class="mb-3" data-sitekey=""></div>
+                    <input id="lg-captcha-v3-token" class="rw-captcha-v3" data-action="login" type="hidden" name="g-recaptcha-response" data-sitekey="">
+                    <!-- "Remember this device": opt-in to skip the CAPTCHA on this device for N days. Shown only
+                         when a CAPTCHA is being challenged (rememberDeviceOffered). name MUST equal
+                         TrustedDeviceService.REMEMBER_PARAM ("remember-device"). Visibility + label bound in .th.xml. -->
+                    <div class="mb-3" id="lg-remember-device">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember-device" value="1">
+                            <span class="form-check-label" id="lg-remember-device-label">Remember this device</span>
+                        </label>
+                    </div>
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-success w-100" id="lg-submit">Sign in</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Pre-auth language switcher: one link per offered UI language (GET /__ui-lang, returning here). Shown
+             only when more than one language is offered. -->
+        <div class="text-center mt-3" id="lg-langswitch">
+            <i class="fa-solid fa-language text-secondary me-1"></i>
+            <a class="lg-lang-item small mx-1" href="#">language</a>
+        </div>
+    </main>
+</div>
+<!-- CAPTCHA provider script (src from the plugin's model flag; rendered only when captchaActive). The visible
+     reCAPTCHA v2 widget auto-renders by its class; reCAPTCHA v3 loads with
+     ?render=<siteKey> and is driven by the v3 client script below. -->
+<script id="lg-captcha-js" src="" async defer></script>
+<!-- reCAPTCHA v3 client — externalized to /__assets/captcha-v3.js so the page carries NO inline <script> (which
+     is what lets script-src drop 'unsafe-inline'). Keys off input.rw-captcha-v3; inert unless it has a data-sitekey. -->
+<script id="as-captcha-v3-js" src="/__assets/captcha-v3.js" defer></script>
+<script id="as-tabler-js" src="/__assets/vendor/tabler.min.js"></script>
+<script id="as-chrome-js" src="/__assets/runway-chrome.js"></script>
+</body>
+</html>

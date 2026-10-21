@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- App-realm Site templates CATALOG. Row nested cells use `//` descendant + class selectors;
+     the display name is a ternary at the Thymeleaf level (condition ${}, branches #{}/${}). -->
+<thlogic>
+    <attr sel="#stc-pretitle" th:text="#{op.realm.application}"/>
+    <attr sel="#stc-heading" th:text="#{op.sitetpl.heading}"/>
+    <attr sel="#stc-intro" th:text="#{op.sitetpl.catalog.intro}"/>
+
+    <attr sel="#stc-h-name" th:text="#{op.sitetpl.col.name}"/>
+    <attr sel="#stc-h-id" th:text="#{op.sitetpl.col.id}"/>
+    <attr sel="#stc-h-desc" th:text="#{op.sitetpl.col.desc2}"/>
+    <attr sel="#stc-h-actions" th:text="#{op.sitetpl.col.actions}"/>
+
+    <attr sel="#stc-row" th:each="t : ${templates}" th:id="${null}"/>
+    <attr sel="#stc-row//.stc-name" th:text="${t.builtIn()} ? #{op.sitetpl.default.name} : ${t.name()}"
+          th:attr="href='/__app/site-templates/' + ${t.id()}"/>
+    <attr sel="#stc-row//.stc-builtin" th:if="${t.builtIn()}" th:text="#{op.sitetpl.builtin}"/>
+    <attr sel="#stc-row//.stc-id" th:text="${t.id()}"/>
+    <attr sel="#stc-row//.stc-desc" th:text="${t.description()}"/>
+    <attr sel="#stc-row//.stc-files" th:attr="href='/__app/site-templates/' + ${t.id()}"/>
+    <attr sel="#stc-row//.stc-files-label" th:text="#{op.sitetpl.editFiles}"/>
+    <attr sel="#stc-row//.stc-export" th:attr="href='/__app/site-templates/' + ${t.id()} + '/export'"/>
+    <attr sel="#stc-row//.stc-export-label" th:text="#{op.sitetpl.export}"/>
+    <attr sel="#stc-row//.stc-delete" th:if="${not t.builtIn()}"
+          th:attr="action='/__app/site-templates/' + ${t.id()} + '/delete'"/>
+    <attr sel="#stc-row//.stc-del-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stc-row//.stc-del-btn" th:attr="data-confirm=#{op.sitetpl.delete.confirm(${t.id()})}"/>
+    <attr sel="#stc-row//.stc-del-label" th:text="#{op.sitetpl.delete}"/>
+
+    <!-- New template -->
+    <attr sel="#stc-new-title" th:text="#{op.sitetpl.new.title}"/>
+    <attr sel="#stc-new-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stc-new-l-id" th:text="#{op.sitetpl.field.id}"/>
+    <attr sel="#stc-new-h-id" th:text="#{op.sitetpl.field.id.help}"/>
+    <attr sel="#stc-new-l-name" th:text="#{op.sitetpl.field.name}"/>
+    <attr sel="#stc-new-l-desc" th:text="#{op.sitetpl.field.desc}"/>
+    <attr sel="#stc-new-l-copy" th:text="#{op.sitetpl.field.copyFrom}"/>
+    <attr sel="#stc-new-h-copy" th:text="#{op.sitetpl.field.copyFrom.help}"/>
+    <attr sel="#stc-cf-opt" th:each="t : ${templates}" th:value="${t.id()}"
+          th:text="${t.builtIn()} ? #{op.sitetpl.default.name} : ${t.name()}" th:id="${null}"/>
+    <attr sel="#stc-new-btn" th:text="#{op.sitetpl.new.btn}"/>
+
+    <!-- Import template -->
+    <attr sel="#stc-imp-title" th:text="#{op.sitetpl.import.title}"/>
+    <attr sel="#stc-imp-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#stc-imp-l-id" th:text="#{op.sitetpl.field.id}"/>
+    <attr sel="#stc-imp-l-name" th:text="#{op.sitetpl.field.name}"/>
+    <attr sel="#stc-imp-l-desc" th:text="#{op.sitetpl.field.desc}"/>
+    <attr sel="#stc-imp-l-file" th:text="#{op.sitetpl.field.file}"/>
+    <attr sel="#stc-imp-h-file" th:text="#{op.sitetpl.field.file.help}"/>
+    <attr sel="#stc-imp-btn" th:text="#{op.sitetpl.import.btn}"/>
+</thlogic>

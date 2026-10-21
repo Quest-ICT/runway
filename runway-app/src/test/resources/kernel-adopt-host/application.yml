@@ -1,0 +1,9 @@
+# KernelSettingsAdoptTest's stand-in for the host's external/application.yml (loaded with
+# spring.config.additional-location, so the console names it "external/application.yml"): a string, and a list
+# written as a YAML list.
+runway:
+  csp:
+    report-uri: /host-csp-report
+    extra-hosts:
+      - https://a.example.test
+      - https://b.example.test

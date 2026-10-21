@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Site insights</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="in-pretitle">Site</div>
+                <h2 class="page-title" id="in-heading">Site insights</h2>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group" id="in-periods" aria-label="Period">
+                    <a class="btn in-period" href="?days=7">Last 7 days</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning" role="alert" id="in-logging-off">Logging is off.</div>
+    <div class="alert alert-warning" role="alert" id="in-line-cap">Line cap reached.</div>
+    <div class="alert alert-info" role="alert" id="in-approximate">Approximate.</div>
+
+    <div class="row row-cards mb-3">
+        <div class="col-sm-6">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="in-l-views">Page views</div>
+                <div class="h1 mb-0" id="in-views">0</div>
+            </div></div>
+        </div>
+        <div class="col-sm-6">
+            <div class="card"><div class="card-body">
+                <div class="subheader" id="in-l-404">Not-found requests (404)</div>
+                <div class="h1 mb-0" id="in-404">0</div>
+            </div></div>
+        </div>
+    </div>
+    <p class="text-secondary small" id="in-window">window</p>
+
+    <div class="row row-cards">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="in-l-pages">Most-visited pages</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.admin.insights.pages">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="path" id="in-hp-path">Path</th>
+                            <th scope="col" data-col-key="count" id="in-hp-count" class="w-1">Views</th>
+                            <th scope="col" data-col-key="last" id="in-hp-last" class="w-1">Last seen</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="in-pages-empty"><td colspan="3" class="text-secondary text-center" id="in-pages-empty-text">No page views.</td></tr>
+                        <tr id="in-page-row">
+                            <td class="text-break"><code class="in-path">/</code></td>
+                            <td class="in-count text-end">0</td>
+                            <td class="in-last text-secondary text-nowrap">-</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="in-l-404s">Top 404 paths</h3></div>
+                <div class="card-body py-2"><p class="text-secondary small mb-0" id="in-404-hint">hint</p></div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-listing-table="runway.admin.insights.notfound">
+                        <thead>
+                        <tr>
+                            <th scope="col" data-col-key="path" id="in-hn-path">Path</th>
+                            <th scope="col" data-col-key="count" id="in-hn-count" class="w-1">Requests</th>
+                            <th scope="col" data-col-key="last" id="in-hn-last" class="w-1">Last seen</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="in-404-empty"><td colspan="3" class="text-secondary text-center" id="in-404-empty-text">No 404s.</td></tr>
+                        <tr id="in-404-row">
+                            <td class="text-break"><code class="in-path">/</code></td>
+                            <td class="in-count text-end">0</td>
+                            <td class="in-last text-secondary text-nowrap">-</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-secondary small mt-3 mb-1" id="in-note">note</p>
+    <p class="text-secondary small mb-0" id="in-retention">retention</p>
+</div>
+</body>
+</html>
