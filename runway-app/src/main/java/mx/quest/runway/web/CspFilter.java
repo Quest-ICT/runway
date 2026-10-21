@@ -154,7 +154,7 @@ public class CspFilter extends OncePerRequestFilter {
         // A per-request nonce is minted ONLY for the kernel surfaces whose templates actually carry
         // nonce="${cspNonce}". A public tenant page never gets one: it would make an otherwise-identical
         // SHARED-CACHEABLE response (`public, max-age=300`) vary per request, and a cache that stored header+body
-        // together would then serve one frozen nonce to everyone (raised from a live deployment against 0.5.0-beta1).
+        // together would then serve one frozen nonce to everyone (raised from a live deployment).
         // Public pages get the ETag-DERIVED PublicPageNonce instead, picked up at commit — see the class Javadoc.
         // Decided on the decoded path the dispatcher routes on (RequestPaths), so /app/%6Cogin gets the sign-in page's
         // nonce and policy like /app/login: the page rendered is the same.
@@ -309,7 +309,7 @@ public class CspFilter extends OncePerRequestFilter {
                 // effective value doesn't already forbid storing. (Being merely conditional on "no Cache-Control
                 // present" was too weak — Spring Security's CacheControlHeadersWriter itself bails out when the
                 // response already carries an Expires/Pragma, which can leave a nonced page with no
-                // Cache-Control at all. Reported from a live deployment against 0.5.0-beta1.) An existing value that
+                // Cache-Control at all. Reported from a live deployment.) An existing value that
                 // already says no-store is left untouched, so a stronger handler-set policy is never downgraded.
                 if (nonce != null) {
                     String cacheControl = real.getHeader("Cache-Control");

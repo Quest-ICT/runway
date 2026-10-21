@@ -1,0 +1,176 @@
+# =============================================================================
+#  Runway Discoverability Plugin — descriptor
+#  SEO+ (structured data + sitemap) and GEO (llms.txt + answer schema) in one
+#  plugin. The install folder name MUST equal this `id`: external/plugins/discoverability/.
+# =============================================================================
+id: discoverability
+name: Discoverability (SEO+ & GEO)
+version: 2.3.0
+
+# The kernel SPI level this plugin needs. It links ONLY the SPI and uses its service tier: PluginSettings, Sites
+# and RouteRequest#origin, ContentCatalogView / CatalogEntry / LocalizedUrl, the SiteEventListener change events
+# with before-and-after URLs, and — since 2.1.0 — HeadContext#origin (SPI 1.0.0), which makes a host-less site's
+# JSON-LD absolute. A kernel below the floor BLOCKS this release at startup with a reason instead of failing on
+# the first page that reaches the missing method.
+requiresSpi: ">=1.0.0"
+
+# The @Configuration registered into the host context before refresh. Its package (mx.quest.discover) lives
+# OUTSIDE mx.quest.runway so the host never double-scans it. Beans are wired EXPLICITLY (no @ComponentScan).
+mainClass: mx.quest.discover.DiscoverabilityConfig
+
+# This plugin has no hard dependency (always loads) and is NOT essential. It enriches the head the kernel already
+# fills (canonical + hreflang + Open Graph + Twitter cards) with the structured-data it leaves out, and OWNS the
+# crawl surfaces the lean core does not ship: /sitemap.xml, /llms.txt and /robots.txt. It never duplicates a tag
+# the kernel already emits. (An install without this plugin serves no /robots.txt, which crawlers treat as
+# allow-all.)
+
+# --- Grantable control-point permission -----------------------------------------------------------------
+# `settings` is the reserved id that gates this plugin's per-tenant config editor. defaultRoles is EMPTY: the
+# control point starts ungranted — admins hold it via the wildcard tier; a tenant superadmin grants it to
+# OPERATOR or a custom role. A reserved/master tier in defaultRoles is a hard fail.
+permissions:
+  - { id: settings, realm: tenant, label: discover.perm.settings, defaultRoles: [] }
+
+# --- Settings-form layout (presentation only). Sections in this order; each field below names its `group`. Every field has a
+#     `help` line shown under it; `helpAnchor` links into the help page for what does not fit in one line;
+#     `advanced` fields sit in a collapsed "Advanced" part of their section (opened automatically when one is
+#     set); `showWhen` hides a field while the named switch is off (it is still saved). ---------------------
+helpUrl: /__plugin/discoverability/static/discoverability-help.html
+settingGroups:
+  - { id: structured, label: discover.grp.structured, help: discover.grp.structured.help, helpAnchor: structured-data }
+  - { id: sitemap,    label: discover.grp.sitemap,    help: discover.grp.sitemap.help,    helpAnchor: sitemap-robots }
+  - { id: ai,         label: discover.grp.ai,         help: discover.grp.ai.help,         helpAnchor: ai-crawlers }
+  - { id: geo,        label: discover.grp.geo,        help: discover.grp.geo.help,        helpAnchor: geo }
+  - { id: software,   label: discover.grp.software,   help: discover.grp.software.help,   helpAnchor: software }
+  - { id: indexnow,   label: discover.grp.indexnow,   help: discover.grp.indexnow.help,   helpAnchor: indexnow }
+
+# --- App-level settings (PLATFORM concerns; over external/plugin-settings/discoverability.yml as
+#     runway.plugin.discoverability.*; applied on RESTART; bound via DiscoverabilityProperties). ----------
+settings:
+  # The default AI/LLM-crawler posture a site inherits when its per-tenant robots.ai-policy is `inherit`:
+  # `allow` (GEO-friendly, the platform default) or `disallow` (opt every un-overriding site out of AI crawling).
+  - { key: robots.ai-default, type: enum, default: allow, range: "allow,disallow", label: discover.set.robotsAiDefault,
+      group: ai, help: discover.help.robotsAiDefault }
+  # Extra AI/LLM crawler user-agent names appended to the plugin's built-in list. The built-in list is a
+  # compile-time constant and goes STALE SILENTLY — an agent it does not name is simply not covered by a
+  # site's opt-out, and nothing reports that. This closes a newly announced agent without a plugin release.
+  # Additive only; a retired name costs one inert User-agent line.
+  - { key: robots.ai-agents-extra, type: list, default: "", label: discover.set.robotsAiAgentsExtra,
+      group: ai, help: discover.help.robotsAiAgentsExtra, advanced: true }
+  # IndexNow — the operator's egress decision. OFF by default: an upgrade must never start making network calls
+  # a deployment was not making before. With this off, a tenant enabling IndexNow gets a WARN naming the setting.
+  - { key: indexnow.enabled,      type: boolean, default: false, label: discover.set.indexnowAppEnabled,
+      group: indexnow, help: discover.help.indexnowAppEnabled }
+  - { key: indexnow.endpoint,     type: string,  default: "https://api.indexnow.org/indexnow", label: discover.set.indexnowEndpoint,
+      group: indexnow, help: discover.help.indexnowEndpoint, showWhen: indexnow.enabled, advanced: true }
+  - { key: indexnow.batch-seconds, type: int,    default: 60,   range: "5..3600",   label: discover.set.indexnowBatch,
+      group: indexnow, help: discover.help.indexnowBatch, showWhen: indexnow.enabled, advanced: true }
+  - { key: indexnow.max-urls-per-submission, type: int, default: 1000, range: "1..10000", label: discover.set.indexnowMaxUrls,
+      group: indexnow, help: discover.help.indexnowMaxUrls, showWhen: indexnow.enabled, advanced: true }
+  - { key: indexnow.max-queued-per-site, type: int, default: 5000, range: "1..100000", label: discover.set.indexnowMaxQueued,
+      group: indexnow, help: discover.help.indexnowMaxQueued, showWhen: indexnow.enabled, advanced: true }
+  - { key: indexnow.timeout-seconds, type: int,  default: 10,    range: "1..120",    label: discover.set.indexnowTimeout,
+      group: indexnow, help: discover.help.indexnowTimeout, showWhen: indexnow.enabled, advanced: true }
+
+# --- Per-tenant settings (tenant-owned BEHAVIOUR; over sites/<id>/plugins/discoverability.yml; applied ----
+#     IMMEDIATELY — the host evicts its cache on save; read live via the SPI's PluginSettings, which overlays
+#     the stored values on the `default:`s declared here, so each code fallback must equal its default).
+#     Declared in display order, section by section. Changing the ORDER or the layout keys never changes a
+#     stored value: the keys themselves are the contract.
+siteSettings:
+  # -- Structured data (schema.org JSON-LD). Everything structured — organization, the homepage product, the
+  #    per-page types, and GEO's SearchAction/Speakable — is emitted only while jsonld.enabled is on. --
+  - { key: jsonld.enabled,  type: boolean, default: true,  label: discover.set.jsonldEnabled,
+      group: structured, help: discover.help.jsonldEnabled }
+  - { key: jsonld.type,     type: enum,    default: WebPage, range: "WebPage,Article", label: discover.set.jsonldType,
+      group: structured, help: discover.help.jsonldType, showWhen: jsonld.enabled }
+  - { key: jsonld.breadcrumbs, type: boolean, default: true, label: discover.set.breadcrumbs,
+      group: structured, help: discover.help.breadcrumbs, showWhen: jsonld.enabled }
+  - { key: org.name,        type: string,                   label: discover.set.orgName,
+      group: structured, help: discover.help.orgName, showWhen: jsonld.enabled }
+  - { key: org.logo,        type: string,                   label: discover.set.orgLogo,
+      group: structured, help: discover.help.orgLogo, showWhen: jsonld.enabled }
+  - { key: org.sameas,      type: list,    default: "",     label: discover.set.orgSameAs,
+      group: structured, help: discover.help.orgSameAs, showWhen: jsonld.enabled }
+  # Per-page/section typed structured data: a small YAML doc keyed by URL-path pattern (exact, else the longest
+  # trailing-* prefix; matched on the page's own path, so /faq does not reach /es/faq), each entry declaring a `type`
+  # + its fields. A PAGE TYPE replaces the Default page type (jsonld.type) as the page's own @type (2.2.0):
+  # Article/BlogPosting/NewsArticle, FAQPage, CollectionPage, WebPage, AboutPage, ContactPage, ItemPage,
+  # SearchResultsPage; the first one applies. The other types ADD an entity beside the page: Product,
+  # Service/ProfessionalService, LocalBusiness/CafeOrCoffeeShop, Person, ItemList. An entry may also be a LIST of
+  # type-blocks when a single page carries several types (e.g. a pricing page that is both FAQPage and Service). A
+  # detail entry may carry `breadcrumb: {name, url}` to insert its parent collection as a middle breadcrumb level.
+  # Values are tenant-owned; the plugin owns the typing. Full reference: static/discoverability-help.html.
+  - { key: content.schema,  type: text,                     label: discover.set.contentSchema,
+      group: structured, help: discover.help.contentSchema, helpAnchor: content-schema, advanced: true }
+  # -- Sitemap & robots.txt (the plugin owns /robots.txt; its Sitemap: line follows sitemap.enabled) --
+  - { key: sitemap.enabled, type: boolean, default: true,   label: discover.set.sitemapEnabled,
+      group: sitemap, help: discover.help.sitemapEnabled }
+  - { key: robots.extra-disallow, type: list,                   label: discover.set.robotsExtraDisallow,
+      group: sitemap, help: discover.help.robotsExtraDisallow }
+  - { key: robots.custom,         type: text,                   label: discover.set.robotsCustom,
+      group: sitemap, help: discover.help.robotsCustom, helpAnchor: robots-custom, advanced: true }
+  # -- AI crawlers. `inherit` on the policy = the platform's robots.ai-default. --
+  - { key: robots.ai-policy,      type: enum, default: inherit, range: "inherit,allow,disallow", label: discover.set.robotsAiPolicy,
+      group: ai, help: discover.help.robotsAiPolicy, inheritsFrom: "app:robots.ai-default" }
+  # Per-CLASS overrides of the AI posture above. `inherit` (the default) means "whatever robots.ai-policy says",
+  # so a site that sets none of these behaves exactly as before these keys existed. The point of splitting them
+  # is that the three classes have opposite consequences: declining TRAINING costs the site nothing it can see,
+  # declining RETRIEVAL removes it from generated answers, and declining USER breaks a fetch a person asked for.
+  # Key names are robots.ai-<class>, not robots.ai-policy.<class>: the latter would make one key both a scalar
+  # and a map prefix.
+  - { key: robots.ai-training,    type: enum, default: inherit, range: "inherit,allow,disallow", label: discover.set.robotsAiTraining,
+      group: ai, help: discover.help.robotsAiTraining, inheritsFrom: robots.ai-policy, advanced: true }
+  - { key: robots.ai-retrieval,   type: enum, default: inherit, range: "inherit,allow,disallow", label: discover.set.robotsAiRetrieval,
+      group: ai, help: discover.help.robotsAiRetrieval, inheritsFrom: robots.ai-policy, advanced: true }
+  - { key: robots.ai-user,        type: enum, default: inherit, range: "inherit,allow,disallow", label: discover.set.robotsAiUser,
+      group: ai, help: discover.help.robotsAiUser, inheritsFrom: robots.ai-policy, advanced: true }
+  # -- GEO : opt-in Generative Engine Optimization. search.url and geo.speakable also need structured data on. --
+  - { key: geo.enabled,     type: boolean, default: false,  label: discover.set.geoEnabled,
+      group: geo, help: discover.help.geoEnabled }
+  - { key: geo.summary,     type: text,                     label: discover.set.geoSummary,
+      group: geo, help: discover.help.geoSummary, showWhen: geo.enabled }
+  - { key: geo.speakable,   type: list,    default: "h1,main", label: discover.set.geoSpeakable,
+      group: geo, help: discover.help.geoSpeakable, showWhen: geo.enabled }
+  - { key: search.url,      type: string,                   label: discover.set.searchUrl,
+      group: geo, help: discover.help.searchUrl, showWhen: geo.enabled }
+  # -- SoftwareApplication (homepage product/app entity; configure here INSTEAD of hand-authoring JSON-LD in
+  #    seo.yml's extraHead — that leaked onto every page with a wrong url; this emits once, @id-linked). --
+  - { key: software.enabled,     type: boolean, default: false, label: discover.set.softwareEnabled,
+      group: software, help: discover.help.softwareEnabled }
+  - { key: software.name,        type: string,                  label: discover.set.softwareName,
+      group: software, help: discover.help.softwareName, showWhen: software.enabled }
+  - { key: software.description, type: text,                    label: discover.set.softwareDescription,
+      group: software, help: discover.help.softwareDescription, showWhen: software.enabled }
+  - { key: software.category,    type: string,                  label: discover.set.softwareCategory,
+      group: software, help: discover.help.softwareCategory, showWhen: software.enabled }
+  - { key: software.os,          type: string,  default: Web,   label: discover.set.softwareOs,
+      group: software, help: discover.help.softwareOs, showWhen: software.enabled }
+  - { key: software.price,       type: string,                  label: discover.set.softwarePrice,
+      group: software, help: discover.help.softwarePrice, showWhen: software.enabled }
+  - { key: software.currency,    type: string,  default: USD,   label: discover.set.softwareCurrency,
+      group: software, help: discover.help.softwareCurrency, showWhen: software.enabled }
+  - { key: software.license,     type: string,                  label: discover.set.softwareLicense,
+      group: software, help: discover.help.softwareLicense, showWhen: software.enabled }
+  - { key: software.url,         type: string,                  label: discover.set.softwareUrl,
+      group: software, help: discover.help.softwareUrl, showWhen: software.enabled }
+  - { key: software.screenshot,  type: string,                  label: discover.set.softwareScreenshot,
+      group: software, help: discover.help.softwareScreenshot, showWhen: software.enabled }
+  # -- IndexNow: tell participating engines (Bing, Yandex, Seznam, Naver, Yep) that content changed. NOT Google.
+  #    OFF by default, and inert unless the PLATFORM operator has also permitted it (indexnow.enabled at the app
+  #    level) — this is the one feature that makes an outbound request on the tenant's behalf, so it needs both
+  #    the operator's permission (they own the network) and the tenant's (they own the URLs being disclosed).
+  - { key: indexnow.enabled,      type: boolean, default: false, label: discover.set.indexnowEnabled,
+      group: indexnow, help: discover.help.indexnowEnabled, requiresPlatform: indexnow.enabled }
+  - { key: indexnow.key,          type: string,                  label: discover.set.indexnowKey,
+      group: indexnow, help: discover.help.indexnowKey, showWhen: indexnow.enabled }
+
+# --- No top-level tenant-console menu entry --------------------------------------------------------------
+# The plugin does NOT contribute its own menu link. The host now surfaces this plugin's per-tenant config as a
+# "Discoverability (SEO+ & GEO)" entry inside the console's Settings menu (any plugin with a siteSettings schema
+# gets one), and the help/reference page is linked from within that settings form (opens in a new tab). Adding a
+# separate menu item would duplicate that entry point.
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/discoverability/dashboard = templates/dashboard.*) --
+dashboardCards:
+  - { realm: tenant, order: 30, fragment: dashboard, permission: "discoverability|settings" }

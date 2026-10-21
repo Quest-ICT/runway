@@ -3,17 +3,15 @@
 # external/plugins/protection/. The id MUST be 'protection' (the kernel security-floor allowlist).
 id: protection
 name: Essential Protection
-# The essential plugin ships with the kernel, in the same release, on the kernel's version line (docs/SPI-STABILITY.md, "The essential-plugin exception"):
-# 1.0.0 from Runway 1.0.0-rc1 (plugin versions are plain MAJOR.MINOR.PATCH, so the rc suffix lives only on the kernel
-# tag). The number went from 1.5.0 (0.5.0-beta14) back to 1.0.0 once, at rc1; seeding compares SHA-256 hashes, not
-# versions, and no plugin may `requires:` an essential plugin, so nothing keys on it.
-version: 1.0.0
+# The essential plugin ships with the kernel, in the same release, on the kernel's version line (docs/SPI-STABILITY.md,
+# "The essential-plugin exception"): its version is the kernel's plain MAJOR.MINOR.PATCH. Seeding compares SHA-256
+# hashes, not versions, and no plugin may `requires:` an essential plugin, so nothing keys on it.
+version: 1.0.1
 essential: true
 # The mandatory floor (SPI 1.0.0): every plugin with a mainClass declares one; the kernel's own plugin declares the
 # kernel's SPI, so the floor rule can never block it and trip the fail-closed security floor. It also keeps an
-# older kernel from registering a plugin that links SPI types it lacks: without a floor, a rollback from
-# 0.5.0-beta14 to beta13 over a refreshed protection folder died on a NoClassDefFoundError naming neither the plugin
-# nor the cause; with it, every kernel since 0.5.0-beta10 refuses the plugin with a reason naming both SPI levels.
+# older kernel from registering a plugin that links SPI types it lacks: it refuses the plugin with a reason naming
+# both SPI levels, instead of failing on a NoClassDefFoundError that names neither the plugin nor the cause.
 requiresSpi: ">=1.0.0"
 mainClass: mx.quest.protection.ProtectionConfig
 

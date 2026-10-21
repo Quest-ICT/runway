@@ -42,6 +42,7 @@ bundle appended — no `makeself`, only stock `bash`/`tar`/`gzip`). Run it as ro
 **idempotent**, so re-running the same or a newer `.bin` upgrades in place:
 
 ```sh
+chmod +x runway-<version>.bin            # a download has no execute bit
 sudo ./runway-<version>.bin              # interactive: prompts on a TTY
 sudo ./runway-<version>.bin -y           # unattended, all defaults
 sudo ./runway-<version>.bin -y --no-firewall   # ...and never touch the host firewall

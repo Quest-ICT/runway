@@ -19,7 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * <h2>Why</h2>
  * Spring's message source runs a message through {@link java.text.MessageFormat} only when it is given arguments
  * ({@code alwaysUseMessageFormat} is off). In a message with {@code {0}}, {@code ''} is a literal apostrophe; in one
- * without, it reaches the page as two. The manifest hint showed "the site''s manifest" until 1.0.0-rc1.
+ * without, it reaches the page as two. The manifest hint once showed "the site''s manifest".
  */
 class MessageApostropheTest {
 

@@ -182,6 +182,7 @@ curl -fL -O \
 curl -fL -O \
   https://g.quest.mx/quest/runway/releases/download/latest/SHA256SUMS
 sha256sum -c SHA256SUMS --ignore-missing        # must print: runway-latest.bin: OK
+chmod +x runway-latest.bin                      # a download has no execute bit
 sudo ./runway-latest.bin
 ```
 
@@ -202,6 +203,7 @@ your own high-volume clients*.
 **Install (interactive).** Copy the `.bin` to the target host and run it as root:
 
 ```bash
+chmod +x runway-<version>.bin      # a download has no execute bit
 sudo ./runway-<version>.bin
 ```
 
@@ -1604,7 +1606,8 @@ plugin installed). Delete it afterward to confirm it removes cleanly like any ot
 
 **Where the plugins come from.** Each Runway release on the releases page
 (<https://g.quest.mx/quest/runway/releases>) also carries the public plugins built for it —
-`runway-plugin-<id>-<version>.zip` for `runway-demo`, `search`, `search-lucene` and `lucene-provider` — listed in
+`runway-plugin-<id>-<version>.zip` for `blog`, `carousel-manager`, `contact`, `discoverability`, `runway-demo`, `search`,
+`search-lucene` and `lucene-provider` — listed in
 the same `SHA256SUMS`. Install one by uploading its zip on **Plugins** (below), then restart.
 
 > ### ⚠️ Never park an old plugin version inside `external/plugins/`
@@ -2488,6 +2491,7 @@ restart.
 installs and upgrades, and it is idempotent:
 
 ```bash
+chmod +x runway-<newer-version>.bin
 sudo ./runway-<newer-version>.bin -y      # or interactively
 ```
 

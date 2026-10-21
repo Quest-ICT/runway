@@ -151,8 +151,8 @@ public record PluginDescriptor(
      * protection was a sentence in an upgrade note saying "kernel first, plugin second" — a rule enforced by an
      * operator reading a paragraph at the exact moment they are busy doing an upgrade.
      *
-     * <p>Against the <b>SPI level</b>, not the kernel release: a plugin does not care that the kernel is
-     * {@code 0.5.0-beta9}, it cares that a method exists. Kernel releases also move for reasons that have
+     * <p>Against the <b>SPI level</b>, not the kernel release: a plugin does not care which release the
+     * kernel is, it cares that a method exists. Kernel releases also move for reasons that have
      * nothing to do with the plugin contract, so a version-number floor would go stale on its own.
      *
      * <p>Only a floor. The reverse direction is safe by the SPI evolution rule (old-arity constructors are

@@ -31,13 +31,13 @@ public final class EssentialAllowlist {
      *
      * <p>The paths are the installer's, relative to the Runway home ({@code /opt/runway} on a default install — the
      * "current" symlink the service runs from, which is also the working directory the {@code external/} path is
-     * read against). The bundle carries the plugin under {@code seed/plugins/<id>/}, and from {@code 1.0.0-rc1} the
-     * installer keeps that folder in the release directory, so the repair needs no download: copy it over
-     * {@code external/plugins/<id>/}. After a rollback the symlink names the older release, whose {@code seed/} is the
-     * older plugin — the one that kernel needs, the same files as the {@code *.bak} pair the upgrade kept. The
-     * fallbacks cover the two cases where {@code seed/} is not the running release's copy: a release installed
-     * before {@code 1.0.0-rc1} has none, and a kernel jar replaced by hand left the earlier release's in place — then
-     * the operator extracts the running release's {@code .bin}.
+     * read against). The bundle carries the plugin under {@code seed/plugins/<id>/}, and the installer keeps that
+     * folder in the release directory, so the repair needs no download: copy it over {@code external/plugins/<id>/}.
+     * After a rollback the symlink names the older release, whose {@code seed/} is the older plugin — the one that
+     * kernel needs, the same files as the {@code *.bak} pair the upgrade kept. The fallbacks cover the two cases
+     * where {@code seed/} is not the running release's copy: a release whose installer did not keep {@code seed/} has
+     * none, and a kernel jar replaced by hand left the earlier release's in place — then the operator extracts the
+     * running release's {@code .bin}.
      *
      * @param pluginId an allowlisted essential plugin id
      * @return one or more complete sentences, never {@code null}
@@ -48,7 +48,7 @@ public final class EssentialAllowlist {
                 + "external/plugins/" + pluginId + "/, both in the Runway home (/opt/runway on a default install; "
                 + "after a rollback its seed/ is the older release's copy, the one it needs), or re-run that "
                 + "release's installer (sudo ./runway-<version>.bin -y — every upgrade refreshes it). If there is no "
-                + "seed/ folder there (a release installed before 1.0.0-rc1) or you replaced the kernel jar by hand, "
+                + "seed/ folder there (an older install) or you replaced the kernel jar by hand, "
                 + "extract the running release (./runway-<version>.bin --extract DIR) and copy "
                 + "DIR/runway-<version>/seed/plugins/" + pluginId + "/ instead; after a rollback to a release without "
                 + "seed/, restore the plugin.yml.bak and *.jar.bak pair in external/plugins/" + pluginId + "/. Then "

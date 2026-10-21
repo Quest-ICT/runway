@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Contact plugin — help &amp; reference</title>
+    <style>
+        body { max-width: 46rem; margin: 2rem auto; padding: 0 1rem;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; line-height: 1.5; }
+        h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; margin-top: 1.75rem; }
+        code { background: #f3f3f3; padding: .1rem .3rem; border-radius: .25rem; }
+        pre { background: #f6f8fa; padding: .75rem 1rem; border-radius: .375rem; overflow: auto; }
+    </style>
+</head>
+<body>
+<h1>Contact — help &amp; reference</h1>
+<p>The Contact plugin adds a contact form to your site and stores each submission (and can email it), which you
+    read here in the console. The form is a <strong>content widget</strong>: it lives on a normal, editable site
+    page. You can add it to any page yourself, or install a ready-made contact page in one click from the settings.</p>
+
+<h2>Install a ready-made contact page</h2>
+<p>On the Contact settings page, the <strong>Contact page</strong> card installs a ready-made page carrying the
+    form (at <code>/contact</code>). It then becomes an <strong>ordinary site page</strong> — it appears under
+    <em>Pages</em>, and you can edit its template, restyle it, move it or give it a different URL. Installing is
+    idempotent: it never overwrites an existing page. It also follows your site's publishing rules: on a site that
+    requires review it waits in the review queue (unless you may approve pages), and when the site's quality checks
+    block publishing it is kept as a draft and the answer lists what to fix. The answer always says which happened.</p>
+
+<h2>Or put the form on any page</h2>
+<pre>&lt;div id="contact" data-widget="contact/form"&gt;&lt;/div&gt;</pre>
+<p>The <code>id</code> and <code>data-widget</code> must be on the same element. On submit the form posts to
+    <code>/contact/submit</code>, which stores (and emails) the message and sends the visitor back to the page the
+    form lives on, where they see your thank-you message. If the message was stored but your mail server could not
+    be reached, the thank-you adds a short note that email delivery is delayed.</p>
+
+<h2>Read submissions</h2>
+<p>Every submission is stored inside your site's own folder and listed on the Contact settings page — newest
+    first, with the name, email, message and time — and, when an SMTP relay is set, also emailed to you. A
+    <strong>full backup</strong> of the site keeps the submissions. A <strong>transfer copy</strong> (the download
+    meant for someone outside your organisation) leaves them out, because they are your visitors' personal data;
+    its manifest lists what was left out.</p>
+
+<h2>Settings</h2>
+<ul>
+    <li><strong>Enable contact form</strong> — turn the form (and its submit handler) on or off.</li>
+    <li><strong>Thank-you message</strong> — what the visitor sees after sending.</li>
+    <li><strong>SMTP relay</strong> (host, port, authentication, username, password, STARTTLS, SSL/TLS, from
+        address, "Send submissions to") — optional: with a blank host or recipient, submissions are only stored.
+        The password is saved encrypted and never shown again. It belongs to the relay login it was typed for: a
+        save that changes the host, port, username or a TLS switch without retyping the password clears it, and
+        the settings page says so — enter it again. <strong>Send a test email</strong> checks the relay.</li>
+</ul>
+
+<h2>Anti-spam &amp; privacy notes</h2>
+<p>The form is sent as a <strong>POST</strong>, so a visitor's name, email and message travel in the request body
+    and never appear in a web address, their browser history or a proxy log. The platform lets this one form address
+    accept a post from a visitor without a session (it takes nothing else and acts for nobody), and the form keeps
+    its guards: a hidden <em>honeypot</em> field (a bot that fills it is silently ignored), your site's CAPTCHA when
+    you configured one, and the platform's per-address rate limit.</p>
+</body>
+</html>

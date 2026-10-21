@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * <h2>Time format</h2>
  * Lines are written as ISO-8601 local date-time <b>with its UTC offset</b> and milliseconds
  * ({@code 2026-10-17T08:10:03.123-06:00}), so an entry's instant is unambiguous across a DST change or a server
- * time-zone move. Lines written before 0.5.0-beta14 carry {@code yyyy-MM-dd HH:mm:ss} with no offset; the reader
+ * time-zone move. Lines written by an older release carry {@code yyyy-MM-dd HH:mm:ss} with no offset; the reader
  * still accepts them and interprets them in the server's current zone, flagging {@link AuditEntry#offsetKnown()}
  * {@code false}. Both forms coexist in one file across the upgrade day.
  *
@@ -50,7 +50,7 @@ public final class AuditJournal {
 
     /** The on-disk time format for new lines: local date-time, milliseconds, and the offset ({@code Z} at UTC). */
     static final DateTimeFormatter WRITE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    /** The pre-beta14 offset-less form, still accepted on read. */
+    /** The older offset-less form, still accepted on read. */
     private static final DateTimeFormatter LEGACY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 

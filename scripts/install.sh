@@ -326,7 +326,7 @@ Options:
   --memory-max SIZE     Set a systemd MemoryMax cgroup backstop, e.g. 3g / 1945M (drop-in 10-memory.conf). Keep it
                         >= the heap + headroom (~max(0.5G, 25% of -Xmx)). Omit to leave it as-is.
   --update-essential-plugins
-                        Accepted and ignored, so existing runbooks keep working: since 1.0.0-rc1 every
+                        Accepted and ignored, so existing runbooks keep working: every
                         upgrade does what it used to ask for (below).
   --dry-run            Print every privileged action instead of doing it.
   -h, --help            This help.
@@ -361,7 +361,7 @@ while [ $# -gt 0 ]; do
         --secret-key)      SECRET_KEY="${2:?}"; shift 2 ;;
         -y|--yes|--non-interactive) INTERACTIVE="no"; shift ;;
         --update-essential-plugins)
-            # Kept so pre-rc1 runbooks still run; the refresh it used to opt into is now every upgrade's.
+            # Kept so older runbooks still run; the refresh it used to opt into is now every upgrade's.
             log "--update-essential-plugins: nothing to do — every upgrade refreshes the bundled plugins now"
             shift ;;
         --heap)            HEAP_MAX="${2:?}"; shift 2 ;;
@@ -534,6 +534,14 @@ run cp -f "$JAR_SRC" "$DEST/bin/"
 run cp -f "$BUNDLE/bin/runway.sh" "$DEST/bin/runway.sh"
 run cp -f "$BUNDLE"/scripts/* "$DEST/scripts/" 2>/dev/null || true
 run chmod 0755 "$DEST/bin/runway.sh" "$DEST/scripts/install.sh"
+# The license, the plugin permission and the third-party notices travel with each installed release, so the
+# installed system carries its terms (the jars carry them too, under META-INF/). Skipped when the installer runs from
+# an installed release, whose bundle IS $DEST.
+if [ "$(readlink -m "$BUNDLE")" != "$(readlink -m "$DEST")" ]; then
+    for f in LICENSE LICENSE-EXCEPTION THIRD-PARTY-NOTICES; do
+        if [ -f "$BUNDLE/$f" ]; then run cp -f "$BUNDLE/$f" "$DEST/$f"; fi
+    done
+fi
 # The bundled plugins stay in the release too (seed/plugins/<id>/), so repairing the essential plugin needs no .bin:
 # when external/plugins/<id> is not the running release's copy (a hand-copied kernel jar, a hand edit), the kernel's
 # fail-closed message says to copy $LINK/seed/plugins/<id>/ over it. After a rollback the symlink names the older

@@ -147,9 +147,9 @@ public final class PluginResolution {
         }
 
         // Pass 0b — no plugin may depend on an essential (security-floor) plugin. The essential plugin ships in
-        // lockstep with the kernel and its version line follows the kernel's (1.5.0 with 0.5.0-beta14, back to 1.0.0
-        // at rc1), so a `requires: protection >= 1.2` would silently start failing; consumers use the CaptchaService
-        // SPI instead.
+        // lockstep with the kernel and its version line follows the kernel's — renumbered with it, not with the
+        // plugin's own API — so a `requires: protection >= 1.2` would silently start failing; consumers use the
+        // CaptchaService SPI instead.
         for (LoadedPlugin plugin : candidates) {
             for (PluginRequirement requirement : plugin.descriptor().requirements()) {
                 if (EssentialAllowlist.contains(requirement.id()) && !EssentialAllowlist.contains(plugin.id())) {

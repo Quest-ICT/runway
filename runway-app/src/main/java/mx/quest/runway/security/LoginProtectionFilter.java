@@ -27,7 +27,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <p>The login path is compared with both spellings of the request path ({@link RequestPaths#eitherMatches}):
  * Spring Security processes a sign-in posted to {@code /app/%6Cogin} exactly like one posted to
  * {@code /app/login}, so a raw-URI comparison would let an encoded spelling sign in past the lockout and the
- * form guard (fixed in {@code rc4}).
+ * form guard.
  *
  * <p>Any other request passes straight through. One instance per realm, constructed with that realm's login path
  * and {@link ProtectionScope.Realm}: the app-realm shell guards {@code /app/login} with an application scope, the

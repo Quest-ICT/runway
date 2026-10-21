@@ -186,7 +186,7 @@ class FileStampTest {
         assertTrue(stamp(f).isCurrent(), "a settled large file is checked by attributes alone");
     }
 
-    // ---- directories (since 1.0.0-rc1: a bundle folder where a new locale file must be noticed) -------------------
+    // ---- directories (a bundle folder where a new locale file must be noticed) -----------------------------------
 
     @Test
     void aFileAppearingInASettledDirectoryIsAChange(@TempDir Path dir) throws IOException {

@@ -80,8 +80,7 @@ import mx.quest.runway.web.CspScriptAllowlist;
  * same token boundary; a {@code <noscript>} or CDATA is checked always. Where the readings agree (every real page),
  * nothing changes. Where they do not, the walk stops and says so: the stamp leaves every later script unstamped, and
  * {@link ScriptPreloadStripper} reports the body hidden, so the edge withdraws the nonce and the page gets the
- * host-allowlist policy (1.0.0-rc1: a {@code <?x <!-- y>} bogus comment used to be read as a
- * comment that hid the rest of the page from the scan).
+ * host-allowlist policy.
  *
  * <h2>Known limits (documented, tested)</h2>
  * <ul>

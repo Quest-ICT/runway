@@ -61,10 +61,10 @@ import org.springframework.stereotype.Component;
  * in a fresh source if anything changed, and returns the fingerprint the page validator folds into the ETag — so
  * the ETag describes exactly the bundle the render then reads.
  *
- * <p><i>Why:</i> before rc1 the validator folded the files' bytes while the source re-read them only every
- * {@code runway.i18n.cache-seconds} (and only when the file's millisecond timestamp moved). For that window after
- * an edit the old text went out under the new ETag, and a client or CDN that stored it kept revalidating it to
- * {@code 304}. Every other lookup — an error page, a plugin's off-request {@code Messages.site} — re-checks the
+ * <p><i>Why:</i> if the validator folded the files' bytes while the source re-read them only every
+ * {@code runway.i18n.cache-seconds} (and only when the file's millisecond timestamp moved), then for that window after
+ * an edit the old text would go out under the new ETag, and a client or CDN that stored it would keep revalidating
+ * it to {@code 304}. Every other lookup — an error page, a plugin's off-request {@code Messages.site} — re-checks the
  * stamp at most once per {@code runway.i18n.cache-seconds} ({@code 0} = on every lookup), so a {@code #{}} key
  * still costs a map read.
  */
@@ -269,9 +269,9 @@ public class SiteAwareMessageSource implements MessageSource {
     /**
      * Spring's bundle reader, also accepting a file named with the BCP 47 tag ({@code messages_pt-BR.properties}),
      * which is how the Messages editor ({@link SiteMessagesStore}) names a region language's file. Spring itself only
-     * looks for {@code messages_pt_BR}, so before 1.0.0-rc2 a site offering {@code pt-BR} never saw its translations
-     * (they fell back to {@code messages_pt}, then the default language). The tag form is tried first, then Spring's
-     * own names, so a hand-made {@code messages_pt_BR.properties} keeps working.
+     * looks for {@code messages_pt_BR}, so on its own a site offering {@code pt-BR} would never see its translations
+     * (they would fall back to {@code messages_pt}, then the default language). The tag form is tried first, then
+     * Spring's own names, so a hand-made {@code messages_pt_BR.properties} keeps working.
      */
     static final class LanguageTagBundles extends ReloadableResourceBundleMessageSource {
         @Override

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blog console list. One row per entry; the publish/delete forms are real POSTs (CSRF hidden input injected
+     per form — the per-site token from ${_csrf}). `//` reaches nested elements (`/` matches direct children only). -->
+<thlogic>
+    <attr sel="#bl-pretitle" th:text="#{blog.admin.pretitle}"/>
+    <attr sel="#bl-heading" th:text="#{blog.admin.heading}"/>
+    <attr sel="#bl-new" th:text="#{blog.admin.new}" th:attr="title=#{blog.admin.new.tip}"/>
+
+    <attr sel="#bl-disabled" th:if="${!blogEnabled}"/>
+    <attr sel="#bl-disabled-text" th:text="#{blog.admin.disabled}"/>
+
+    <attr sel="#bl-h-id" th:text="#{blog.admin.col.entry}"/>
+    <attr sel="#bl-h-path" th:text="#{blog.admin.col.path}"/>
+    <attr sel="#bl-h-langs" th:text="#{blog.admin.col.langs}"/>
+    <attr sel="#bl-h-date" th:text="#{blog.admin.col.date}"/>
+    <attr sel="#bl-h-status" th:text="#{blog.admin.col.status}"/>
+    <attr sel="#bl-h-actions" th:text="#{blog.admin.col.actions}"/>
+
+    <attr sel="#bl-empty" th:if="${rows.isEmpty()}"/>
+    <attr sel="#bl-empty-text" th:text="#{blog.admin.empty}"/>
+
+    <attr sel="#bl-row" th:each="row : ${rows}"/>
+    <attr sel="#bl-row//.b-id" th:text="${row.entry().id()}"/>
+    <attr sel="#bl-row//.b-path" th:text="${row.publicPath()}"/>
+    <attr sel="#bl-row//.b-langs"
+          th:text="${row.entry().locales().isEmpty() ? '—' : #strings.listJoin(row.entry().locales(), ', ')}"/>
+    <attr sel="#bl-row//.b-date" th:text="${row.entry().publishedOn() != null ? row.entry().publishedOn() : '—'}"/>
+    <attr sel="#bl-row//.b-badge" th:text="${row.entry().published()} ? #{blog.admin.published} : #{blog.admin.draft}"
+          th:classappend="${row.entry().published() ? 'bg-green-lt' : 'bg-yellow-lt'}"/>
+    <attr sel="#bl-row//.b-edit" th:text="#{blog.admin.edit}"
+          th:attr="href='/__admin/blog/' + ${row.entry().id()} + '/edit'"/>
+    <attr sel="#bl-row//.b-publish-form"
+          th:attr="action='/__admin/blog/' + ${row.entry().id()} + '/publish'"/>
+    <attr sel="#bl-row//.b-publish"
+          th:text="${row.entry().published()} ? #{blog.admin.unpublish} : #{blog.admin.publish}"/>
+    <attr sel="#bl-row//.b-delete-form"
+          th:attr="action='/__admin/blog/' + ${row.entry().id()} + '/delete'"/>
+    <attr sel="#bl-row//.b-delete" th:text="#{blog.admin.delete}"
+          th:attr="data-confirm=#{blog.admin.delete.confirm}"/>
+    <!-- The per-site CSRF token on every mutating form (the messages-editor idiom). -->
+    <attr sel="#bl-row//.b-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+</thlogic>

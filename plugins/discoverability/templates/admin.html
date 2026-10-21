@@ -1,0 +1,36 @@
+<!-- Admin status fragment — the filename `admin` makes the host render it below this plugin's per-tenant
+     settings form. Bare fragment; binding in admin.th.xml. -->
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title" id="da-title">Discoverability status</h3></div>
+    <div class="card-body">
+        <div class="datagrid">
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="da-l-jsonld">Structured data</div>
+                <div class="datagrid-content"><span id="da-jsonld">on</span> (<span id="da-type">WebPage</span>)</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="da-l-sitemap">Sitemap</div>
+                <div class="datagrid-content"><a id="da-sitemap" href="/sitemap.xml" target="_blank" rel="noopener">/sitemap.xml</a></div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="da-l-geo">GEO · llms.txt</div>
+                <div class="datagrid-content"><span id="da-geo">off</span></div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title" id="da-l-pages">Pages in sitemap</div>
+                <div class="datagrid-content" id="da-pages">0</div>
+            </div>
+        </div>
+        <div class="mt-3" id="da-schema">
+            <div class="fw-semibold" id="da-schema-title">Per-page types check</div>
+            <div class="text-success small" id="da-schema-ok">No problems found.</div>
+            <ul class="small text-warning mb-0" id="da-schema-list"><li class="da-schema-item">problem</li></ul>
+        </div>
+        <p class="text-secondary small mt-2 mb-0" id="da-note">
+            These surfaces enrich the head/response layer; the kernel already emits canonical, hreflang and robots.</p>
+    </div>
+    <div class="card-footer">
+        <a id="da-help" href="/__plugin/discoverability/static/discoverability-help.html" target="_blank" rel="noopener">
+            <i class="fa-solid fa-circle-question me-1"></i><span id="da-help-label">Discoverability help &amp; reference</span></a>
+    </div>
+</div>

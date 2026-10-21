@@ -14,7 +14,7 @@
 # =============================================================================
 id: search
 name: Search
-version: 2.3.0
+version: 2.3.1
 
 # The @Configuration registered into the host context before refresh. Its package (mx.quest.search) lives
 # OUTSIDE mx.quest.runway so the host never double-scans it. Beans are wired EXPLICITLY (no @ComponentScan).

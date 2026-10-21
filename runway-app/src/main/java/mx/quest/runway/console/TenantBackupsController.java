@@ -43,7 +43,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * <ul>
  *   <li><b>Downloading a FULL backup</b> — fresh or stored. A full backup is complete by design, so it carries every
  *       account's password hash and the site's {@code ENC(...)} plugin secrets; a delegated holder who could
- *       download one could take those off the server (since 1.0.0-rc1). The routes
+ *       download one could take those off the server. The routes
  *       answer {@code 403}, and the screen hides their buttons.</li>
  *   <li><b>Restore</b>: it replaces the <em>entire</em> site, so it is an administrator's decision.</li>
  * </ul>

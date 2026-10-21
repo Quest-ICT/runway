@@ -1,0 +1,35 @@
+# =============================================================================
+#  Runway Carousel Manager plugin — descriptor
+#  An image/slide carousel a site manager configures per site and drops onto any
+#  page with a data-widget anchor. Content widget + per-tenant slide config.
+#  The install folder name MUST equal this `id`: external/plugins/carousel-manager/.
+# =============================================================================
+id: carousel-manager
+name: Carousel Manager
+version: 2.1.0
+
+# The @Configuration registered before refresh. Package mx.quest.carousel lives OUTSIDE mx.quest.runway.
+mainClass: mx.quest.carousel.CarouselConfig
+
+# Built against the Runway 1.0.0 SPI (service tier: PluginSettings). A kernel below SPI 1.0.0 BLOCKS this
+# plugin at startup with a reason, instead of failing to wire it (no PluginSettings bean to inject).
+requiresSpi: ">=1.0.0"
+
+# No hard dependency (always loads); NOT essential.
+
+# --- Grantable control-point permission (gates the per-tenant slide editor) ------------------------------
+permissions:
+  - { id: settings, realm: tenant, label: carousel.perm.settings, defaultRoles: [] }
+
+# --- Per-tenant settings (tenant-owned content; over sites/<id>/plugins/carousel-manager.yml) ------------
+#     `slides` is a `text` (verbatim, multi-line) field — one "imageUrl | caption | link" per line — NOT a
+#     `list`, whose comma-splitting would break a caption containing a comma.
+siteSettings:
+  - { key: slides,          type: text,                        label: carousel.set.slides }
+  - { key: intervalSeconds, type: int,     default: 5, range: "0..60", label: carousel.set.interval }
+  - { key: showCaptions,    type: boolean, default: true,      label: carousel.set.captions }
+  - { key: showControls,    type: boolean, default: true,      label: carousel.set.controls }
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/carousel-manager/dashboard) ------------------
+dashboardCards:
+  - { realm: tenant, order: 50, fragment: dashboard, permission: "carousel-manager|settings" }

@@ -46,7 +46,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <p><b>Placement.</b> Each realm chain registers it before the CSRF check and before
  * {@code PreAuthBodyLimitFilter}, so everything that asks "is this request signed in?" — the body budget first of all
  * — sees the account as it is now: a suspended user's open session gets the pre-authentication body cap on its very
- * next request, not the signed-in limit (since 1.0.0-rc1).
+ * next request, not the signed-in limit.
  *
  * <p>Only {@link RunwayUserDetails} principals are checked — the metrics bearer-token authentication and an
  * anonymous request pass through untouched. Login itself needs no help: {@link RunwayUserDetails#isEnabled()}

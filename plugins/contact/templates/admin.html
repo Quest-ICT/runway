@@ -1,0 +1,75 @@
+<!-- Admin fragment — rendered below this plugin's per-tenant settings form. Bare fragment; binding in .th.xml.
+     First card: the ready-made "Contact page" — install it (once) or see where it lives (it becomes a normal,
+     editable site page). Then the SMTP readiness + a self-test button, and the recent submissions (a th:each row
+     template) so a site manager reads messages in the console. -->
+<div class="card mt-3">
+    <div class="card-header"><h3 class="card-title" id="cp-title">Contact page</h3></div>
+    <div class="card-body">
+        <!-- Not yet installed: explain + a one-click install action. A POST carrying the console's CSRF token (it
+             creates a page, so a cross-site link must not be able to trigger it); the plain-text result opens in
+             a new tab. -->
+        <div id="cp-install">
+            <p class="text-secondary" id="cp-desc">Install a ready-made contact page carrying the form. It becomes
+                a normal site page — edit, restyle, move or rename it from Pages.</p>
+            <form id="cp-install-form" method="post" action="/contact/install-page" target="_blank" rel="noopener"
+                  class="m-0">
+                <input id="cp-csrf" type="hidden" name="_csrf" value="">
+                <button id="cp-install-btn" type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-file-circle-plus me-1"></i><span id="cp-install-label">Install contact page</span></button>
+            </form>
+        </div>
+        <!-- Already installed: show the live path (from PageStore — follows moves) + where to edit it. -->
+        <div id="cp-installed" class="d-flex align-items-center">
+            <span class="badge bg-success-lt me-2" id="cp-badge">Installed</span>
+            <span id="cp-at">Installed at</span>&nbsp;<code id="cp-path" class="ms-1">/contact</code>
+            <span class="text-secondary ms-2" id="cp-edit">— edit it under Pages.</span>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title" id="cn-title">Contact submissions</h3>
+        <span class="ms-auto text-secondary"><span id="cn-count">0</span></span>
+    </div>
+    <div class="card-body">
+        <!-- SMTP readiness row + operator-only self-test: a POST carrying the console's CSRF token (it sends an
+             email); the plain-text result opens in a new tab. -->
+        <div class="d-flex align-items-center mb-3" id="cn-smtp">
+            <span class="me-2" id="cn-smtp-label">SMTP relay</span>
+            <span id="cn-smtp-ok" class="badge bg-success-lt">Configured</span>
+            <span id="cn-smtp-missing" class="badge bg-red-lt">Not configured</span>
+            <form id="cn-smtp-test-form" method="post" action="/contact/smtp-test" target="_blank" rel="noopener"
+                  class="m-0 ms-auto">
+                <input id="cn-csrf" type="hidden" name="_csrf" value="">
+                <button id="cn-smtp-test" type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa-solid fa-paper-plane me-1"></i><span id="cn-smtp-test-label">Send a test email</span></button>
+            </form>
+        </div>
+        <p class="text-secondary mb-0" id="cn-empty">No submissions yet.</p>
+        <div class="table-responsive" id="cn-table">
+            <table class="table table-sm">
+                <thead>
+                <tr>
+                    <th id="cn-h-when">When</th>
+                    <th id="cn-h-name">Name</th>
+                    <th id="cn-h-email">Email</th>
+                    <th id="cn-h-msg">Message</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="cn-row">
+                    <td class="cn-when text-nowrap">time</td>
+                    <td class="cn-name">name</td>
+                    <td class="cn-email">email</td>
+                    <td class="cn-excerpt">excerpt</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a id="cn-help" href="/__plugin/contact/static/contact-help.html" target="_blank" rel="noopener">
+            <i class="fa-solid fa-circle-question me-1"></i><span id="cn-help-label">Contact help &amp; reference</span></a>
+    </div>
+</div>

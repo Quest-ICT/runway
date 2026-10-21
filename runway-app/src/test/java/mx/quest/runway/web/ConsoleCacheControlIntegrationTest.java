@@ -36,7 +36,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * Spring Security's {@code CacheControlHeadersWriter} <b>bails out entirely</b> when the response already carries
  * an {@code Expires}/{@code Pragma} (verified in its bytecode) — so nothing wrote {@code Cache-Control} at all.
  * Reusing an existing session restores it, which is why only a cold, cookie-less request reproduces it. Reported
- * from a live deployment against {@code 0.5.0-beta2}, where a browser's first cold visit hit exactly this shape.
+ * from a live deployment, where a browser's first cold visit hit exactly this shape.
  *
  * <p><b>Do NOT "simplify" these to a HEAD.</b> A {@code HEAD} does <b>not</b> mint a session, so it never walks
  * the failing path: measured on a live deployment, {@code HEAD /__app} returned the full

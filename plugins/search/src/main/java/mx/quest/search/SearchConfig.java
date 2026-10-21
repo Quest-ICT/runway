@@ -50,7 +50,7 @@ public class SearchConfig {
      * plugin-file cache lifetime. {@code SearchConfigTest} holds it equal to {@code plugin.yml}'s version and to the
      * URLs inside the static scripts.
      */
-    public static final String VERSION = "2.3.0";
+    public static final String VERSION = "2.3.1";
 
     /** The query a plugin file URL ends with. */
     static final String ASSET_QUERY = "?v=" + VERSION;

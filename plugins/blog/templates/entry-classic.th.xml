@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blog entry (classic): the tenant's OWN master supplies head/header/footer (this file is byte-identical across
+     tenants; ALL variance flows through the model). It reads ONLY the body-template render model the
+     SPI documents on ContentSource/ContentRef.bodyTemplate: ${master}, ${content.*} (id, sourceKey,
+     title, description, bodyHtml, attributes, updatedAt), ${locale} and ${urls[...]} — BlogEntryTemplateContractTest
+     fails the build if anything else creeps in. Labels resolve via #{} from THIS plugin's bundles (appended last —
+     a site that defines the same key wins). `//` reaches nested elements (`/` matches direct children only). -->
+<thlogic>
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+
+    <attr sel="#entry-title" th:text="${content.title}"/>
+    <!-- Editorial byline. The meta line renders when the entry has a date OR an author, and each part renders
+         independently — an entry with an author but no date (or the reverse) is a normal state, and gating the
+         whole line on the date alone would silently swallow the byline. Each is absent from
+         content.attributes when unset, so nothing renders as an empty element. -->
+    <attr sel="#entry-meta"
+          th:if="${content.attributes['publishedOn'] != null or content.attributes['author'] != null}"/>
+    <attr sel="#entry-meta//#entry-date"
+          th:if="${content.attributes['publishedOn'] != null}"
+          th:text="#{blog.publishedOn} + ' ' + ${content.attributes['publishedOn']}"
+          th:attr="datetime=${content.attributes['publishedOn']}"/>
+    <attr sel="#entry-meta//#entry-author"
+          th:if="${content.attributes['author'] != null}"
+          th:text="#{blog.by} + ' ' + ${content.attributes['author']}"/>
+    <attr sel="#entry-body" th:utext="${content.bodyHtml}"/>
+    <!-- Back to the site home in the CURRENT locale (the home page's locale-correct URL when it exists). -->
+    <attr sel="#entry-back" th:text="#{blog.back}"
+          th:attr="href=${urls['index'] != null ? urls['index'] : '/'}"/>
+</thlogic>

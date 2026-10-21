@@ -4,8 +4,8 @@
 # it in its test phase next to test-plugin-seed.sh (skipped with -DskipTests). Exit status 0 = all passed.
 #
 # The defect it guards against: the development guide said publishing refused a release section with no
-# "Upgrading — read this first" part, and the script only refused a MISSING section — so the 0.5.0-beta14 notes
-# came within one cut of shipping without any operator steps.
+# "Upgrading — read this first" part, and the script only refused a MISSING section — so a release's notes
+# could ship without any operator steps.
 set -euo pipefail
 
 HERE="$(dirname "$(readlink -f "$0")")"

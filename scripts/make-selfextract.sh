@@ -63,9 +63,9 @@ payload="$work/payload.tar.gz"
 # "the tree holds what we shipped" invariant quietly stopped holding for the plugin artifacts.
 #
 # The instant is the cut's, and there is ONE copy of it: the reactor pom's project.build.outputTimestamp, which also
-# stamps every jar entry. The Maven build passes it in as BUILD_TIMESTAMP; a hand run reads it from the pom. (Until
-# 0.5.0-beta14 this script kept its own hand-edited default, so a cut that bumped only one of the two still built
-# reproducibly — building twice cannot catch it — but shipped a jar and a .bin claiming different instants.)
+# stamps every jar entry. The Maven build passes it in as BUILD_TIMESTAMP; a hand run reads it from the pom. (A second,
+# hand-edited default in this script would let a cut that bumped only one of the two still build
+# reproducibly — building twice cannot catch it — but ship a jar and a .bin claiming different instants.)
 # SOURCE_DATE_EPOCH, the reproducible-builds convention, still wins when set. An instant that cannot be read is an
 # error, never a silent fallback: a fallback is how the two copies drifted.
 if [ -z "${SOURCE_DATE_EPOCH:-}" ] && [ -z "${BUILD_TIMESTAMP:-}" ]; then

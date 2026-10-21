@@ -1,0 +1,70 @@
+# =============================================================================
+#  Runway Contact plugin — descriptor
+#  A contact form delivered as a CONTENT WIDGET on a normal, editable site page
+#  (no plugin-owned page): drop <div id=.. data-widget="contact/form"> on a page,
+#  or install a ready-made contact page in one click from the settings — it then
+#  behaves like any site page (listed under Pages; restyle/move/rename it). The
+#  endpoint owns only the ANONYMOUS POST /contact/submit handler (CSRF-exempt by
+#  the kernel for exactly that method and path; 303s back to the form's page with
+#  a ?contact= outcome), the operator-gated, CSRF-checked POSTs /contact/install-page
+#  and /contact/smtp-test. A submission is BOTH emailed to the site's recipient over
+#  the site's own SMTP relay AND kept as a stored record (belt-and-suspenders —
+#  never lost even if SMTP is down). CAPTCHA (when the site has one) + honeypot.
+#  Links ONLY the Runway SPI (SPI 1.0.0).
+#  The install folder name MUST equal this `id`: external/plugins/contact/.
+# =============================================================================
+id: contact
+name: Contact form
+version: 2.1.0
+
+# The @Configuration registered before refresh. Package mx.quest.contact lives OUTSIDE mx.quest.runway.
+mainClass: mx.quest.contact.ContactConfig
+
+# Built against the frozen SPI 1.0.0 contract (the service tier: PluginSettings, PluginSiteFiles, Messages,
+# AccessCheck, SitePages and anonymous POST routes). A kernel with an older SPI BLOCKS this plugin at startup
+# with a reason.
+requiresSpi: ">=1.0.0"
+
+# --- Personal data (siteData) ------------------------------------------------------------------------------
+#     submissions.tsv holds what visitors typed (names, emails, messages). A TRANSFER copy of a site (the one
+#     meant for someone outside the organisation) leaves it out and lists it in the archive's manifest; a FULL
+#     backup keeps it. Path relative to sites/<id>/plugins/contact/.
+siteData:
+  personal:
+    - submissions.tsv
+
+# --- Dependencies ----------------------------------------------------------------------------------------
+# No plugin dependency: the Jakarta Mail stack is part of the CORE application (the kernel bundles it for
+# its own platform mailer). This plugin compiles Jakarta Mail as `provided` and resolves the kernel's copy at
+# runtime via the plugin classloader's parent-first delegation, so no `requires:` gate is needed.
+
+# --- Grantable control-point permission (gates the settings editor, the submissions view + the SMTP test) --
+permissions:
+  - { id: settings, realm: tenant, label: contact.perm.settings, defaultRoles: [] }
+
+# --- Per-tenant settings (tenant-owned behaviour; over sites/<id>/plugins/contact.yml) -------------------
+#     The SMTP relay is the TENANT's own mail transport — isolation: a site sends with its OWN settings only.
+#     The password is a `secret` → stored ENC(...)-encrypted and the config file is chmod 600; the plugin reads it
+#     in clear only through PluginSettings.secret(site, "smtpPassword"), at send time. A blank host
+#     (or a blank recipient) simply means "don't send" — the submission is still stored.
+#     secretBoundTo: the stored password belongs to ONE relay login. A save that changes the host, port, username or a TLS switch
+#     without retyping the password makes the kernel DROP the stored password, so whoever may edit the settings
+#     cannot point the site's saved credentials at a server of their choosing and read them off the wire.
+siteSettings:
+  - { key: enabled,        type: boolean, default: true, label: contact.set.enabled }
+  - { key: successMessage, type: text,                   label: contact.set.success }
+  # --- SMTP relay -------------------------------------------------------------------------------------
+  - { key: smtpHost,       type: string,                 label: contact.set.smtpHost }
+  - { key: smtpPort,       type: int, default: 25, range: "1..65535", label: contact.set.smtpPort }
+  - { key: smtpAuth,       type: boolean, default: false, label: contact.set.smtpAuth }
+  - { key: smtpUsername,   type: string,                 label: contact.set.smtpUsername }
+  - { key: smtpPassword,   type: secret,                 label: contact.set.smtpPassword,
+      secretBoundTo: [smtpHost, smtpPort, smtpUsername, smtpStarttls, smtpSsl] }
+  - { key: smtpStarttls,   type: boolean, default: false, label: contact.set.smtpStarttls }
+  - { key: smtpSsl,        type: boolean, default: false, label: contact.set.smtpSsl }
+  - { key: fromAddress,    type: string,                 label: contact.set.fromAddress }
+  - { key: toAddress,      type: string,                 label: contact.set.toAddress }
+
+# --- Tenant dashboard card (fragment resolves to __plugin__/contact/dashboard) ---------------------------
+dashboardCards:
+  - { realm: tenant, order: 45, fragment: dashboard, permission: "contact|settings" }

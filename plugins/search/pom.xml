@@ -20,7 +20,7 @@
 
     <groupId>mx.quest</groupId>
     <artifactId>runway-plugin-search</artifactId>
-    <version>2.3.0</version>
+    <version>2.3.1</version>
     <packaging>jar</packaging>
     <name>Runway Search Plugin</name>
     <licenses>
@@ -45,7 +45,7 @@
         <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
              produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
              never match what was published. Bump at each release. -->
-        <project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-10-21T19:31:00Z</project.build.outputTimestamp>
         <!-- The runway-spi (and runway-spi-testkit) version this plugin compiles and tests against, from ~/.m2. -->
         <runway.version>1.0.0</runway.version>
     </properties>

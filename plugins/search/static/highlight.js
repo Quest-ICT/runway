@@ -150,7 +150,7 @@
         var link = document.createElement('link');
         link.id = 'rw-search-highlight-css';
         link.rel = 'stylesheet';
-        link.href = '/__plugin/search/static/highlight.css?v=2.3.0';
+        link.href = '/__plugin/search/static/highlight.css?v=2.3.1';
         // First in <head>, so any ::highlight(rw-search) rule of the site comes later and wins.
         document.head.insertBefore(link, document.head.firstChild);
     }

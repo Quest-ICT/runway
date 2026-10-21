@@ -111,7 +111,7 @@ class PageValidatorServiceTest {
                 "https://acme.test", SiteStatus.ACTIVE), PAGE, EN).etag(), "an equal record folds equally");
     }
 
-    // ---- 1.0.0-rc1: the site's chrome templates — every template that is not a page ----------------------------
+    // ---- the site's chrome templates — every template that is not a page -----------------------------------------
 
     /** A template a master or page may pull in by name: the ETag of every page of the site must move with it. */
     @Test

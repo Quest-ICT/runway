@@ -220,9 +220,8 @@ public class EditorialService {
      * <b>through the editorial level</b>, exactly as if the user had saved that body in the editor
      * ({@link #save}): on a reviewed site a published page re-seeded by a user without {@code APPROVE_PAGES}
      * becomes a pending revision (live untouched); a published page on an enforced or reviewed site passes the
-     * quality gate first; everything runs under the page lock. Before 0.5.0-beta14 a re-seed wrote the live
-     * files directly, past all three — and for a page without {@code .th.xml} seams that changes what
-     * visitors see.
+     * quality gate first; everything runs under the page lock. A re-seed that wrote the live files directly would
+     * bypass all three — and for a page without {@code .th.xml} seams that would change what visitors see.
      *
      * <p>When the re-seed will be a revision and one is already pending, the <em>revision's</em> body is re-seeded
      * (and resubmitted), so the editor's pending work is refreshed rather than overwritten by the live page. A user

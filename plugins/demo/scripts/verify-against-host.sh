@@ -41,7 +41,7 @@ MVN="${MVN:-mvn}"
 # Default host: the kernel at the root of the repository this plugin sits in (plugins/<name>/), else a kernel
 # checkout named `runway` beside the plugins checkout.
 if [ -z "${HOST_TARGET:-}" ]; then
-  if [ -f "$HERE/../../../runway-app/pom.xml" ]; then HOST_TARGET="$HERE/../../../runway-app/target"
+  if [ -f "$HERE/../../runway-app/pom.xml" ]; then HOST_TARGET="$HERE/../../runway-app/target"
   else HOST_TARGET="$HERE/../../runway/runway-app/target"; fi
 fi
 

@@ -250,7 +250,7 @@ public class PluginAdminService {
      * <p>An archive whose id is an <b>essential</b> one ({@link EssentialAllowlist}) is refused before anything is
      * moved: the essential plugin's exemptions (no linkage scan or surface check, cannot be disabled or uninstalled,
      * its failure takes every tenant page to 503) are claimed by id, so the only copy the platform treats as essential
-     * is the one the Runway installer/seed delivers (since 1.0.0-rc1).
+     * is the one the Runway installer/seed delivers.
      *
      * @throws IllegalArgumentException if the archive has no {@code plugin.yml}, the descriptor is invalid or names an
      *                                  essential plugin, or an entry path would escape the extraction root (zip-slip)

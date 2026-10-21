@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dashboard card logic. Values from ${@contactAdminModel...(tenantSiteId)}. -->
+<thlogic>
+    <attr sel="#cd-title" th:text="#{contact.card.title}"/>
+    <attr sel="#cd-count" th:text="${@contactAdminModel.count(tenantSiteId)}"/>
+    <attr sel="#cd-count-lbl" th:text="#{contact.card.submissions}"/>
+</thlogic>

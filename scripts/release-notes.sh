@@ -2,11 +2,9 @@
 # also sourced on its own by test-release-notes.sh, which is why it defines functions and runs nothing at load time.
 #
 # Why this is a gate and not a convenience. The release body IS the upgrade notes an operator reads
-# before upgrading. beta10 shipped with none (the body said "See CHANGELOG.md"), so the notes now come from the
-# CHANGELOG section keyed by the version. That made a MISSING section impossible, but not a section WITHOUT the
-# part an operator acts on: in 0.5.0-beta14 the [Unreleased] section — 47 KB of entries — had no
-# "Upgrading — read this first" at all, while the development guide claimed the publish script refused exactly
-# that. It did not. Now it does: the section must open with that heading, the way every release since beta10 has.
+# before upgrading, so the notes come from the CHANGELOG section keyed by the version. That makes a MISSING
+# section impossible, but not a section WITHOUT the part an operator acts on, so the section must also open with
+# the "Upgrading — read this first" heading.
 
 # The heading every release section must open with (its first "### " heading). Part of the CHANGELOG contract.
 RELEASE_NOTES_UPGRADING_HEADING="### Upgrading — read this first"
@@ -36,7 +34,7 @@ release_notes_check() {
     if [ -z "$notes" ]; then
         echo "refusing to publish: CHANGELOG.md has no '## [${version}]' section (or it is empty)." >&2
         echo "  The release body IS the upgrade notes — write the section first (flip [Unreleased] to" >&2
-        echo "  [${version}]), then re-run. beta10 shipped with no notes because nothing enforced this." >&2
+        echo "  [${version}]), then re-run." >&2
         return 1
     fi
     first="$(printf '%s\n' "$notes" | grep -m1 '^### ' || true)"

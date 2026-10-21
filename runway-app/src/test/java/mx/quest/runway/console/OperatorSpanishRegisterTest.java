@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Test;
  *
  * <h2>Why</h2>
  * The console is a professional tool used by operators and site managers the product has never met, so it speaks
- * formally: "Elija un archivo", "su sitio", "puede". Strings written before 1.0.0-rc3 mixed in "tú" ("Elige",
- * "tu sitio", "puedes"). A review listed 35 of them; 1.0.0-rc3 rewrote 61 values in usted. This test
+ * formally: "Elija un archivo", "su sitio", "puede". Earlier strings mixed in "tú" ("Elige",
+ * "tu sitio", "puedes") and were rewritten in usted. This test
  * keeps new ones out.
  *
  * <h2>What it checks, and what it cannot</h2>

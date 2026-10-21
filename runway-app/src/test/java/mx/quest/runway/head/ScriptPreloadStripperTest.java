@@ -373,7 +373,7 @@ class ScriptPreloadStripperTest {
         assertTrue(strip(deeper).hidden(), "srcdoc nested past the bound: refuse to vouch for it");
     }
 
-    // ---- the tokenizer's corners (1.0.0-rc1) ---------------------------------------------
+    // ---- the tokenizer's corners ----------------------------------------------------------
 
     private static final String EVIL_LINK = "<link rel=\"modulepreload\" href=\"https://evil.example/x.mjs\">";
     private static final String OK_SCRIPT = "<script src=\"/ok.js\"></script>";

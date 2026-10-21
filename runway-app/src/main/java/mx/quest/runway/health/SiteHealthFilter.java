@@ -149,7 +149,7 @@ public class SiteHealthFilter extends OncePerRequestFilter {
 
     /**
      * Writes the body, honouring HEAD: no bytes, but the {@code Content-Length} the GET would have carried. The
-     * standing rule (paid for in 0.2.1-beta10) is that a body-less HEAD must still report the real length — here
+     * standing rule is that a body-less HEAD must still report the real length — here
      * that is trivially correct because the filter computes the body either way and never buffers a response.
      */
     private void write(HttpServletRequest request, HttpServletResponse response, String json) throws IOException {

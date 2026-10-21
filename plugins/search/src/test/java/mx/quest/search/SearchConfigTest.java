@@ -181,10 +181,10 @@ class SearchConfigTest {
                 .matcher(pom);
         assertTrue(version.find());
         assertEquals(version.group(1), String.valueOf(yml.get("version")), "plugin.yml and pom.xml agree on the version");
-        assertEquals("2.3.0", version.group(1));
+        assertEquals("2.3.1", version.group(1));
         assertEquals(version.group(1), SearchConfig.VERSION, "the ?v= on the plugin's file URLs is this release");
         assertFalse(pom.contains("<artifactId>runway-app</artifactId>"), "no runway-app dependency in any scope");
-        assertTrue(pom.contains("<project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>"));
+        assertTrue(pom.contains("<project.build.outputTimestamp>2026-10-21T19:31:00Z</project.build.outputTimestamp>"));
     }
 
     @Test

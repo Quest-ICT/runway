@@ -1,0 +1,43 @@
+# =============================================================================
+#  Runway Blog Plugin — descriptor
+#  Blog entries as first-class virtual pages via the kernel's ContentSource seam.
+#  Links ONLY the Runway SPI (service tier, SPI 1.0.0).
+#  The install folder name MUST equal this `id`: external/plugins/blog/.
+# =============================================================================
+id: blog
+name: Blog
+version: 2.1.0
+
+# Built against the SPI service tier (ContentChanges, SiteEventListener, ContentCatalogView, PluginSettings,
+# PluginSiteFiles, RequestContext, Messages and @ConsoleScreen) as frozen in SPI 1.0.0. A kernel below it BLOCKS this
+# plugin at startup with a reason.
+requiresSpi: ">=1.0.0"
+
+# The @Configuration registered into the host context before refresh. Its package (mx.quest.blog) lives
+# OUTSIDE mx.quest.runway so the host never double-scans it. Beans are wired EXPLICITLY (no @ComponentScan), and every
+# bean name starts with the plugin id (blog…).
+mainClass: mx.quest.blog.BlogConfig
+
+# --- Per-site data -----------------------------------------------------------------------------------------
+#     Entries live in sites/<id>/plugins/blog/entries/<entryId>/ (entry.yml + body-<lang>.md). They are PUBLISHED
+#     CONTENT the site's own operators author, not visitor or user input, so nothing is
+#     declared under siteData.personal: a transfer copy of the site carries the blog, like its pages.
+
+# --- Grantable control-point permissions -----------------------------------------------------------------
+# `settings` (reserved id) gates the per-site config editor; `manage` gates the authoring screen.
+permissions:
+  - { id: settings, realm: tenant, label: blog.perm.settings, defaultRoles: [] }
+  - { id: manage,   realm: tenant, label: blog.perm.manage,   defaultRoles: [] }
+
+# --- Per-site settings (tenant-owned BEHAVIOUR; over sites/<id>/plugins/blog.yml; applied IMMEDIATELY — a save
+#     reaches the blog's SiteEventListener, which drops its per-site URL index before anything re-reads it) -------
+siteSettings:
+  - { key: enabled,  type: boolean, default: true,          label: blog.settings.enabled }
+  - { key: prefix,   type: string,  default: "/blog",       label: blog.settings.prefix }
+  - { key: template, type: enum,    default: entry-classic, range: "entry-classic,entry-minimal",
+      label: blog.settings.template }
+
+# --- Tenant-console menu entry (gated by the FULL namespaced permission key; visibility is UX only) --------
+menu:
+  - { realm: tenant, region: menu, order: 55, label: blog.menu, path: "/__admin/blog",
+      permission: "blog|manage", icon: "fa-solid fa-feather-pointed" }

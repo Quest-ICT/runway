@@ -267,7 +267,7 @@ class CspFilterTest {
 
     @Test
     void aNoncedKernelPageIsForcedNoStoreEvenWhenAWeakerCacheControlWasSet() throws Exception {
-        // Reported from a live deployment against 0.5.0-beta1: a nonced login page reached the wire with NO Cache-Control.
+        // Reported from a live deployment: a nonced login page reached the wire with NO Cache-Control.
         // "Never stored" is an invariant for a nonced page, so enforce it over any value that doesn't say no-store.
         CspFilter filter = filter(RunwayCspProperties.Mode.REPORT);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/app/login");

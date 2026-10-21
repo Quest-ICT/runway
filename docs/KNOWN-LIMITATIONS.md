@@ -136,10 +136,6 @@ closes it. Items marked **after 1.0** are decided: they are not part of the `1.0
   and parses it itself, and takes its CSRF token in the `X-CSRF-TOKEN` header (no first-party plugin accepts
   uploads).
 - **Billboard and News plugins are not built** (**after 1.0**, as plugin releases).
-- **No published plugin serves `/sitemap.xml`, `/robots.txt`, `/llms.txt` or schema.org structured data.** The
-  kernel provides the seams (`EndpointContributor`, `HeadContributor`) and the Site-manager guide (§10) describes
-  what such a plugin provides, but none of the published plugins (demo, search, search-lucene, lucene-provider)
-  does; without one a site serves no `/robots.txt` at all (crawlers read that as everything allowed) and no sitemap.
 - **The search plugin's rate limit is a courtesy limiter, not a defence.** It keys on the client address after
   the kernel's trusted-proxy gate; the kernel's own edge guard is the abuse floor.
 - **A search index rebuilds by rendering every page once per language.** A page is indexed as rendered in

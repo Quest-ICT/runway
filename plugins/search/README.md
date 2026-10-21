@@ -37,7 +37,7 @@ export JAVA_HOME=/path/to/jdk-25
 mvn -q verify
 #   → target/runway-plugin-search.jar
 #     target/search/                        (cp -r into <external>/plugins/ and restart)
-#     target/runway-plugin-search-2.3.0.zip (upload at /__app/plugins → install)
+#     target/runway-plugin-search-2.3.1.zip (upload at /__app/plugins → install)
 HOST_JAR=/path/to/runway/runway-app/target/runway-app-<version>-exec.jar \
   JAVA_HOME=/path/to/jdk-25 scripts/verify-against-host.sh          # boots the PACKAGED host and proves the contract live
 ```

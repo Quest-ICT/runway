@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Inherit the SAME managed dependency versions the Runway kernel uses (Spring Boot 4.0.6), so every
+      `provided` Spring / Jackson type the plugin compiles against is byte-identical to the class the host
+      loads. A plugin is NOT a Spring Boot application — there is NO spring-boot-maven-plugin repackage;
+      `mvn package` produces a THIN jar of only this plugin's own classes.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-discoverability</artifactId>
+    <version>2.3.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Discoverability Plugin</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        SEO+ and GEO for Runway: schema.org JSON-LD structured data (WebSite / WebPage / Organization /
+        BreadcrumbList), a per-site sitemap.xml with hreflang alternates, and — opt-in — Generative Engine
+        Optimization (llms.txt, WebSite SearchAction, Speakable). It enriches the head/response layer the
+        kernel already fills with canonical + hreflang + Open Graph + Twitter cards, adding the structured-data and
+        crawl-surface layer the lean core leaves out. One plugin, two capability areas, one JSON-LD core.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T18:56:00Z</project.build.outputTimestamp>
+        <!-- The Runway SPI this plugin compiles against (installed in ~/.m2 by the host's `mvn install`): the
+             in-development kernel while developing, a released tag for a release build. The SPI LEVEL it needs at
+             runtime is declared separately, as plugin.yml's requiresSpi. -->
+        <runway.version>1.0.0</runway.version>
+        <!-- The host-integration tests (Host*Test, which link runway-app) are left out of the default build; the
+             host-it profile below clears this. -->
+        <host-it.excludes>**/Host*Test.java</host-it.excludes>
+    </properties>
+
+    <dependencies>
+        <!-- The dependency-free extension API (SPI interfaces + immutable model records). COMPILE scope —
+             the host's own stable artifact, resolved parent-first at runtime. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+
+        <!-- NO runway-app dependency in the default build, in any scope: the plugin links only
+             the SPI, so a host import no longer compiles and the kernel's host-linkage scanner finds nothing to
+             report. Host services (PluginSettings, ContentCatalogView, Sites) arrive by injection of SPI types.
+             runway-app appears ONLY in the `host-it` profile below, test-scoped. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring context/Boot for @Configuration/@Bean at compile time; host-provided at runtime. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson 3 (tools.jackson) — used to serialize JSON-LD safely (transitively brings databind's
+             JsonMapper). BOM-managed; host-provided at runtime (do NOT bundle). -->
+        <dependency>
+            <groupId>tools.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Wiring/unit tests run against the compiled classes (NEVER spring-boot:run — DevTools' restart
+             classloader loads ZERO plugins). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Stable deployed filename (no version/classifier): target/runway-plugin-discoverability.jar. -->
+        <finalName>runway-plugin-discoverability</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <testExcludes>
+                        <testExclude>${host-it.excludes}</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>${host-it.excludes}</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <!--
+              After the jar is built, assemble BOTH installable forms the platform accepts:
+                1. target/discoverability/  — the install-ready folder for a FILESYSTEM install
+                   (`cp -r target/discoverability <runway-external>/plugins/` + restart).
+                2. target/runway-plugin-discoverability-<version>.zip — the archive the MANAGEMENT UI upload
+                   expects (/__app/plugins → install): plugin.yml under a single wrapping dir (discoverability/)
+                   alongside the jar + static/ templates/ i18n/.
+            -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/discoverability"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-discoverability.jar" todir="${stage}"/>
+                                <copy todir="${stage}/static">
+                                    <fileset dir="${project.basedir}/static"/>
+                                </copy>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="discoverability"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-discoverability-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="discoverability/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-discoverability-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+          Host-integration tests: `mvn -P host-it verify`. They build REAL kernel objects —
+          the kernel's own descriptor parser and settings merge, its content catalog and URL authority — to prove
+          the plugin's descriptor and its output agree with the kernel it runs on. The only place runway-app may
+          appear, and only test-scoped: the shipped jar never links it. The tests are src/test/java/**/Host*Test.java;
+          the default build neither compiles nor runs them (the `host-it.excludes` property, above).
+        -->
+        <profile>
+            <id>host-it</id>
+            <properties>
+                <host-it.excludes>**/none-excluded</host-it.excludes>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>mx.quest</groupId>
+                    <artifactId>runway-app</artifactId>
+                    <version>${runway.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+</project>

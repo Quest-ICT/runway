@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Blog</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="bl-pretitle">Site</div>
+                <h2 class="page-title" id="bl-heading">Blog</h2>
+            </div>
+            <div class="col-auto"><a class="btn btn-primary" id="bl-new" href="/__admin/blog/new">New entry</a></div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning" id="bl-disabled" role="alert">
+        <span id="bl-disabled-text">The blog is disabled for this site (see the plugin's settings) — entries are
+        kept but none serves.</span>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table" data-listing-table="runway.admin.blog">
+                <thead>
+                <tr>
+                    <th data-col-key="id" id="bl-h-id">Entry</th>
+                    <th data-col-key="path" id="bl-h-path">Path</th>
+                    <th data-col-key="langs" id="bl-h-langs">Languages</th>
+                    <th data-col-key="date" id="bl-h-date">Date</th>
+                    <th data-col-key="status" id="bl-h-status">Status</th>
+                    <th data-nosort data-col-key="actions" id="bl-h-actions" class="w-1">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr id="bl-empty"><td colspan="6" class="text-secondary text-center" id="bl-empty-text">No entries yet.</td></tr>
+                <tr id="bl-row">
+                    <td class="b-id font-monospace">id</td>
+                    <td class="b-path text-secondary">—</td>
+                    <td class="b-langs text-secondary">—</td>
+                    <td class="b-date text-secondary">—</td>
+                    <td><span class="badge b-badge">status</span></td>
+                    <td>
+                        <div class="btn-list flex-nowrap">
+                            <a class="btn btn-sm b-edit" href="#">Edit</a>
+                            <form class="b-publish-form d-inline" method="post" action="#">
+                                <input class="b-csrf" type="hidden" name="_csrf" value="">
+                                <button type="submit" class="btn btn-sm b-publish">Publish</button>
+                            </form>
+                            <form class="b-delete-form d-inline" method="post" action="#">
+                                <input class="b-csrf" type="hidden" name="_csrf" value="">
+                                <button type="submit" class="btn btn-sm btn-outline-danger b-delete"
+                                        data-confirm="Delete this entry and all its languages?">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

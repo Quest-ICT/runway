@@ -22,7 +22,7 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * A refused essential plugin tells the operator what to do (since 1.0.0-rc1). With SPI 1.0.0 an old protection
+ * A refused essential plugin tells the operator what to do. With SPI 1.0.0 an old protection
  * descriptor (no {@code requiresSpi}) is blocked, and a blocked essential plugin puts every tenant page in fail-closed
  * mode ({@code 503}). The operator meets that in two places — the plugins screen's row (the resolution reason) and
  * the boot log's fail-closed line — so both must name the fix: the copy of the plugin bundled with the running
@@ -55,7 +55,7 @@ class EssentialRepairAdviceTest {
         assertTrue(advice.contains("after a rollback its seed/ is the older release's copy"), advice);
         assertTrue(advice.contains("re-run that release's installer"), advice);
         assertTrue(advice.contains("every upgrade refreshes it"), advice);
-        assertTrue(advice.contains("no seed/ folder there (a release installed before 1.0.0-rc1) or you replaced the "
+        assertTrue(advice.contains("no seed/ folder there (an older install) or you replaced the "
                 + "kernel jar by hand"), "when seed/ is not the running release's copy: " + advice);
         assertTrue(advice.contains("./runway-<version>.bin --extract DIR"), advice);
         assertTrue(advice.contains("DIR/runway-<version>/seed/plugins/protection/ instead"), advice);
@@ -66,7 +66,7 @@ class EssentialRepairAdviceTest {
         assertFalse(advice.contains("not copied"), "the old 'no seed/ on the host' claim is gone: " + advice);
     }
 
-    /** The 1.0.0-rc1 blocker's exact shape: an old protection with no floor, on SPI 1.0.0. */
+    /** The exact shape that blocks: an old protection with no floor, on SPI 1.0.0. */
     @Test
     void aPreContractEssentialPluginIsToldToTakeTheBundledCopyNotToRemoveIt() {
         String reason = PluginResolution.resolve(List.of(coded("protection", null)), SPI_ONE).blocked().get("protection");

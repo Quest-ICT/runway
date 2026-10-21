@@ -20,12 +20,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *       {@code /static/**}), which change rarely and land under a fresh URL when edited.</li>
  *   <li>{@link #getPluginAssets() pluginAssets} — a plugin's bundled files ({@code /__plugin/<id>/static/**},
  *       {@code PluginStaticResourceConfig}), which change only when the plugin is upgraded or an operator edits
- *       them on disk. Before 1.0.0-rc5 they carried no rule and Spring Security's default {@code no-store} made
+ *       them on disk. Without a rule, Spring Security's default {@code no-store} would make
  *       every page view download them again.</li>
  * </ul>
  * The page-editor preview and error responses are always {@code no-store} and not configurable: a preview carries
  * unsaved work and an error body must never be replayed, so there is no safe looser value. (A
- * {@code runway.http-cache.no-store} key existed before 1.0 but was never read; it was removed in 1.0.0-rc2.)
+ * {@code runway.http-cache.no-store} key existed before 1.0 but was never read; it was removed, and a file that
+ * still sets it binds without error.)
  *
  * <p><b>Freshness vs. correctness.</b> The {@code publicPages} default carries a bounded {@code max-age}, but
  * every public page still emits a strong ETag / {@code Last-Modified} (see {@code PageValidatorService}), so a

@@ -34,7 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class BackupFormatVersionTest {
 
-    /** A manifest exactly as 0.5.0-beta13 wrote it — before {@code formatVersion} existed. */
+    /** A manifest exactly as an older release wrote it — before {@code formatVersion} existed. */
     private static final String PRE_FIELD_MANIFEST = """
             siteId: "demo"
             spiVersion: "0.3.4"

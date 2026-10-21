@@ -33,7 +33,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * The decisive strict-dynamic test: end-to-end against a REAL Jetty + the full egress filter chain + the real Thymeleaf
  * render of a kernel login page — the ONLY layer that proves the CSP header's nonce equals the nonce on every
  * rendered {@code <script>} across the {@code CspFilter}↔Thymeleaf boundary. (A mocked single-filter unit can't;
- * the beta10 HEAD bug is the standing reminder.) It asserts: {@code /app/login}'s {@code script-src} carries a
+ * an earlier HEAD bug is the standing reminder.) It asserts: {@code /app/login}'s {@code script-src} carries a
  * nonce + {@code 'strict-dynamic'} + the {@code 'self'} fallback; every {@code <script>} in the body carries that
  * exact nonce; the page is {@code no-store}; and a second request mints a different nonce.
  */

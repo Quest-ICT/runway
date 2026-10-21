@@ -24,8 +24,7 @@ import org.springframework.stereotype.Component;
  * {@code external/plugin-quarantine/<id>.yml} with the reason, logs an ERROR, and then fails the startup with
  * {@link SurfaceViolationException}.
  * {@code RunwayApplication.main} sees the marker and exits with the supervisor's relaunch code (42); the next boot
- * blocks the plugin before wiring, with the reason on the plugins screen, and comes up without it. (Until 1.0.0-rc1
- * these were warnings.)
+ * blocks the plugin before wiring, with the reason on the plugins screen, and comes up without it.
  *
  * <p>If the check itself cannot run (a defect in the kernel, not in a plugin) the boot continues: the failure is
  * logged and kept as a compliance note for the plugins screen ({@link #warnings}), because failing every boot over a

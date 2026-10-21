@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Carousel plugin — help &amp; reference</title>
+    <style>
+        body { max-width: 46rem; margin: 2rem auto; padding: 0 1rem;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; line-height: 1.5; }
+        h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; margin-top: 1.75rem; }
+        code { background: #f3f3f3; padding: .1rem .3rem; border-radius: .25rem; }
+        pre { background: #f6f8fa; padding: .75rem 1rem; border-radius: .375rem; overflow: auto; }
+    </style>
+</head>
+<body>
+<h1>Carousel — help &amp; reference</h1>
+<p>The Carousel Manager plugin adds a configurable image/slide carousel you can place on any page.</p>
+
+<h2>1. Configure the slides</h2>
+<p>On the carousel settings page, fill <strong>Slides</strong> — one slide per line, fields separated by a pipe
+    (<code>|</code>):</p>
+<pre>/static/img/hero1.jpg | Welcome to Acme | /about
+/static/img/hero2.jpg | Our latest work  | /work
+/static/img/hero3.jpg</pre>
+<p>Only the image URL is required; the caption and the click-through link are optional. Other settings: the
+    auto-advance interval (seconds; <code>0</code> disables auto-play), whether to show captions, and whether to
+    show the previous/next controls.</p>
+
+<h2>2. Place the carousel on a page</h2>
+<p>Add an anchor where the carousel should appear (the <code>id</code> and <code>data-widget</code> must be on the
+    <em>same</em> element):</p>
+<pre>&lt;div id="hero" data-widget="carousel/hero"&gt;&lt;/div&gt;</pre>
+<p>The widget renders your configured slides there, pulling in its own stylesheet and script automatically. With
+    no slides configured it renders nothing.</p>
+
+<h2>Note: one carousel per site (for now)</h2>
+<p>This plugin does not yet declare a per-placement widget configuration (Runway supports one), so every
+    <code>carousel/*</code> anchor on a site shows the <strong>same</strong> configured slides. Distinct carousels per
+    page need that declaration in a later version — the widget already carries the instance id for it.</p>
+</body>
+</html>

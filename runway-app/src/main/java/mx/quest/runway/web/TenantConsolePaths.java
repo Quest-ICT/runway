@@ -9,9 +9,9 @@ import java.util.List;
  *
  * <p>Tenant-band soft-block filters that short-circuit a site's <b>public</b> traffic (maintenance mode, the
  * bandwidth quota) exempt this realm so the site manager is never locked out: they can always sign in, recover a
- * forgotten password, and lift the block. It is the tenant parallel of {@link AppRealmPaths}. Before {@code 1.0.0-rc4}
- * the recovery routes were missing here, so a site in maintenance answered {@code 503} on {@code /forgot-password}
- * while {@code /login} worked.
+ * forgotten password, and lift the block. It is the tenant parallel of {@link AppRealmPaths}. The
+ * recovery routes belong here too: without them, a site in maintenance would answer {@code 503} on
+ * {@code /forgot-password} while {@code /login} worked.
  *
  * <p>Exact matches and real namespaces only, so a public page at {@code /__adminx} is not exempted. Like
  * {@link AppRealmPaths}, the predicates take a <b>decoded</b> path ({@link RequestPaths#normalized}).

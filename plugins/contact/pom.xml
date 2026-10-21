@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit the SAME managed versions the kernel uses (Spring Boot 4.0.6). NOT a Boot app — no repackage;
+         `mvn package` produces a THIN jar of only this plugin's classes. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-contact</artifactId>
+    <version>2.1.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Contact Plugin</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        A contact form for Runway: an embeddable form content widget that POSTs to an anonymous /contact/submit
+        route. A submission is BOTH emailed over the site's own SMTP relay (via Jakarta Mail, a core capability the
+        kernel bundles) AND kept as a stored tenant-owned record (viewable in the console; declared personal data,
+        so transfer copies leave it out), with CAPTCHA and honeypot anti-spam. Links only the Runway SPI.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T18:56:00Z</project.build.outputTimestamp>
+        <runway.version>1.0.0</runway.version>
+        <!-- Kept in lock-step with the Jakarta Mail the KERNEL bundles (mail is a core capability).
+             Compile-only here; the kernel supplies it at runtime. -->
+        <jakarta.mail-api.version>2.1.5</jakarta.mail-api.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <!-- NO runway-app dependency, in any scope: the plugin links only the SPI, so a host
+             import does not compile and the kernel's host-linkage scanner finds nothing to report. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Jakarta Mail API — PROVIDED at runtime by the KERNEL (which bundles the Jakarta Mail stack for its
+             own platform mailer). Compile-only here: NEVER bundle it into this plugin's own lib/ (that would be a
+             second Jakarta Mail copy on the classloader, shadowing the kernel's). The plugin classloader delegates
+             parent-first, so the kernel's API + Angus SMTP implementation resolve at runtime via META-INF/services. -->
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+            <version>${jakarta.mail-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Tests exercise the send path against a MOCK MailTransport (no socket) and the Angus implementation
+             is needed to actually construct MimeMessage/Session in-process, so bring it in at test scope. -->
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+            <version>2.0.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-contact</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/contact"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-contact.jar" todir="${stage}"/>
+                                <copy todir="${stage}/static">
+                                    <fileset dir="${project.basedir}/static"/>
+                                </copy>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="contact"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-contact-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="contact/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-contact-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

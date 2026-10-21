@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * Reads the <b>constant pool</b> of every class on a plugin's class path — its top-level jars and {@code lib/*.jar},
  * exactly the jars {@link PluginLoader#classLoaderFor} adds — without loading a single class —
  * and reports how the plugin links the host. Every finding <b>blocks</b> the plugin before
- * wiring (SPI 1.0.0; until rc1 the first and third only warned):
+ * wiring (SPI 1.0.0):
  *
  * <ol>
  *   <li><b>Host linkage</b>: a class reference, descriptor or signature naming {@code mx/quest/runway/…} outside
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * signature — field and method descriptors, annotation types, {@code invokedynamic} types — matched as
  * {@code L<name>;} or {@code L<name><}. A {@code CONSTANT_Utf8} used only as a string literal is skipped, so a
  * plugin that merely <em>mentions</em> a host class name in a message is not flagged. {@code lib/} jars are scanned
- * like the top-level ones (since 1.0.0-rc1): they are on the same class path, so a host-linking helper
+ * like the top-level ones: they are on the same class path, so a host-linking helper
  * moved into {@code lib/} would otherwise pass the contract check. A third-party library links nothing of ours and
  * passes; scanning it costs one read per jar per boot.
  *

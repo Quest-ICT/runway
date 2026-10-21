@@ -15,7 +15,7 @@ import org.springframework.core.io.ClassPathResource;
 /**
  * Binds the SHIPPED classpath {@code application.yml} to {@link RunwayCspProperties} — exactly the way
  * {@code @ConfigurationProperties} does at boot — and asserts the emitted policy. This closes the drift that
- * caused the beta7 regression: {@link RunwayCspPropertiesTest} tests the Java <b>field defaults</b> (so it saw
+ * caused a shipped regression: {@link RunwayCspPropertiesTest} tests the Java <b>field defaults</b> (so it saw
  * {@code script-src 'self'} and passed), while the bundled {@code application.yml} still set
  * {@code script-src: "'self' 'unsafe-inline'"}, which binds <b>over</b> the field default — so the shipped header
  * kept {@code 'unsafe-inline'}. Testing the actual bound value keeps config and code from disagreeing again.
@@ -38,7 +38,8 @@ class CspHeaderBindingTest {
         String policy = props.buildPolicy();
         String lead = RunwayCspProperties.NONCE_PLACEHOLDER + RunwayCspProperties.STRICT_DYNAMIC_PLACEHOLDER;
         assertThat(policy)
-                .as("the bundled application.yml must not re-add 'unsafe-inline' to script-src (beta7 regression)")
+                .as("the bundled application.yml must not re-add 'unsafe-inline' to script-src"
+                        + " (the shipped-config regression)")
                 .contains("script-src " + lead + "'self';")            // nonce + strict-dynamic placeholder + 'self'
                 .doesNotContain(lead + "'self' 'unsafe-inline'");      // still no 'unsafe-inline' on script-src
         // The shipped yml keeps strict-dynamic on, so the bound policy carries the SD placeholder (CspFilter emits

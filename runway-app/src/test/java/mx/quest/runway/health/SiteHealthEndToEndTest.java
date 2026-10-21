@@ -41,7 +41,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * at {@link mx.quest.runway.web.FilterOrder#CORE_SITE_HEALTH} (55) — OUTER of the gates it must describe. If the
  * endpoint ever drifts inside order 60 it would be short-circuited by those same gates and start reporting
  * nothing in exactly the states worth reporting; a mocked single-filter unit test cannot see that (the standing
- * lesson from the 0.2.1-beta10 HEAD defect: test the real path).
+ * lesson from a HEAD defect: test the real path).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SiteHealthEndToEndTest {
@@ -187,7 +187,7 @@ class SiteHealthEndToEndTest {
         assertEquals("", head.body(), "a HEAD carries no body");
         long declared = head.headers().firstValueAsLong("Content-Length").orElse(-1L);
         assertEquals(get.body().getBytes(StandardCharsets.UTF_8).length, declared,
-                "HEAD must report the length the GET would have carried (the beta10 rule)");
+                "HEAD must report the length the GET would have carried");
     }
 
     @Test

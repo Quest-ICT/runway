@@ -145,7 +145,7 @@ public class PagesContentSource implements ContentSource {
      * language switcher, footer), which the render replaces with the master's live seams; indexing it put the
      * same navigation words into every page and into every result snippet.
      *
-     * <p>Since 1.0.0-rc6 the slot is taken from the page <b>as rendered in {@code locale}</b>, so the strings the
+     * <p>The slot is taken from the page <b>as rendered in {@code locale}</b>, so the strings the
      * render takes from the site's message bundles (decoupled {@code th:text="#{key}"}) are indexed in that
      * language; a page that is unknown, unpublished or fails to render gives its file's slot instead.
      *

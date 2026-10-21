@@ -32,10 +32,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * the {@code **} within the plugin's static dir, so a request can never traverse into another plugin or the
  * external tree. {@code /__plugin} is a reserved prefix an {@code EndpointContributor} cannot claim.
  *
- * <h2>Caching (since 1.0.0-rc5)</h2>
+ * <h2>Caching</h2>
  * A served file carries {@code runway.http-cache.plugin-assets} (default {@code public, max-age=3600}) and a strong
- * ETag of its <b>content</b>; it carries no {@code Last-Modified}. Before 1.0.0-rc5 it carried neither rule nor ETag, so
- * Spring Security's default {@code no-store} made a browser download a plugin's CSS or script again on every page
+ * ETag of its <b>content</b>; it carries no {@code Last-Modified}. Without a rule or an ETag,
+ * Spring Security's default {@code no-store} would make a browser download a plugin's CSS or script again on every page
  * view. Why a content ETag and not the file date: plugin archives are built reproducibly, so every release stamps
  * its files with the same fixed date, and a {@code Last-Modified} validator would answer {@code 304} to an upgraded
  * file. The hash is computed once per file state (path, size, modification time) and remembered; an upgrade means

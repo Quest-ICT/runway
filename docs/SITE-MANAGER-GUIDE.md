@@ -1168,8 +1168,8 @@ they never touch your templates. Analytics and richer GEO markup are added by pl
 ### Sitemaps, robots and AI crawlers
 
 The core stops at the page's own `<head>`. The crawl surfaces themselves — `/sitemap.xml`, `/robots.txt`
-and `/llms.txt` — and the schema.org structured data that says what a page *is* come from a plugin,
-if your operator has installed one; it then appears in the **Settings** dropdown
+and `/llms.txt` — and the schema.org structured data that says what a page *is* come from a plugin (the `discoverability` plugin
+does all four), if your operator has installed one; it then appears in the **Settings** dropdown
 with its own per-site form (**§8**). Without one your site serves no `/robots.txt` at all, which crawlers read as
 *everything allowed*.
 

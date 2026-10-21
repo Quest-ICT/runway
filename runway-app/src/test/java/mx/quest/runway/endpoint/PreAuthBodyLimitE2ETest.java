@@ -53,9 +53,10 @@ import org.springframework.test.context.DynamicPropertySource;
  * the server read at most the pre-authentication budget ({@code runway.endpoints.max-form-bytes}, here 2 KiB) of a
  * request body, on every path — the sign-in and password-recovery forms of both realms, a console path that would
  * answer {@code 403} only afterwards, the CSRF-exempt CSP report endpoint, a {@code PUT} form, and a plugin route
- * whose handler decides access itself. Before 1.0.0-rc1 the container parsed a form of up to 16 MiB for anyone (the CSRF
- * check asks for {@code _csrf} before authorization), and a plugin route read 10 MiB. A signed-in caller keeps the
- * larger limits: the container's for a console form, {@code max-body-bytes} (here 64 KiB) for a route.
+ * whose handler decides access itself. Without this cap the container would parse a form of up to 16 MiB for anyone
+ * (the CSRF check asks for {@code _csrf} before authorization), and a plugin route would read 10 MiB. A signed-in
+ * caller keeps the larger limits: the container's for a console form, {@code max-body-bytes} (here 64 KiB) for a
+ * route.
  *
  * <p>Each limit is shown at its boundary (exactly the cap passes, one byte more is {@code 413}), chunked (no declared
  * length), and with a huge declared {@code Content-Length} answered before any of the body arrives.

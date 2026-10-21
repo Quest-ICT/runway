@@ -15,34 +15,36 @@ import mx.quest.runway.web.CspScriptAllowlist;
  * <h2>Why</h2>
  * Under {@code 'strict-dynamic'} a browser ignores {@code 'self'} and the host list for any request that is not
  * "parser-inserted". A module preload is fetched as not-parser-inserted, so injected markup could make every
- * visitor's browser contact any host — a beacon channel that beta13's {@code script-src 'self'} closed. Nothing runs
- * (a preload never executes), but the visit, the visitor's address and the page it came from leak. The edge removes
- * such a link, judged by <b>the same rule as a {@code <script src>}</b> ({@link CspScriptAllowlist#allowsUrl}:
- * same-origin, or a host on the policy — {@code script-src}, {@code extra-hosts}, plugin {@code CspHostContributor}
- * hosts), with the URL read as the browser reads it (character references, {@code //host}, {@code ///host},
- * backslashes, the first same-origin {@code <base href>}). An allowed link is left exactly as written.
+ * visitor's browser contact any host — a beacon channel that the host-allowlist policy's {@code script-src 'self'}
+ * keeps closed. Nothing runs (a preload never executes), but the visit, the visitor's address and the page it came
+ * from leak. The edge removes such a link, judged by <b>the same rule as a {@code <script src>}</b>
+ * ({@link CspScriptAllowlist#allowsUrl}: same-origin, or a host on the policy — {@code script-src},
+ * {@code extra-hosts}, plugin {@code CspHostContributor} hosts), with the URL read as the browser reads it
+ * (character references, {@code //host}, {@code ///host}, backslashes, the first same-origin {@code <base href>}).
+ * An allowed link is left exactly as written.
  *
  * <h2>Which links are judged, and why each (CSP3 "effective directive" + measured in Chrome 155)</h2>
  * Measured with a stand-in host counting requests, the same page under the public policy
- * ({@code script-src 'nonce-…' 'strict-dynamic' 'self'}) and under beta13's ({@code script-src 'self'}), both with
- * {@code default-src 'self'}:
+ * ({@code script-src 'nonce-…' 'strict-dynamic' 'self'}) and under the host-allowlist policy
+ * ({@code script-src 'self'}), both with {@code default-src 'self'}:
  * <ul>
  *   <li><b>{@code rel} contains {@code modulepreload}</b> (any {@code as}) — judged. Destination "script" (or another
  *       script-like one), governed by {@code script-src}; the HTML spec fetches a module preload as
  *       not-parser-inserted, which {@code 'strict-dynamic'} lets through from any host. Measured: fetched under the
- *       public policy, refused under beta13's. {@code as=worker}/{@code sharedworker}/{@code serviceworker}/
- *       {@code audioworklet}/{@code paintworklet} are script-like too (worker destinations fall back from
- *       {@code worker-src} to {@code script-src}, which Runway does not split); Chrome 155 rejects those values
- *       without fetching, another engine may not — so they are judged too. A non-script {@code as}
+ *       public policy, refused under the host-allowlist policy. {@code as=worker}/{@code sharedworker}/
+ *       {@code serviceworker}/{@code audioworklet}/{@code paintworklet} are script-like too (worker destinations fall
+ *       back from {@code worker-src} to {@code script-src}, which Runway does not split); Chrome 155 rejects those
+ *       values without fetching, another engine may not — so they are judged too. A non-script {@code as}
  *       ({@code style}, {@code json}) is governed by its own directive and fetches nothing foreign; judging every
  *       module preload anyway keeps the rule simple and costs nothing.</li>
  *   <li><b>{@code rel} contains {@code prefetch}</b> (any {@code as}) — judged. CSP3 governs a prefetch by
  *       {@code default-src}, which carries no {@code 'strict-dynamic'}, but Chrome 155 fetches a foreign
  *       {@code <link rel=prefetch>} — with or without {@code as}, {@code as=script|style|image|document}, with
  *       {@code crossorigin} — whenever {@code script-src} has {@code 'strict-dynamic'} (even with an explicit
- *       {@code script-src-elem 'self'}), and refuses it under beta13's policy ({@code default-src 'self'}) and under a
- *       nonce without {@code 'strict-dynamic'}. So it is the same regression and gets the same rule (a prefetch to a
- *       host the operator trusts to run scripts reveals nothing more than the script itself would).</li>
+ *       {@code script-src-elem 'self'}), and refuses it under the host-allowlist policy ({@code default-src 'self'})
+ *       and under a nonce without {@code 'strict-dynamic'}. So it is the same regression and gets the same rule (a
+ *       prefetch to a host the operator trusts to run scripts reveals nothing more than the script itself
+ *       would).</li>
  *   <li><b>{@code rel} contains {@code preload} with a script-like {@code as}</b> ({@code script}, {@code worker},
  *       {@code sharedworker}, {@code serviceworker}, {@code audioworklet}, {@code paintworklet}, {@code xslt}; read
  *       ASCII case-insensitively, trimmed) — judged. CSP3 maps these to {@code script-src-elem}/{@code worker-src}.
@@ -54,8 +56,8 @@ import mx.quest.runway.web.CspScriptAllowlist;
  *       {@code icon}, {@code manifest}, {@code compression-dictionary} (their own directives — measured refused under
  *       both policies). {@code preconnect}, {@code dns-prefetch} and {@code prerender} reach the host under
  *       <em>both</em> policies (CSP governs no directive for the first two; Chrome's prerender/NoState-prefetch was
- *       fetched under beta13's policy too): not a regression of {@code 'strict-dynamic'}, so out of scope here
- *       (KNOWN-LIMITATIONS).</li>
+ *       fetched under the host-allowlist policy too): not a regression of {@code 'strict-dynamic'}, so out of scope
+ *       here (KNOWN-LIMITATIONS).</li>
  * </ul>
  * {@code rel} is a token list (ASCII whitespace separated, ASCII case-insensitive), so {@code rel="ModulePreload"}
  * and {@code rel="nofollow modulepreload"} both count (measured: both fetched). Attribute values are decoded first,
@@ -81,7 +83,7 @@ import mx.quest.runway.web.CspScriptAllowlist;
  * comment, in a bogus comment ({@code <?…>}, {@code <!…>}), in an ordinary attribute value or as escaped text
  * ({@code &lt;link …&gt;}) is never markup to a browser and is ignored.
  *
- * <p><b>Where the scanner cannot be sure, the page is hidden too</b> (since 1.0.0-rc1). When the walk
+ * <p><b>Where the scanner cannot be sure, the page is hidden too</b>. When the walk
  * reaches a stretch whose tokenization depends on the tree and its readings disagree — a raw-text element or a CDATA
  * section after {@code <svg>}/{@code <math>}/{@code <select>}/{@code <template>}, a {@code <noscript>} whose
  * scripting-on and scripting-off readings part, a {@code <base>} the tree builder may not honour — it stops

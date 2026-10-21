@@ -107,7 +107,7 @@ public class LoadedSiteInputs {
 
     /**
      * The short form (no params, widget config or URL-map inputs — those fold nothing). Kept for tests and callers that
-     * predate 1.0.0-rc1.
+     * predate the longer form.
      */
     public LoadedSiteInputs(SiteAwareMessageSource messages, SeoConfigService seoConfig, SiteIconService iconService,
                             SiteManifestService manifestService, SitePluginConfigService pluginConfig,

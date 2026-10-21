@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Admin fragment logic. Values from ${@discoverabilityAdminModel...(tenantSiteId)}; on/off ternaries keep the
+     condition in ${} and each branch a standalone #{} (pitfall #12). -->
+<thlogic>
+    <attr sel="#da-title" th:text="#{discover.admin.title}"/>
+    <attr sel="#da-l-jsonld" th:text="#{discover.admin.jsonld}"/>
+    <attr sel="#da-jsonld" th:text="${@discoverabilityAdminModel.jsonldEnabled(tenantSiteId)} ? #{discover.on} : #{discover.off}"/>
+    <attr sel="#da-type" th:text="${@discoverabilityAdminModel.jsonldType(tenantSiteId)}"/>
+    <attr sel="#da-l-sitemap" th:text="#{discover.admin.sitemap}"/>
+    <attr sel="#da-sitemap" th:text="${@discoverabilityAdminModel.sitemapEnabled(tenantSiteId)} ? '/sitemap.xml' : #{discover.off}"/>
+    <attr sel="#da-l-geo" th:text="#{discover.admin.geo}"/>
+    <attr sel="#da-geo" th:text="${@discoverabilityAdminModel.geoEnabled(tenantSiteId)} ? #{discover.on} : #{discover.off}"/>
+    <attr sel="#da-l-pages" th:text="#{discover.admin.pages}"/>
+    <attr sel="#da-pages" th:text="${@discoverabilityAdminModel.pageCount(tenantSiteId)}"/>
+    <attr sel="#da-note" th:text="#{discover.admin.note}"/>
+    <!-- Per-page types (content.schema) problems, one per line; never a page error, so they are shown here. -->
+    <attr sel="#da-schema" th:with="problems=${@discoverabilityAdminModel.schemaProblems(tenantSiteId)}"/>
+    <attr sel="#da-schema-title" th:text="#{discover.schema.title}"/>
+    <attr sel="#da-schema-ok" th:if="${problems.isEmpty()}" th:text="#{discover.schema.ok}"/>
+    <attr sel="#da-schema-list" th:unless="${problems.isEmpty()}"/>
+    <attr sel="#da-schema-list//.da-schema-item" th:each="problem : ${problems}" th:text="${problem}"/>
+    <attr sel="#da-help-label" th:text="#{discover.admin.help}"/>
+</thlogic>

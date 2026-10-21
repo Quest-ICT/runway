@@ -311,8 +311,8 @@ public class PageWriteService {
      *
      * <p>The read-modify-write of the meta runs under the page's write monitor ({@link #withPageLock}), like every
      * other mutation here: an unpublish that arrives while an approval (or a save) of the same page is in progress
-     * waits for it and then applies, instead of being silently overwritten by that operation's meta write — the
-     * page stayed live while the audit log said {@code page.unpublished} (before 0.5.0-beta14).
+     * waits for it and then applies, instead of being silently overwritten by that operation's meta write, which
+     * would leave the page live while the audit log said {@code page.unpublished}.
      *
      * @throws PageAuthoringException if the page is missing, or publishing would collide with a sibling route
      */

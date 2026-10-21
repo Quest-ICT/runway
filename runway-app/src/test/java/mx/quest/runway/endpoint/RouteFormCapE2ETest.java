@@ -52,7 +52,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * Through a REAL Jetty and the full production filter chain: the form body a plugin route receives
  * is read <b>before authentication and CSRF</b>, so it is bounded by the small {@code runway.endpoints.max-form-bytes}
  * — here 1 KiB — while {@code runway.endpoints.max-body-bytes} (64 KiB) still governs every other body of a signed-in
- * caller, read after security (a caller who is not signed in is held to the 1 KiB for any body since 1.0.0-rc1). An
+ * caller, read after security (a caller who is not signed in is held to the 1 KiB for any body). An
  * oversized form is refused {@code 413} before the CSRF check could answer {@code 403}, whether it
  * declares its length, streams it chunked, or declares a huge length and sends nothing.
  */
@@ -195,8 +195,8 @@ class RouteFormCapE2ETest {
     }
 
     /**
-     * max-body-bytes still governs a raw (non-form) body from a SIGNED-IN caller: 20 KB is fine, 70 KB is not. Since
-     * 1.0.0-rc1 a caller who is not signed in — even one holding a valid CSRF token from an anonymous session — is held
+     * max-body-bytes still governs a raw (non-form) body from a SIGNED-IN caller: 20 KB is fine, 70 KB is not.
+     * A caller who is not signed in — even one holding a valid CSRF token from an anonymous session — is held
      * to the 1 KiB pre-authentication cap whatever the body's type, before the CSRF check.
      */
     @Test

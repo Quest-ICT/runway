@@ -264,7 +264,7 @@ class LoadedSiteInputsTest {
     /**
      * App-level settings ({@code runway.plugin.<id>.*}, bound once through {@code @ConfigurationProperties}) shape a
      * plugin's output — the demo's analytics key adds a head script — so two runs with different values must not
-     * share an ETag. Before 1.0.0-rc1 only the plugin's id/version were folded.
+     * share an ETag. Folding only the plugin's id/version would not tell them apart.
      */
     @Test
     void appLevelPluginSettingsMoveTheEtag(@TempDir Path tmp) throws IOException {
@@ -348,7 +348,7 @@ class LoadedSiteInputsTest {
         assertEquals(CanonicalFingerprint.of(ACME), CanonicalFingerprint.of(site("acme")));
     }
 
-    // ---- 1.0.0-rc1: template params, widget-instance config, the URL map ------------------------------------------
+    // ---- template params, widget-instance config, the URL map -------------------------------------------------------
 
     /** A content source whose enumeration a test swaps, standing in for a plugin's cached index. */
     private static final class Source implements mx.quest.runway.spi.ContentSource {

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Discoverability — help</title>
+    <style>
+        body { font: 16px/1.6 system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; color: #1a2233; }
+        h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; margin-top: 2rem; } h3 { font-size: 1.05rem; margin-top: 1.5rem; }
+        pre { background: #f2f4f7; padding: .75rem; border-radius: .25rem; overflow-x: auto; font-size: .85rem; } pre code { padding: 0; }
+        :target { scroll-margin-top: 1rem; background: #fff8db; }
+        code { background: #f2f4f7; padding: .1rem .35rem; border-radius: .25rem; }
+        table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid #e6e9ef; vertical-align: top; }
+        .muted { color: #667085; }
+    </style>
+</head>
+<body>
+<h1>Discoverability — SEO+ &amp; GEO</h1>
+<p>This plugin makes your site legible to <strong>search engines</strong> and <strong>AI answer engines</strong>.
+   It adds the layer the platform's built-in SEO deliberately leaves out — it never duplicates a tag the kernel
+   already emits (canonical, <code>hreflang</code>, <code>robots</code>, Open Graph and Twitter cards are already
+   produced for free).</p>
+
+<h2>What it adds</h2>
+<table>
+    <tr><th>Surface</th><th>What &amp; where</th></tr>
+    <tr><td>Structured data</td><td>schema.org <strong>JSON-LD</strong> (<code>WebSite</code> / <code>WebPage</code>
+        or <code>Article</code> / <code>Organization</code> / <code>BreadcrumbList</code>) injected into every
+        indexable page's <code>&lt;head&gt;</code>.</td></tr>
+    <tr><td>Sitemap</td><td><code>/sitemap.xml</code> — every published, indexable page with its
+        <code>hreflang</code> alternates. Pages you mark <em>Exclude from search engines (noindex)</em>, and pages whose
+        canonical URL points elsewhere, are left out on purpose: a sitemap
+        recommends pages for indexing, so listing one you told robots to skip contradicts itself.</td></tr>
+    <tr><td>Crawler rules</td><td><code>/robots.txt</code> — tells crawlers what they may fetch. Set the
+        <strong>AI-crawler policy</strong> below to allow or refuse AI/answer engines, and list any paths to keep
+        crawlers away from. Refusing AI crawlers never removes you from ordinary web search: the AI opt-out names
+        the AI agents only (for example <code>Google-Extended</code>, never <code>Googlebot</code>).</td></tr>
+    <tr><td>GEO · <code>llms.txt</code></td><td><code>/llms.txt</code> — a compact, machine-friendly index of your
+        pages for LLM / answer engines (opt-in). <em>Honest note:</em> this is a community proposal, not a
+        standard. No major engine documents reading it, and Google states explicitly that no AI-specific file is
+        needed to appear in its AI features. It is cheap to publish and harmless; treat it as an optional extra,
+        not as something your visibility depends on.</td></tr>
+    <tr><td>GEO · answer schema</td><td>A <code>SearchAction</code> (site search) and <code>Speakable</code> hints
+        that enrich the structured-data graph for AI extraction (opt-in).</td></tr>
+</table>
+
+<h2>Configure it</h2>
+<p>Everything below is per site, on this plugin's settings page (the site console's <em>Settings</em> menu,
+   <em>Discoverability (SEO+ &amp; GEO)</em>), and reaches your pages, <code>robots.txt</code>, the sitemap and
+   <code>/llms.txt</code> at once. The page is in
+   the same sections as this help; each field carries a one-line explanation, and the <em>Learn more</em> links
+   land here. Fields that only matter when a switch is on are hidden while it is off (their values are kept).</p>
+<p id="permission"><strong>Who can change them.</strong> The settings page, and the Discoverability card on the
+   dashboard, need the permission <em>Manage discoverability (SEO &amp; GEO)</em>
+   (<code>discoverability|settings</code>). No role holds it until it is granted, so out of the box only the site's
+   superadmin and administrators have it. Grant it to a role or a user on the site's <em>Permissions</em>
+   screen.</p>
+<p><strong>What it takes from the site itself.</strong> The site's <strong>name</strong> is the
+   <code>WebSite</code> name on every page, the heading of <code>/llms.txt</code>, the name of a local business
+   that gives none, and the homepage product's name when neither a product name nor an organization name is set.
+   The site's <strong>address</strong> (its base URL, else <code>https://</code> plus its first host name; for a
+   site with neither, the address the page was requested at) starts every full URL this plugin builds from a path
+   on the site. The site's <strong>languages</strong>: each page is described in the
+   language it is served in, and <code>/llms.txt</code> lists each page once, in the site's default language
+   (a page that does not exist in it is listed at its own address).</p>
+
+<h3 id="structured-data">Structured data for search engines</h3>
+<p>schema.org <strong>JSON-LD</strong> in every page's <code>&lt;head&gt;</code>: the site (<code>WebSite</code>),
+   the page (<code>WebPage</code>, or <code>Article</code> for blogs and news), its <code>BreadcrumbList</code>, and
+   the <code>Organization</code> that publishes it. It is on by default and is the switch everything structured
+   depends on — the organization, the homepage product, the per-page types and GEO's search action and speakable
+   hints all disappear while it is off. A page marked <em>Exclude from search engines (noindex)</em> gets no
+   structured data at all, and is left out of <code>/llms.txt</code> as well as the sitemap. A preview gets no
+   structured data either.</p>
+<ul>
+    <li><strong>Default page type</strong> — what every page is described as unless
+        <a href="#content-schema">Per-page types</a> gives it a page type of its own, which then replaces this one
+        on that page. <code>WebPage</code> (the default) or <code>Article</code>. An <code>Article</code> page
+        carries the page title as its <code>headline</code> instead of its <code>name</code>; its author, dates
+        and images come only from an <code>Article</code>, <code>BlogPosting</code> or <code>NewsArticle</code>
+        block in Per-page types. The form offers only these two;
+        in a hand-edited settings file, anything but exactly <code>Article</code> means <code>WebPage</code>.</li>
+    <li><strong>Breadcrumb trail</strong> — on by default. Every page except the home page (<code>/</code>), and except a page whose
+        canonical URL points to another site, gets a trail: <em>Home</em>, then the parent a Per-page types <code>breadcrumb</code> names (if any), then the
+        page, named by its title (or by its path when the title is blank). The first step is always the English
+        word <em>Home</em>, whatever the page's language, and links to the site's root. The home page of another
+        language (<code>/es</code>) is not <code>/</code>, so it gets a two-step trail.</li>
+    <li><strong>Organization name / logo / profiles</strong> — identify the site as an entity (knowledge-graph
+        signals, shared by search and AI). Leave the name blank to publish no organization. The logo may be a
+        path on the site (<code>/img/logo.png</code>); it is turned into a full URL for you.</li>
+</ul>
+
+<h3 id="content-schema">Per-page types (<code>content.schema</code>)</h3>
+<p>A small YAML document keyed by URL path that declares what particular pages are, so search engines can show
+   them (and, for some types, show rich results). Each page also has a line in the page editor's quality panel that
+   says what it is described as and where that comes from, and the box below this form lists any mistake in this
+   field. A mistake never stops the form from saving and never breaks a page: unreadable YAML gives no page a
+   per-page type, and an unknown type is skipped, so check that box after you save. Per-page types need structured
+   data on, and do nothing on a page marked noindex.</p>
+
+<h4>How a page is matched</h4>
+<ul>
+    <li>A key is a path pattern starting with <code>/</code>: <code>/pricing</code> matches that page, and a
+        <code>*</code> at the end matches every path that starts with what comes before it
+        (<code>/blog/*</code>). It is a plain text prefix: <code>/blog/*</code> does not match <code>/blog</code>
+        itself (give that page its own key), and <code>/blog*</code> also matches <code>/blogroll</code>;
+        <code>/*</code> matches every page. An exact path wins over a prefix; among prefixes the longest wins. Only
+        that one entry applies: an exact entry and a prefix entry are never combined. A <code>*</code> anywhere else
+        is an ordinary character.</li>
+    <li>A page is matched by its own URL path (its canonical URL, so a page whose canonical is overridden is matched
+        by the override). A page whose canonical URL points to another site has no path on this site, so no
+        pattern that starts with <code>/</code> matches it. A page in another language is matched by its own path
+        too: <code>/pricing</code> does not reach <code>/es/pricing</code>, because what an entry says (questions,
+        names, a breadcrumb parent) is written in one language. Give the translated page its own key
+        (<code>/es/pricing</code>, or <code>/es/*</code> for all of them) with the text in its language; a key such
+        as <code>/*</code> matches every language's pages. The page editor tells a translated page when the
+        default language's entry does not reach it.</li>
+    <li>The value is one type block (<code>type: …</code> plus that type's keys) or a list of blocks when one page
+        is several things at once. Types and keys are case-sensitive, spelled exactly as below: <code>faqpage</code>
+        or <code>Price</code> is not recognised.</li>
+    <li>Quote numbers you mean as text (prices, postal codes): <code>price: "22.00"</code>. Unquoted,
+        <code>22.00</code> becomes <code>22.0</code>.</li>
+    <li>Any block may add <code>breadcrumb: { name: …, url: … }</code>: the page's breadcrumb trail then shows that
+        parent between Home and the page. It needs both <code>name</code> and <code>url</code>; a path on the site is
+        made a full URL. When several blocks give one, the first complete one is used. A block may hold only a
+        <code>breadcrumb</code>, with no <code>type</code>.</li>
+</ul>
+
+<h4>Page types: what the page itself is</h4>
+<p>These replace the <a href="#structured-data">Default page type</a> on the pages they match; a page has one, the
+   first listed.</p>
+<table>
+    <thead><tr><th>Type</th><th>Keys</th></tr></thead>
+    <tbody>
+    <tr><td><code>Article</code>, <code>BlogPosting</code>, <code>NewsArticle</code></td>
+        <td><code>headline</code> (default: the page title) · <code>description</code> (default: the page
+            description) · <code>image</code> (a list of image URLs; a path on the site is made a full URL) ·
+            <code>author</code> (a name) · <code>datePublished</code>, <code>dateModified</code>
+            (<code>YYYY-MM-DD</code>; published as written, not checked). A page that knows its own author and dates
+            (a blog entry) uses those instead. A page with neither a title nor a <code>headline</code> gets none of
+            these.</td></tr>
+    <tr><td><code>FAQPage</code></td>
+        <td><code>faq</code>: a list of <code>{ q: question, a: answer }</code>. A pair missing <code>q</code> or
+            <code>a</code> is left out; with no complete pair the page is still an <code>FAQPage</code>, with no
+            questions, and the page editor and the box below the form say so.</td></tr>
+    <tr><td><code>CollectionPage</code></td>
+        <td><code>items</code>: a list of <code>{ name, url }</code>, published as the page's list (an
+            <code>ItemList</code> that is the page's main entity). An item without <code>url</code> is left out; a
+            path on the site is made a full URL. With no item that has a <code>url</code>, no list is published,
+            and the page editor and the box below the form say so.</td></tr>
+    <tr><td><code>WebPage</code>, <code>AboutPage</code>, <code>ContactPage</code>, <code>ItemPage</code>,
+            <code>SearchResultsPage</code></td>
+        <td>none: they only name what the page is. <code>WebPage</code> takes a page back to the plain type on a
+            site whose default is <code>Article</code>. There is no <code>QAPage</code> or
+            <code>ProfilePage</code>: Google requires each to name its main subject, which a type with no keys
+            cannot do. Questions you write on the page are an <code>FAQPage</code>.</td></tr>
+    </tbody>
+</table>
+
+<h4>Types that add something to the page</h4>
+<table>
+    <thead><tr><th>Type</th><th>Keys</th></tr></thead>
+    <tbody>
+    <tr><td><code>Product</code></td>
+        <td><code>name</code> (default: the page title) · <code>description</code> (default: the page
+            description) · <code>image</code> · <code>sku</code> · <code>price</code> (an offer is published only
+            with a price) · <code>currency</code> (default <code>USD</code>) · <code>availability</code>
+            (<code>InStock</code>, <code>OutOfStock</code>, <code>PreOrder</code>, … or a full schema.org URL; a word
+            is put after <code>https://schema.org/</code>, so spell it as schema.org does). The organization, when
+            named, is the brand. With neither a <code>name</code> nor a page title, no product is published.</td></tr>
+    <tr><td><code>Service</code>, <code>ProfessionalService</code></td>
+        <td><code>name</code> (default: the page title) · <code>description</code> (default: the page
+            description) · <code>serviceType</code> · <code>areaServed</code> (a list) · <code>offers</code>: a
+            list of <code>{ name, price, currency, unit }</code>; an offer without <code>price</code> is left out,
+            <code>currency</code> defaults to <code>USD</code>, and with <code>unit</code> (for example
+            <code>month</code>) the price is per that unit. The organization, when named, is the provider. With
+            neither a <code>name</code> nor a page title, no service is published.</td></tr>
+    <tr><td><code>LocalBusiness</code>, <code>CafeOrCoffeeShop</code></td>
+        <td><code>name</code> (default: the site name) · <code>street</code> · <code>locality</code> ·
+            <code>region</code> · <code>postalCode</code> · <code>country</code> · <code>telephone</code> ·
+            <code>url</code> · <code>priceRange</code> · <code>latitude</code>, <code>longitude</code> ·
+            <code>hours</code> (a list, for example <code>"Mo-Fr 08:00-17:00"</code>) · <code>image</code>. Or
+            <code>locations</code>: a list of those, one business per location (the keys beside
+            <code>locations</code> are then not used). <code>url</code> defaults to the page's address. The address is
+            published only with a <code>street</code> or a <code>locality</code>, the map position only with both
+            <code>latitude</code> and <code>longitude</code>. Even a block with nothing but its <code>type</code> publishes a
+            business, named after the site. Only these two type names work.</td></tr>
+    <tr><td><code>Person</code></td>
+        <td><code>people</code>: a list of <code>{ name, jobTitle, image, sameAs }</code>
+            (<code>sameAs</code>: a list of profile URLs). For one person you can put those keys in the block itself,
+            without <code>people</code>. A person without a <code>name</code> is left out. The organization, when
+            named, is where they work.</td></tr>
+    <tr><td><code>ItemList</code></td>
+        <td><code>items</code>: a list of <code>{ name, url }</code>, without changing what the page is. An item
+            without <code>url</code> is left out; a path on the site is made a full URL. With none that has a
+            <code>url</code>, nothing is published, and the box below the form says so.</td></tr>
+    </tbody>
+</table>
+
+<pre><code>/pricing:                 # one page, two types
+  - type: FAQPage
+    faq:
+      - { q: "Why ranges?", a: "Scope drives cost." }
+  - type: Service
+    name: "Advisory Sprint"
+    offers:
+      - { name: "Sprint", price: "18000", currency: USD }
+/coffees:                 # a collection page
+  type: CollectionPage
+  items:
+    - { name: "Ethiopia Guji", url: "/coffee-ethiopia-guji" }
+/coffee-ethiopia-guji:    # a product, under its collection in the breadcrumb
+  type: Product
+  price: "22.00"
+  currency: USD
+  breadcrumb: { name: "Coffees", url: "/coffees" }
+/contact:
+  type: ContactPage
+/team:
+  type: Person
+  people: [{ name: "Dana Whitlock", jobTitle: "Founder" }]</code></pre>
+<p>If a page shows an FAQ (a <code>&lt;details&gt;</code>/<code>&lt;summary&gt;</code> block) that is not declared
+   here, the page editor's quality check points it out.</p>
+
+<h3 id="sitemap-robots">Sitemap and robots.txt</h3>
+<p><code>/sitemap.xml</code> lists every published, indexable page with its language alternates, and
+   <code>/robots.txt</code> announces it. Pages marked <em>Exclude from search engines (noindex)</em>, and pages
+   whose canonical URL points elsewhere, are left out on purpose: a sitemap
+   recommends pages for indexing. <strong>Paths crawlers should skip</strong> become <code>Disallow:</code> lines for
+   every crawler; AI crawlers you allow get the same lines, and AI crawlers you refuse are already kept off the
+   whole site. Write one path per line (or separate them with commas); a <code>/</code> is added in front when you
+   leave it out, and the path is otherwise written as you typed it. Each line is a prefix, as in every
+   <code>robots.txt</code>: <code>/drafts</code> also covers <code>/drafts/old</code> and <code>/drafts-2024</code>,
+   while <code>/drafts/</code> covers only what is inside it. Crawlers that follow the robots.txt standard
+   (RFC 9309) also read <code>*</code> as any characters and a final <code>$</code> as the end of the
+   address.</p>
+<p id="robots-custom"><strong>Custom robots.txt</strong> replaces the <em>entire</em> generated file — the
+   <code>Sitemap:</code> line and the AI-crawler rules included — with exactly what you type. It is for the rare site
+   that needs rules this page cannot express; if you use it, re-add the <code>Sitemap:</code> line yourself.</p>
+
+<h3 id="ai-crawlers">AI crawlers</h3>
+<p>Whether AI companies' crawlers may read the site. Refusing them never removes the site from ordinary web
+   search: the rules name AI agents only (for example <code>Google-Extended</code>, never <code>Googlebot</code>).
+   <code>inherit</code> follows the platform's default, and the settings page shows what that currently is.</p>
+<p>Under <em>Advanced</em> you can decide per class of crawler, because the three classes have opposite
+   consequences:</p>
+<table>
+    <tr><th>Class</th><th>What it does</th><th>If you refuse it</th></tr>
+    <tr><td>Training</td><td>Collects text to train AI models.</td><td>Costs the site nothing visible.</td></tr>
+    <tr><td>Answer engines</td><td>Fetches pages to answer questions (ChatGPT search, Perplexity…).</td>
+        <td>The site stops appearing in those answers.</td></tr>
+    <tr><td>Person-initiated</td><td>A visit someone asked an AI assistant to make.</td>
+        <td>That visit fails.</td></tr>
+</table>
+<p>A class left on <code>inherit</code> follows the site's policy above it.</p>
+<p id="ai-agents">The crawlers the rules name, by class:</p>
+<table>
+    <tr><th>Class</th><th>Crawlers</th></tr>
+    <tr><td>Training</td><td><code>GPTBot</code>, <code>ClaudeBot</code>, <code>anthropic-ai</code>,
+        <code>Claude-Web</code>, <code>Google-Extended</code>, <code>CCBot</code>, <code>Bytespider</code>,
+        <code>Amazonbot</code>, <code>Applebot-Extended</code>, <code>Meta-ExternalAgent</code>,
+        <code>FacebookBot</code>, <code>cohere-ai</code>, <code>Diffbot</code>, <code>Omgilibot</code>,
+        <code>Timpibot</code></td></tr>
+    <tr><td>Answer engines</td><td><code>OAI-SearchBot</code>, <code>Claude-SearchBot</code>,
+        <code>PerplexityBot</code>, <code>YouBot</code></td></tr>
+    <tr><td>Person-initiated</td><td><code>ChatGPT-User</code>, <code>Claude-User</code>,
+        <code>Perplexity-User</code></td></tr>
+</table>
+<p>A crawler whose role is unclear is counted as training: that is what a site refusing AI crawlers most likely
+   means. New crawlers appear faster than plugin releases, so the platform operator can add names (<em>Additional
+   AI crawler names</em>: in the app console, open <em>Plugins</em> and press <em>Settings</em> on the
+   Discoverability row; a restart applies it). Each line (or comma-separated
+   entry) is one name, optionally with its class in front: <code>training=NewBot</code>, <code>retrieval=…</code>,
+   <code>user=…</code> (the class may be written in any case). Spaces, colons and <code>=</code> signs are removed
+   from the name. A name already listed, in any case, is ignored, so a built-in crawler cannot be moved to another
+   class. A name without a class follows each site's overall AI policy (or, on a site whose three classes all come out
+   the same, goes with them); so does one with a misspelt class, which is also logged as a warning.</p>
+
+<h3 id="geo">AI answer engines (GEO)</h3>
+<p>Opt-in extras for AI assistants: <code>/llms.txt</code> (a compact index of the site, headed by your
+   <strong>site summary</strong>), <strong>speakable</strong> hints (the CSS selectors of the parts of a page worth
+   reading aloud or quoting) and a <code>SearchAction</code> from the <strong>site search URL</strong>. The last two
+   are structured data, so they also need structured data on.</p>
+<p>Speakable parts: one CSS selector per line (or separate them with commas). Left blank, they are
+   <code>h1</code> and <code>main</code>, the default.</p>
+<p>The site search URL is the address of your results page, as a path or full URL (a value starting with
+   <code>http</code> is used as it is; anything else is a path on this site). Put <code>{query}</code> (or
+   <code>{search_term_string}</code>) where the search words go (<code>/search?q={query}</code>); without either,
+   <code>?q=</code> is appended, or <code>&amp;q=</code> when the address already has a <code>?</code>. Blank
+   publishes no search action.</p>
+<p><em>Honest note:</em> <code>llms.txt</code> is a community proposal, not a standard. No major engine documents
+   reading it, and Google states that no AI-specific file is needed to appear in its AI features. It is cheap and
+   harmless; treat it as an optional extra.</p>
+
+<h3 id="software">Product on the homepage</h3>
+<p>For a site that presents a software product: a <code>SoftwareApplication</code> on the homepage only (and on
+   the home page of each other language, such as <code>/es</code>), published by the organization. It needs
+   structured data on. A blank name uses the organization's (or the site's), a blank description the homepage's,
+   a blank URL the homepage; a price of <code>0</code> means free, and a blank price publishes no offer. A blank
+   operating system means <code>Web</code> and a blank currency <code>USD</code>, the defaults; neither is checked,
+   so write them as schema.org expects (a currency as its three-letter code). The license, product and screenshot
+   URLs are published exactly as you write them: use full URLs (<code>https://…</code>), because a path such as
+   <code>/license</code> stays a path, which search engines do not accept.</p>
+
+<h3 id="indexnow">Notify search engines of changes (IndexNow)</h3>
+<p>When a page is published, changed or removed, the site tells the engines that use IndexNow — Bing, Yandex,
+   Seznam, Naver and Yep. <strong>Google does not use IndexNow.</strong> It needs two switches: the platform
+   operator's (this server then makes outbound requests) and this site's. The settings page tells you when the
+   platform's is off.</p>
+<p>The <strong>key</strong> is any random string of 8 to 128 letters, digits or dashes — the protocol's rule. It
+   is published at <code>/indexnow-key.txt</code> so the engines can check the site is yours. Nothing is sent
+   until a key is set.</p>
+<p>IndexNow also needs the site's own address: a site with neither a base URL nor a host name (such as the
+   platform's catch-all default site) never sends anything, and nothing warns about it.</p>
+<p id="indexnow-limits"><strong>For the platform operator.</strong> Besides the switch, this plugin's platform
+   settings (app console, <em>Plugins</em>, <em>Settings</em> on the Discoverability row) hold the endpoint and four
+   limits. The form accepts only the ranges below; a value written by hand in the settings file
+   (<code>external/plugin-settings/discoverability.yml</code>) or in <code>application.yml</code> is not
+   range-checked, so keep to them. A restart applies any change.</p>
+<table>
+    <tr><th>Setting</th><th>Default</th><th>Range</th><th>What it does</th></tr>
+    <tr><td>Seconds to gather changes</td><td>60</td><td>5–3600</td><td>Changes are collected for this long, then
+        each site's are sent in one submission. Set by hand, a value below 5 counts as 5 and one above 3600 as 3600.</td></tr>
+    <tr><td>Maximum URLs per submission</td><td>1000</td><td>1–10000</td><td>The rest of a batch is not sent (a
+        warning is logged); those pages are still crawled the ordinary way. Set by hand, a value below 1 counts as
+        1.</td></tr>
+    <tr><td>Maximum URLs queued per site</td><td>5000</td><td>1–100000</td><td>Once a site has this many waiting,
+        further changes are dropped until the next submission (a warning is logged). Set by hand, a value below 1
+        counts as 1.</td></tr>
+    <tr><td>Submission timeout (seconds)</td><td>10</td><td>1–120</td><td>How long to wait for the endpoint before a
+        submission is given up (it is not retried). Set by hand, a value below 1 counts as 1.</td></tr>
+</table>
+
+<h2>Verify it</h2>
+<ul>
+    <li>View any public page's source — look for <code>&lt;script type="application/ld+json"&gt;</code>.</li>
+    <li>Open <code>/sitemap.xml</code> and <code>/llms.txt</code> (the latter only when GEO is enabled).</li>
+    <li>Open <code>/robots.txt</code> and read it: check the AI-crawler group matches the policy you chose, and
+        that any paths you excluded appear as <code>Disallow:</code> lines under <code>User-agent: *</code> and in
+        every AI group you allow (a refused AI group is a single <code>Disallow: /</code>, which already covers
+        them).</li>
+    <li>Paste a page URL into Google's Rich Results Test to see the structured data recognized.</li>
+</ul>
+
+<p class="muted">Editing these settings affects your live site immediately (no restart). Only this site is
+   affected — every site configures its own discoverability. A few things are the platform operator's, apply to
+   every site and change only on a restart: the default AI-crawler policy that <code>inherit</code> follows, the
+   list of extra AI crawler names, and whether IndexNow is allowed at all.</p>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Blog entry</title></head>
+<body>
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="be-pretitle">Site</div>
+                <h2 class="page-title" id="be-heading">Edit entry</h2>
+            </div>
+            <div class="col-auto"><a class="btn" id="be-back" href="/__admin/blog">Back to blog</a></div>
+        </div>
+    </div>
+
+    <!-- The reverse advisory: a real PAGE owns this entry's URL — the
+         page wins, so the entry is unreachable there. Rendered only when it applies. -->
+    <div class="alert alert-warning" id="be-shadowed" role="alert">
+        <span id="be-shadowed-text">A page owns this entry's address.</span>
+        <span id="be-shadowed-by" class="font-monospace">page</span>
+    </div>
+
+    <form id="be-form" method="post" action="/__admin/blog/x">
+        <input id="be-csrf" type="hidden" name="_csrf" value="">
+
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title" id="be-l-entry">Entry</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4" id="be-id-wrap">
+                        <label class="form-label" id="be-l-id" for="be-id">Id</label>
+                        <input id="be-id" class="form-control font-monospace" type="text" name="id" value=""
+                               placeholder="my-first-post">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" id="be-l-date" for="be-date">Publication date</label>
+                        <input id="be-date" class="form-control" type="date" name="publishedOn" value="">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" id="be-l-author" for="be-author">Author</label>
+                        <input id="be-author" class="form-control" type="text" name="author" value=""
+                               placeholder="Jane Doe">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" id="be-l-custom" for="be-custom">Custom path</label>
+                        <input id="be-custom" class="form-control font-monospace" type="text" name="customPath"
+                               value="" placeholder="/announcing-v2">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-check form-switch">
+                            <input id="be-published" class="form-check-input" type="checkbox" name="published">
+                            <span class="form-check-label" id="be-l-published">Published</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- One card per site language: title, description, slug, body (Markdown). -->
+        <div class="card mb-3" id="be-lang-card">
+            <div class="card-header">
+                <h3 class="card-title"><span id="be-lang-name">en</span></h3>
+                <div class="card-actions">
+                    <label class="form-check mb-0">
+                        <input id="be-lang-on" class="form-check-input" type="checkbox" name="locales_en">
+                        <span class="form-check-label" id="be-l-langon">Published in this language</span>
+                    </label>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label be-l-title">Title</label>
+                        <input class="form-control be-title" type="text" name="title_en" value="">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label be-l-slug">Slug</label>
+                        <input class="form-control font-monospace be-slug" type="text" name="slug_en" value="">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label be-l-desc">Description</label>
+                        <input class="form-control be-desc" type="text" name="description_en" value="">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label be-l-body">Body (Markdown)</label>
+                        <textarea class="form-control font-monospace be-body" name="body_en" rows="10"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="be-save">Save</button>
+    </form>
+</div>
+</body>
+</html>

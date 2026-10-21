@@ -3,8 +3,8 @@
 #
 # The question this file exists to answer correctly: when an upgrade finds that a plugin's template or i18n
 # file differs from the one being installed, WHO changed it? Comparing the installed copy with the incoming
-# one cannot say — a difference means only "not the new version". Until 0.5.0-beta14 the installer guessed
-# "the operator", backed the file up and said so, and it was wrong every time the change was ours: hashing the
+# one cannot say — a difference means only "not the new version". An installer that guesses
+# "the operator", backs the file up and says so is wrong every time the change was ours: hashing the
 # files before two upgrades proved the "operator edits" were the previous shipped versions.
 #
 # So the installer now remembers what it laid down. A SHIPPED-MANIFEST per plugin records the SHA-256 of
@@ -61,9 +61,9 @@ _ps_write_manifest() {
 # opt-in any more. The bundled plugins are the essential ones (today: protection), and an essential plugin is
 # lockstep with the kernel: it is the one plugin allowed to link kernel internals, and its descriptor names the
 # kernel's SPI level. An old copy beside a new kernel is refused — the essential plugin blocked puts the platform in
-# fail-closed mode, every tenant page 503 — or crashes on a missing class. Until 1.0.0-rc1 the refresh needed
-# --update-essential-plugins, and an upgrade run without it left the old copy in place; with SPI 1.0.0's mandatory
-# floor that became a 503 on every site, so the refresh is part of every upgrade. What makes
+# fail-closed mode, every tenant page 503 — or crashes on a missing class. An upgrade that left
+# the old copy in place would, with SPI 1.0.0's mandatory floor, mean a 503 on every site, so the refresh is part
+# of every upgrade. What makes
 # "always" safe is what the refresh keeps:
 #   - the previous jar and plugin.yml as <name>.bak (written only when the file changes) — the rollback pair;
 #   - a template/i18n file the operator edited, as <name>.operator-backup-<stamp>, with a warning naming it;
@@ -93,7 +93,7 @@ seed_bundled_plugins() {
             # The previous jar AND descriptor are kept as <name>.bak: they are what a ROLLBACK needs. The refreshed
             # folder outlives the kernel it came with (external/ is version-independent), so flipping /opt/runway
             # back to an older release puts that kernel in front of the new jar — which may link SPI types the old
-            # kernel lacks (0.5.0-beta14's protection 1.5.0 did: beta13 failed to start). Restoring both .bak files
+            # kernel lacks. Restoring both .bak files
             # is the rollback step. The descriptor matters as much as the jar: it carries the requiresSpi floor, so
             # the new descriptor beside the old jar would get the old jar refused.
             # Backed up only when the file actually changes, so re-running the same installer (it is idempotent)
@@ -113,8 +113,8 @@ seed_bundled_plugins() {
             done
             [ -d "$pdir/lib" ] && { run mkdir -p "$pdst/lib"; run cp -a "$pdir/lib/." "$pdst/lib/"; }
             # Templates and i18n too: an essential plugin's SCREENS ship in these files, so skipping them would
-            # mean a release that adds a panel never reaches an upgraded install (0.5.0-beta10's "Recently ended
-            # blocks" did exactly that — no error, just a feature that was not there).
+            # mean a release that adds a panel never reaches an upgraded install — no error, just a
+            # feature that is not there.
             for sub in templates i18n; do
                 [ -d "$pdir/$sub" ] || continue
                 run mkdir -p "$pdst/$sub"

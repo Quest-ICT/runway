@@ -27,7 +27,7 @@ import org.springframework.context.ApplicationEventPublisher;
  * content catalog, and the cluster relay that repeats it to peer nodes. (Until the follow-up that added
  * {@code evictSite}, this sentence claimed template caches were cleared while {@code TemplateCacheService} acted
  * only on delete/restore — a template file edited on disk kept rendering its old parse after a "successful"
- * reload. Same lesson as below. Since 1.0.0-rc1 a template edited on disk also shows without any reload: a cached parse is
+ * reload. Same lesson as below. A template edited on disk also shows without any reload: a cached parse is
  * valid only while its files are unchanged, {@code FileStampValidity}.) So "reload this site" is not a synonym for "evict
  * SiteStore": it genuinely means re-read, and it covers the cases that actually bit — plugin config and icons —
  * without this class knowing either of them exists.
@@ -37,8 +37,8 @@ import org.springframework.context.ApplicationEventPublisher;
  * on a narrower condition silently drops out of the reload while this class still reports success.
  * {@code SitePluginConfigService} did exactly that: it invalidated only on {@code isWholesaleReplacement()}
  * (delete/restore), so per-site <i>plugin</i> config — named above as one of the two cases that motivated this
- * feature — kept serving pre-edit YAML after a reload that returned {@code {"reloaded":"<id>"}}. Found in
- * production on {@code 0.5.0-beta6}; fixed by scoping that listener's eviction to the changed site.
+ * feature — kept serving pre-edit YAML after a reload that returned {@code {"reloaded":"<id>"}}. Found on a
+ * live deployment; fixed by scoping that listener's eviction to the changed site.
  *
  * <p>The lesson for anyone adding a listener here or auditing this fan-out: <b>assert that the generated
  * artefact changed</b> (fetch {@code /robots.txt}, the web manifest, the rendered page) — never that some

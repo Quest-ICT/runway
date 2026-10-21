@@ -159,7 +159,7 @@ class UsernameUniquenessTest {
         Wiring w = wire(tmp);
         w.masters().save(master("owner-id", "owner", "acme"));
         Path file = w.layout().siteDir("acme").resolve("users.yml");
-        new YamlStore().write(file, new UserFile(List.of(siteUser("s1", "Owner")))); // the beta13-era squat
+        new YamlStore().write(file, new UserFile(List.of(siteUser("s1", "Owner")))); // a squat an older release allowed
         w.users().evict(file);
         assertDoesNotThrow(() -> w.masters().save(master("owner-id", "owner", "acme").withPasswordHash("$fresh")));
         assertDoesNotThrow(() -> w.masters().save(master("owner-id", "owner", "acme", "beta")),

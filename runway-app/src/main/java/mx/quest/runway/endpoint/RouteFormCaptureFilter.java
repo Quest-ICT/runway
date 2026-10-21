@@ -50,7 +50,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * This filter runs before authentication, CSRF and the suspended/maintenance gates, so whatever it buffers, any
  * anonymous client can make it buffer. Using the 10 MiB raw-body cap here let one request hold 10 MiB of heap
  * before any check — far more than a form of text fields needs. (The container's own form limit was no better: it
- * is 16 MiB, raised by {@code JettyFormLimitsConfig} for the Messages editor; since rc1 a caller who is not signed in
+ * is 16 MiB, raised by {@code JettyFormLimitsConfig} for the Messages editor; a caller who is not signed in
  * is held to this same cap on every other path too, by {@link PreAuthBodyLimitFilter}.) The capture is therefore
  * bounded by {@code max-form-bytes} (default
  * {@value #DEFAULT_MAX_FORM_BYTES} bytes — a form of text fields), or by {@code max-body-bytes} if that is smaller.

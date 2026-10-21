@@ -15,6 +15,10 @@ plugins built for it, beside the kernel's own files and listed in the same `SHA2
 plugins/
 ├── docs/PLUGIN-AUTHORING-GUIDE.md   # THE canonical guide: build any Runway plugin from scratch
 ├── demo/                            # the reference "kitchen-sink" plugin — exercises EVERY seam
+├── blog/                            # a blog: entries as virtual pages via ContentSource, in the site's own chrome
+├── carousel-manager/                # an image/slide carousel content widget, slides configured per site
+├── contact/                         # a contact form widget: emails each submission and stores it for the console
+├── discoverability/                 # SEO+ & GEO: sitemap.xml, robots.txt, llms.txt and schema.org JSON-LD
 ├── search/                          # on-site search: box widget + /search + /search/api + a published SiteSearchEngine SPI
 ├── search-lucene/                   # a Lucene engine for `search` (requires: search + lucene-provider; per-locale analyzers, heap or disk)
 └── lucene-provider/                 # CODE-LESS library provider: bundles Apache Lucene under lib/ (no mainClass)
@@ -41,6 +45,12 @@ with no code of its own to verify.
   - Implementing another plugin's SPI (`requires:`) + **consuming a library-provider** (Lucene) → [`search-lucene/`](search-lucene/).
   - A **code-less library-provider** plugin (bundle a shared library under `lib/`, no `mainClass`) →
     [`lucene-provider/`](lucene-provider/) (Apache Lucene) — consumed by a `requires:` plugin (`search-lucene`).
+  - Routable content of your own (virtual pages in the site's chrome, sitemap and search included) →
+    [`blog/`](blog/) (`ContentSource`).
+  - A public form that posts, mails and stores tenant data → [`contact/`](contact/).
+  - Server routes and `<head>` markup for a whole site (`EndpointContributor`, `HeadContributor`) →
+    [`discoverability/`](discoverability/).
+  - A self-contained content widget with its own static assets → [`carousel-manager/`](carousel-manager/).
 
 ## Conventions
 

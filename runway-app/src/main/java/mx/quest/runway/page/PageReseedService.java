@@ -61,8 +61,8 @@ public class PageReseedService {
      * <p><b>Writes nothing.</b> A re-seed is an edit of the page's {@code .html}, so where it goes is decided by the
      * site's editorial level like any other save — {@code EditorialService#reseed} calls this under the page lock
      * and saves the result through the editorial rules (a pending revision for a non-approver on a reviewed site,
-     * the quality gate on an enforced or reviewed one). An earlier version wrote the live files directly, past the
-     * review queue, the gate and the lock (before 0.5.0-beta14).
+     * the quality gate on an enforced or reviewed one). Writing the live files directly would bypass the
+     * review queue, the gate and the lock.
      *
      * @param page the page whose master supplies the chrome ({@link Page#template()})
      * @param body the page body to re-seed — the live one, or a pending revision's

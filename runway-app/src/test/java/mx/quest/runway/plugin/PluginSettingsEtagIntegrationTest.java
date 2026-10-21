@@ -39,15 +39,16 @@ import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /**
- * End to end (since 1.0.0-rc1), over real boots and a real Jetty: a plugin's <b>settings</b> shape what it renders
+ * End to end, over real boots and a real Jetty: a plugin's <b>settings</b> shape what it renders
  * into a page,
  * so they move the page ETag — and they move it exactly when they take effect, with the body.
  *
  * <p>The fixture plugin {@code fx} mirrors the demo plugin's {@code analytics.write-key}: an app-level setting
  * ({@code external/plugin-settings/fx.yml}, bound once, applied by a restart) that adds a head script, and a per-site
  * setting ({@code sites/<id>/plugins/fx.yml}, read through {@code PluginSettings}) rendered into a head meta tag. The
- * plugin declares no {@code headInputs} — it needs none. Before 1.0.0-rc1 the ETag folded only the plugin's id and version,
- * so the restart with a key served the new script under the old ETag, and a client holding that ETag got {@code 304}.
+ * plugin declares no {@code headInputs} — it needs none. An ETag folding only the plugin's id and version
+ * would serve the new script under the old ETag after the restart with a key, and a client holding that ETag would
+ * get {@code 304}.
  */
 class PluginSettingsEtagIntegrationTest {
 

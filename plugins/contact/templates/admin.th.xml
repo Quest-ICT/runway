@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Admin fragment logic. The recent-submissions table repeats #cn-row over ${@contactAdminModel.recent(...)};
+     nested cells use '//' descendant selectors (pitfall #8). The empty note and the table are mutually exclusive
+     via th:if on the count. The SMTP readiness row shows exactly one of the two badges via th:if. -->
+<thlogic>
+    <!-- "Contact page" card: exactly one of the two blocks shows, gated on the live install status. The install
+         form's action is the constant /contact/install-page in the static markup (no th:action: the restricted
+         URL/attr context forbids ${@bean}); the live path is bound with th:text (which permits @bean). The hidden
+         field carries the console session's CSRF token (the request attribute _csrf, never a bean), which the
+         kernel's tenant chain demands on this non-anonymous POST. -->
+    <attr sel="#cp-title" th:text="#{contact.page.card.title}"/>
+    <attr sel="#cp-install" th:if="${!@contactAdminModel.pageInstalled(tenantSiteId)}"/>
+    <attr sel="#cp-desc" th:text="#{contact.page.card.desc}"/>
+    <attr sel="#cp-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#cp-install-btn" th:title="#{contact.page.card.install.tip}"/>
+    <attr sel="#cp-install-label" th:text="#{contact.page.card.install}"/>
+    <attr sel="#cp-installed" th:if="${@contactAdminModel.pageInstalled(tenantSiteId)}"/>
+    <attr sel="#cp-badge" th:text="#{contact.page.card.badge}"/>
+    <attr sel="#cp-at" th:text="#{contact.page.card.at}"/>
+    <attr sel="#cp-path" th:text="${@contactAdminModel.pagePath(tenantSiteId)}"/>
+    <attr sel="#cp-edit" th:text="#{contact.page.card.edit}"/>
+
+    <attr sel="#cn-title" th:text="#{contact.admin.title}"/>
+    <attr sel="#cn-count" th:text="${@contactAdminModel.count(tenantSiteId)}"/>
+
+    <!-- SMTP readiness: exactly one badge; the self-test link's label. -->
+    <attr sel="#cn-smtp-label" th:text="#{contact.admin.smtp}"/>
+    <attr sel="#cn-smtp-ok" th:if="${@contactAdminModel.smtpConfigured(tenantSiteId)}"
+          th:text="#{contact.admin.smtp.ok}"/>
+    <attr sel="#cn-smtp-missing" th:if="${!@contactAdminModel.smtpConfigured(tenantSiteId)}"
+          th:text="#{contact.admin.smtp.missing}"/>
+    <!-- No th:action: the action is the constant /contact/smtp-test already in the static markup, and BOTH
+         th:attr AND the dedicated URL processors (th:href/th:action) evaluate in a RESTRICTED context that forbids
+         ${@bean} access (unlike th:text/th:if/th:value) — binding the URL from the bean here would 500 this
+         fragment. The CSRF field reads the _csrf request attribute (not a bean), and the title is a message. -->
+    <attr sel="#cn-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#cn-smtp-test" th:title="#{contact.admin.smtp.test.tip}"/>
+    <attr sel="#cn-smtp-test-label" th:text="#{contact.admin.smtp.test}"/>
+
+    <attr sel="#cn-empty" th:if="${@contactAdminModel.count(tenantSiteId) == 0}" th:text="#{contact.admin.empty}"/>
+    <attr sel="#cn-table" th:if="${@contactAdminModel.count(tenantSiteId) > 0}"/>
+
+    <attr sel="#cn-h-when" th:text="#{contact.admin.when}"/>
+    <attr sel="#cn-h-name" th:text="#{contact.form.name}"/>
+    <attr sel="#cn-h-email" th:text="#{contact.form.email}"/>
+    <attr sel="#cn-h-msg" th:text="#{contact.form.message}"/>
+
+    <attr sel="#cn-row" th:each="s : ${@contactAdminModel.recent(tenantSiteId)}"/>
+    <attr sel="#cn-row//.cn-when" th:text="${s.time()}"/>
+    <attr sel="#cn-row//.cn-name" th:text="${s.name()}"/>
+    <attr sel="#cn-row//.cn-email" th:text="${s.email()}"/>
+    <attr sel="#cn-row//.cn-excerpt" th:text="${s.excerpt()}"/>
+
+    <attr sel="#cn-help-label" th:text="#{contact.admin.help}"/>
+</thlogic>

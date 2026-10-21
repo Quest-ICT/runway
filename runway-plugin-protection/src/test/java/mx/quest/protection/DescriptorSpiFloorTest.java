@@ -16,14 +16,14 @@ import org.junit.jupiter.api.Test;
  * The shipped descriptor declares the SPI floor the plugin's code actually needs.
  *
  * <h2>Why</h2>
- * The installer (on every upgrade since 1.0.0-rc1; before that with {@code --update-essential-plugins}) replaces the
+ * The installer (on every upgrade) replaces the
  * protection jar in the version-independent
  * {@code external/plugins/protection/}, so after an upgrade the jar outlives the kernel it came with: a rollback
- * is a symlink flip that puts an older kernel in front of the newer jar. From 1.5.0 the plugin links
+ * is a symlink flip that puts an older kernel in front of the newer jar. The plugin links
  * {@code spi.service.RequestContext} (SPI 0.5.0) and {@code spi.service.ConsoleScreen} (SPI 0.6.0). A kernel
- * without them registered the plugin and then failed to start with {@code NoClassDefFoundError: …RequestContext}
- * — the essential plugin, so nothing came up, and nothing named the plugin. The {@code requiresSpi} floor makes
- * every kernel since 0.5.0-beta10 refuse it with a reason instead.
+ * without them would register the plugin and then fail to start with {@code NoClassDefFoundError: …RequestContext}
+ * — the essential plugin, so nothing comes up, and nothing names the plugin. The {@code requiresSpi} floor makes
+ * every kernel that reads it refuse the plugin with a reason instead.
  */
 class DescriptorSpiFloorTest {
 

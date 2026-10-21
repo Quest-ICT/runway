@@ -58,7 +58,7 @@ public final class SecurityHeaders {
      * that response nothing writes {@code Cache-Control} at all. It is the cold, first-visit shape of every
      * console entry point ({@code /__app}, {@code /__app/users}, {@code /__admin}), each a 302 to the login that
      * also carries the new {@code Set-Cookie}. Reusing a session restores the header, which is what makes the
-     * defect invisible to any test that reuses a client session. (Found on a live deployment of {@code 0.5.0-beta2}.)
+     * defect invisible to any test that reuses a client session. (Found on a live deployment.)
      *
      * <p>Running <b>after</b> the default writer, this fills in {@code no-store} whenever the effective value does
      * not already forbid storing — so Spring Security's own stronger

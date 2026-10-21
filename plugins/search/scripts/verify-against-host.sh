@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build this plugin, drop it into a throwaway Runway deployment, boot the PACKAGED host in ACTIVE mode, and prove
-# the search 2.1.1 contract end to end (SPI 0.6.0):
+# this release's contract end to end:
 #   - it loads with ZERO host-linkage and bean-name/surface warnings, and its app-level settings bind;
 #   - the JSON API serves results anonymously; there is no plugin-owned /search page until one is installed;
 #   - the three operator actions are CSRF-protected POSTs: a GET (a cross-site link or <img>) changes nothing even
@@ -43,7 +43,7 @@ MVN="${MVN:-mvn}"
 # Default host: the kernel at the root of the repository this plugin sits in (plugins/<name>/), else a kernel
 # checkout named `runway` beside the plugins checkout.
 if [ -z "${HOST_TARGET:-}" ]; then
-  if [ -f "$HERE/../../../runway-app/pom.xml" ]; then HOST_TARGET="$HERE/../../../runway-app/target"
+  if [ -f "$HERE/../../runway-app/pom.xml" ]; then HOST_TARGET="$HERE/../../runway-app/target"
   else HOST_TARGET="$HERE/../../runway/runway-app/target"; fi
 fi
 
@@ -114,9 +114,10 @@ make_site enforced enforced
 make_site reviewed reviewed
 sed -i 's/^  - "default"$/  - "default"\n  - "enforced"\n  - "reviewed"/' "$EXT/site-users.yml"
 # A bilingual page whose visible copy comes ONLY from the site's bundles (decoupled th:text): the template holds an
-# empty element. Kernel 1.0.0-rc6+ indexes the page as rendered in each language; search 2.2.0+ searches each
-# language's own documents (on 2.1.1 + rc5, "facultad" found nothing).
+# empty element. The kernel indexes the page as rendered in each language, and search searches each language's
+# own documents. French is a site language too, for the visitor strings the plugin ships in French.
 sed -i '/^locales:/a - "es"' "$SITES/default/site.yml"
+sed -i '/^locales:/a - "fr"' "$SITES/default/site.yml"
 T="$SITES/default/templates"
 cat > "$T/faculty.html" <<'HTML'
 <!DOCTYPE html><html><head><title>Faculty</title></head>
@@ -129,6 +130,13 @@ cat > "$T/faculty.th.xml" <<'XML'
 </thlogic>
 XML
 printf 'path: /faculty\nlocalizedPaths:\n  es: /facultad\nlocales: [en, es]\ntitle:\n  en: Faculty\n  es: Profesores\n' > "$T/faculty.meta.yml"
+# A page carrying the search box in French as well (a French site's results page), to prove the plugin's French
+# visitor strings are used there rather than English.
+cat > "$T/recherche.html" <<'HTML'
+<!DOCTYPE html><html><head><title>Recherche</title></head>
+<body><main id="content"><div id="fr-search" data-widget="search/box"></div></main></body></html>
+HTML
+printf 'path: /find\nlocalizedPaths:\n  fr: /recherche\nlocales: [en, fr]\ntitle:\n  en: Find\n  fr: Recherche\n' > "$T/recherche.meta.yml"
 mkdir -p "$SITES/default/i18n"
 printf '\nverify.faculty=Our students learn from a faculty of researchers.\n' >> "$SITES/default/i18n/messages.properties"
 printf '\nverify.faculty=Nuestros alumnos aprenden con una facultad de excelencia.\n' >> "$SITES/default/i18n/messages_es.properties"
@@ -179,8 +187,8 @@ fi
 curl -s -D "$SCRATCH/home.headers" "$BASE/" > "$SCRATCH/home.html"
 ck "every page carries the loader script, stamped with the nonce the kernel's CSP allows" \
    "n=\$(grep -oE '<script [^>]*src=\"/__plugin/search/static/highlight-loader.js[?]v=[0-9.]+\"[^>]*>' '$SCRATCH/home.html' | grep -oE 'nonce=\"[^\"]+\"' | sed -E 's/nonce=\"(.*)\"/\\1/'); [ -n \"\$n\" ] && grep -i '^content-security-policy' '$SCRATCH/home.headers' | grep -q \"nonce-\$n\""
-ck "plugin files are cacheable with a content ETag (kernel 1.0.0-rc5+; rc4 and earlier send no-store)" \
-   "curl -s -D - -o /dev/null '$BASE/__plugin/search/static/highlight-loader.js?v=$PLUGIN_VERSION' | grep -qiE '^etag: ' || [ \"\${HOST_BEFORE_RC5:-0}\" = 1 ]"
+ck "plugin files are cacheable with a content ETag" \
+   "curl -s -D - -o /dev/null '$BASE/__plugin/search/static/highlight-loader.js?v=$PLUGIN_VERSION' | grep -qiE '^etag: '"
 ck "highlight-loader.js served as JavaScript" \
    "curl -s -D - -o /dev/null '$BASE/__plugin/search/static/highlight-loader.js' | grep -qiE '^content-type: (text|application)/javascript'"
 
@@ -195,7 +203,7 @@ ck "…each result with its matched words and a link carrying them (2.1.0)" \
 ck "the JSON API answers JSON" \
    "curl -s -D - -o /dev/null '$BASE/search/api?q=about' | grep -qi '^content-type: application/json'"
 
-echo "== every language searches its own text, bundle strings included (kernel 1.0.0-rc6+, search 2.2.0+) =="
+echo "== every language searches its own text, bundle strings included =="
 ck "the default site speaks Spanish too (fixture)" "grep -q '^- \"es\"' '$SITES/default/site.yml'"
 ck "the page's copy is rendered from the bundle (fixture)" \
    "curl -s '$BASE/es/facultad' | grep -q 'facultad de excelencia'"
@@ -270,6 +278,10 @@ ck "…the installed page renders the box and the results inline" \
    "grep -q 'class=\"rw-search-box\"' '$SCRATCH/search-page.html' && grep -q 'href=\"/about#rw-hl=about\"' '$SCRATCH/search-page.html'"
 ck "…and is noindex (a search-results page is the canonical index opt-out)" \
    "grep -qi 'noindex' '$SCRATCH/search-page.html' '$SCRATCH/search-page.headers'"
+curl -s -L -D "$SCRATCH/search-page-fr.headers" "$BASE/fr/recherche?q=zqxjvk" > "$SCRATCH/search-page-fr.html"
+grep -q 'placeholder="Rechercher…"' "$SCRATCH/search-page-fr.html" || { echo "        [debug] French response:"; grep -iE "^(HTTP|location)" "$SCRATCH/search-page-fr.headers" | sed "s/^/          /"; grep -o -E "(placeholder=\"[^\"]*\"|<html[^>]*>)" "$SCRATCH/search-page-fr.html" | head -3 | sed "s/^/          /"; }
+ck "…a French visitor sees the plugin's French strings (no English fallback)" \
+   "grep -q 'placeholder=\"Rechercher…\"' '$SCRATCH/search-page-fr.html' && ! grep -q 'placeholder=\"Search…\"' '$SCRATCH/search-page-fr.html'"
 ck "…and is never among its own results, though its title matches the query (2.1.1)" \
    "grep -qiE '<title[^>]*>[^<]*search' '$SCRATCH/search-page.html' && ! curl -s '$BASE/search/api?q=search' | grep -q '\"url\":\"/search\"'"
 install default > "$SCRATCH/install-again.txt"
@@ -337,7 +349,7 @@ ck "clear with the page's token redirects back to the settings (303)" \
    "[ \"\$(sc default -o /dev/null -w '%{http_code}' -X POST '$BASE/search/no-results/clear' --data-urlencode \"_csrf=\$(token < '$SCRATCH/settings-2.html')\")\" = 303 ]"
 ck "the list and the file are gone" "! sc default '$SETTINGS' | grep -q 'zebra crossing xyzzy' && [ ! -e '$NR_FILE' ]"
 
-echo "== a Messages save reaches the index at once (kernel 1.0.0-rc6+: no reindex) =="
+echo "== a Messages save reaches the index at once (no reindex) =="
 login default
 MSG_TOKEN="$(sc default "$BASE/__admin/messages" | token)"
 ck "the Messages save is accepted" \

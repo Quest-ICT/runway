@@ -16,8 +16,8 @@ package mx.quest.runway.spi;
  * contract. A plugin whose floor is not met is blocked at startup with an operator-readable
  * reason, and the kernel still boots its other plugins. The protection runs one way only: a
  * kernel older than the one that introduced the key <b>ignores</b> it, because descriptors
- * parse with unknown properties ignored on purpose (forward/backward compatibility). So the
- * floor guards upgrades from {@code 0.5.0-beta10} onward, not the upgrade that introduces it.
+ * parse with unknown properties ignored on purpose (forward/backward compatibility). So a floor
+ * protects only on kernels that read the key; every 1.x kernel does.
  * That is also why the evolution log on {@link #VERSION} has to stay accurate: it is what an
  * author reads to pick a floor.
  */
@@ -61,7 +61,7 @@ public final class RunwaySpi {
      *       flag), and {@link mx.quest.runway.spi.service.ConsoleScreen} (a plugin screen inside the console
      *       shell without host classes). {@link ContentSource}'s body-template render model is now documented
      *       contract.</li>
-     *   <li><b>1.0.0</b> (1.0.0-rc1) — <b>the contract is frozen</b>: from here the SPI evolves only additively
+     *   <li><b>1.0.0</b> — <b>the contract is frozen</b>: from here the SPI evolves only additively
      *       within the 1.x line (see {@code docs/SPI-STABILITY.md}). One addition:
      *       {@link mx.quest.runway.spi.model.HeadContext#origin()} (the trusted origin, so a site with no configured
      *       base URL still gets absolute URLs in its JSON-LD). One behaviour fix:
@@ -81,8 +81,7 @@ public final class RunwaySpi {
      * {@link mx.quest.runway.spi.model.PageMeta#nosnippet()} (ask engines not to quote a page while it stays
      * indexed) and {@link mx.quest.runway.spi.model.Alternate#hreflang()} (the one BCP 47 formatter the head
      * and the sitemap now share, so the two surfaces cannot drift apart on a regional locale). A plugin using
-     * either must declare {@code >=0.3.4}: kernels {@code 0.5.0-beta7} through {@code -beta9} report 0.3.3 and
-     * do not have them. 0.3.3 added {@link mx.quest.runway.spi.model.PageMeta#provenance()} and the
+     * either must declare {@code >=0.3.4}. 0.3.3 added {@link mx.quest.runway.spi.model.PageMeta#provenance()} and the
      * {@link mx.quest.runway.spi.model.Provenance} record it returns, plus {@code author} and
      * {@code publishedAt} components (and a {@code provenance()} accessor) on
      * {@link mx.quest.runway.spi.model.ContentRef} — editorial authorship and publication date; before this

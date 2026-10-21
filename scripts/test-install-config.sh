@@ -6,8 +6,8 @@
 # Why: the installer writes application.yml WHOLE when --port N (N != 8080) or --tls-keystore is given. On a first
 # install that is the point; on an existing one the file also holds the setup wizard's application-superadmin pin
 # (runway.security.app-master-id) and whatever the operator added (CSP keys, ...), so a re-run with the flags from
-# the first install silently dropped the pin and the platform booted back into wizard mode, /setup open to anyone
-# (fixed in 1.0.0-rc1). Those flags are now first-install only: refused, before any change, on an existing install.
+# the first install would silently drop the pin and the platform would boot back into wizard mode, /setup open to
+# anyone. Those flags are therefore first-install only: refused, before any change, on an existing install.
 # The real installer runs in --dry-run (no root needed), so its printed plan and its exit status are the evidence;
 # the write function's own guard (the backstop) is exercised directly, non-dry, as the defect was reproduced.
 set -euo pipefail
@@ -143,6 +143,17 @@ RUNWAY_UNIT_DST="$ROOT/plain.service" install_dry "$U"
 check "9: ... and over a unit without it (8080 behind a proxy) adds nothing" '[ "$RC" -eq 0 ] && grep -q "net-bind-cap=no" "$OUT"'
 grep -q '^#[[:space:]]*AmbientCapabilities=CAP_NET_BIND_SERVICE' "$HERE/runway.service" && pass \
     || fail "9: the unit template ships the capability commented (the check above depends on it)"
+
+# --- 10. The license files go into the installed release, and a bundle without them still installs ------------
+L="$ROOT/licensed"
+for f in LICENSE LICENSE-EXCEPTION THIRD-PARTY-NOTICES; do printf '%s' "$f" > "$B/$f"; done
+install_dry "$L"
+for f in LICENSE LICENSE-EXCEPTION THIRD-PARTY-NOTICES; do
+    check "10: the release gets $f" '[ "$RC" -eq 0 ] && grep -qF "+ cp -f $B/$f $L/runway-" "$OUT"'
+done
+rm -f "$B/LICENSE" "$B/LICENSE-EXCEPTION" "$B/THIRD-PARTY-NOTICES"
+install_dry "$ROOT/unlicensed"
+check "10: a bundle without the license files installs and copies none" '[ "$RC" -eq 0 ] && ! grep -q "LICENSE" "$OUT"'
 
 printf 'install-config: %d passed, %d failed\n' "$PASSES" "$FAILS"
 [ "$FAILS" -eq 0 ]

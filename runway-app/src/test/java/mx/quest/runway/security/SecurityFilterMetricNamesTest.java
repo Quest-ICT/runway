@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
  * disappearance detector fires on what looks like an outage. Nothing catches it: not the compiler, not any
  * behavioural test, and not code review, because the rename looks entirely local.
  *
- * <p>Reported from a live deployment on {@code 0.5.0-beta8}, whose monitoring stack had to
+ * <p>Reported from a live deployment whose monitoring stack had to
  * exclude the whole {@code spring_security_filterchains_*} family to stop it firing.
  *
  * <h2>Why this test is written with string literals</h2>

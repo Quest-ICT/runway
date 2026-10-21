@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit the SAME managed versions the kernel uses (Spring Boot 4.0.6). NOT a Boot app — no repackage;
+         `mvn package` produces a THIN jar of only this plugin's classes plus a lib/ with commonmark. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-blog</artifactId>
+    <version>2.1.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Blog Plugin</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        A blog for Runway sites, built on the kernel's ContentSource seam: entries are plugin-owned files in
+        the tenant's folder (metadata + per-language Markdown bodies), served as first-class virtual pages —
+        own URLs under a configurable prefix (or per-entry custom paths), the site's master chrome, full
+        locale dispatch, sitemap/llms.txt listing, search indexing, and by-id links. Authored in a console
+        screen. Links only the Runway SPI (service tier, SPI 1.0.0).
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T18:56:00Z</project.build.outputTimestamp>
+        <runway.version>1.0.0</runway.version>
+        <!-- BUNDLED (goes into this plugin's lib/): the Markdown renderer for entry bodies. PRIVATE to this
+             plugin until a second consumer exists — then it graduates to a code-less provider plugin (the
+             library-provider convention). One version deployment-wide (shared classloader). -->
+        <commonmark.version>0.25.1</commonmark.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <!-- NO runway-app dependency, in any scope: the plugin links only the SPI, so a host
+             import no longer compiles and the kernel's host-linkage scanner finds nothing to report. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- PLATFORM LIBRARIES — provided by the host at runtime (the kernel's MAJOR line pins their MAJOR lines);
+             compile-only here and never bundled into lib/. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- The console controller: @Controller, @GetMapping/@PostMapping, RedirectAttributes. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- @PreAuthorize on the console handlers. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- entry.yml is read and written with this plugin's own (lenient) YAMLMapper over Jackson 3. -->
+        <dependency>
+            <groupId>tools.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- The bundled Markdown engine (compile scope → copied into lib/ by the packaging step below). -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- The template tests render the shipped templates with Thymeleaf's own engine (decoupled logic), over the
+             model the SPI documents — no kernel class involved. -->
+        <dependency>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf-spring6</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-blog</finalName>
+        <plugins>
+            <!-- Stage the bundled third-party jars for lib/ (compile-scope, non-provided = just commonmark). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>stage-lib</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/staged-lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                            <!-- NEVER bundle the host's own artifacts: the SPI ships with the kernel; a second
+                                 copy in lib/ would sit on the shared classloader beside the kernel's. -->
+                            <excludeGroupIds>mx.quest</excludeGroupIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/blog"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-blog.jar" todir="${stage}"/>
+                                <copy todir="${stage}/lib">
+                                    <fileset dir="${project.build.directory}/staged-lib"/>
+                                </copy>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="blog"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-blog-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="blog/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-blog-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

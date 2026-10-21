@@ -75,8 +75,8 @@ class PluginStaticResourceTest {
     }
 
     /**
-     * Since 1.0.0-rc5 a plugin file is cacheable (an hour by default) with a content ETag and no Last-Modified, instead of
-     * Spring Security's no-store that made every page view download it again.
+     * A plugin file is cacheable (an hour by default) with a content ETag and no Last-Modified, instead of
+     * Spring Security's no-store, which would make every page view download it again.
      */
     @Test
     void aBundledAssetIsCacheableAndRevalidatesByItsContentEtag() throws Exception {

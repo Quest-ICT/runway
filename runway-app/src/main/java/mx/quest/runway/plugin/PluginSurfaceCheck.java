@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * every bean definition that belongs to the plugin (by the jar its declaring class came from), using the bean's
  * real type. From SPI 1.0.0 a violation <b>blocks</b> the plugin: before refresh it is refused with the reason
  * ({@code PluginContextInitializer}); after refresh it is quarantined and the boot ends with the relaunch code
- * ({@link PluginCompliance}). (Until 1.0.0-rc1 both were warnings.)
+ * ({@link PluginCompliance}).
  *
  * <h2>The rules</h2>
  * <ul>

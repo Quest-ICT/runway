@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dashboard card logic. Each value is a simple binding; the on/off ternaries keep the condition in ${} and
+     each branch a standalone #{} message expression (pitfall #12 — never nest #{} inside ${}). -->
+<thlogic>
+    <attr sel="#dc-title" th:text="#{discover.card.title}"/>
+    <attr sel="#dc-pages" th:text="${@discoverabilityAdminModel.pageCount(tenantSiteId)}"/>
+    <attr sel="#dc-pages-lbl" th:text="#{discover.card.pages}"/>
+    <attr sel="#dc-jsonld" th:text="${@discoverabilityAdminModel.jsonldEnabled(tenantSiteId)} ? #{discover.on} : #{discover.off}"/>
+    <attr sel="#dc-geo" th:text="${@discoverabilityAdminModel.geoEnabled(tenantSiteId)} ? #{discover.on} : #{discover.off}"/>
+</thlogic>

@@ -274,7 +274,7 @@ class KernelSettingsScreenTest {
 
     /**
      * A catch-all trusted proxy lets any client fake its address; the form refuses it. So do
-     * ranges that add up to one (two /1 halves, the IPv4-mapped form), which releases before 1.0.0-rc3 accepted.
+     * ranges that add up to one (two /1 halves, the IPv4-mapped form), which a looser check would accept.
      */
     @Test
     void aCatchAllTrustedProxyIsRefused() throws Exception {

@@ -902,6 +902,7 @@ means the pin never got written (**§4.4**); a stuck plugin apply means a plugin
 installs and upgrades, and it is idempotent (Administration §15 has the full walk-through):
 
 ```bash
+chmod +x runway-<newer-version>.bin          # a download has no execute bit
 sudo ./runway-<newer-version>.bin -y        # or interactively — not with --port / --tls-keystore
 ```
 

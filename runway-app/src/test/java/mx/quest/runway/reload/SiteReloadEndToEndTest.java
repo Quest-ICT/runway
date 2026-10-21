@@ -139,7 +139,7 @@ class SiteReloadEndToEndTest {
     }
 
     /**
-     * The defect found on a live deployment of {@code 0.5.0-beta6}: a reload reported success while per-site
+     * The defect found on a live deployment: a reload reported success while per-site
      * <b>plugin</b> config
      * kept serving the pre-edit file, because {@code SitePluginConfigService} invalidated only on
      * {@code isWholesaleReplacement()} (delete/restore) and reload publishes {@code UPDATED}.

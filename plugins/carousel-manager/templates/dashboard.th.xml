@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dashboard card logic. Values from ${@carouselManagerAdminModel...(tenantSiteId)}. -->
+<thlogic>
+    <attr sel="#cc-title" th:text="#{carousel.card.title}"/>
+    <attr sel="#cc-slides" th:text="${@carouselManagerAdminModel.slideCount(tenantSiteId)}"/>
+    <attr sel="#cc-slides-lbl" th:text="#{carousel.card.slides}"/>
+</thlogic>

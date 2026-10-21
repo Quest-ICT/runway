@@ -41,7 +41,7 @@ class RateLimitEdgeGuardTest {
     }
 
     /**
-     * Loopback is NOT exempt from the rate limit (the descriptor said it was until rc1): behind a same-host proxy whose
+     * Loopback is NOT exempt from the rate limit: behind a same-host proxy whose
      * forwarded address is not trusted, every client arrives as {@code 127.0.0.1}, and an implicit exemption would
      * switch the limit off for the whole internet. What loopback does get is never being BLOCKED, so its throttles
      * never escalate — the safety rail against auto-blocking the operator's own proxy or probe.

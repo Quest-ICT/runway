@@ -11,7 +11,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * A site's region-language bundle as the Messages editor names it ({@code messages_pt-BR.properties}) is found;
- * Spring alone looks only for {@code messages_pt_BR}, so before 1.0.0-rc2 those translations never showed.
+ * Spring alone looks only for {@code messages_pt_BR}, so on its own those translations would never show.
  */
 class LanguageTagBundlesTest {
 

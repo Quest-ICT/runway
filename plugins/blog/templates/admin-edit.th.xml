@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blog entry editor. One language card per SITE locale (th:each over siteLocaleTags); the default
+     language's slug field doubles as the base slug. On CREATE the form posts to /create with an editable id;
+     on EDIT the id is readonly and the form posts to /__admin/blog/<id>. `//` reaches nested elements
+     (`/` matches direct children only); the published/keep ternaries stay at the Thymeleaf level (a message
+     expression cannot nest inside a SpEL expression). -->
+<thlogic>
+    <attr sel="#be-pretitle" th:text="#{blog.admin.pretitle}"/>
+    <attr sel="#be-heading" th:text="${creating} ? #{blog.edit.headingNew} : #{blog.edit.heading}"/>
+    <attr sel="#be-back" th:text="#{blog.edit.back}"/>
+
+    <attr sel="#be-shadowed" th:if="${!shadowedBy.isEmpty()}"/>
+    <attr sel="#be-shadowed-text" th:text="#{blog.edit.shadowed}"/>
+    <attr sel="#be-shadowed-by" th:text="${#strings.listJoin(shadowedBy, ', ')}"/>
+
+    <!-- The action is model-computed (two '/__admin' literals in one expression would trip Thymeleaf's
+         __…__ preprocessing). -->
+    <attr sel="#be-form" th:attr="action=${formAction}"/>
+    <attr sel="#be-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <attr sel="#be-l-entry" th:text="#{blog.edit.entry}"/>
+    <attr sel="#be-l-id" th:text="#{blog.edit.id}"/>
+    <attr sel="#be-id" th:attr="value=${creating ? '' : entry.id()},readonly=${creating ? null : 'readonly'},
+          title=#{blog.edit.id.tip}"/>
+    <attr sel="#be-l-date" th:text="#{blog.edit.date}"/>
+    <attr sel="#be-date" th:attr="value=${entry.publishedOn()}"/>
+    <attr sel="#be-l-author" th:text="#{blog.edit.author}"/>
+    <attr sel="#be-author" th:attr="value=${entry.author()},title=#{blog.edit.author.tip}"/>
+    <attr sel="#be-l-custom" th:text="#{blog.edit.customPath}"/>
+    <attr sel="#be-custom" th:attr="value=${entry.customPath()},title=#{blog.edit.customPath.tip}"/>
+    <attr sel="#be-l-published" th:text="#{blog.edit.published}"/>
+    <attr sel="#be-published" th:attr="checked=${entry.published() ? 'checked' : null}"/>
+
+    <!-- One card per site language; every inner field is renamed to its <field>_<lang> form name. -->
+    <attr sel="#be-lang-card" th:each="lang : ${siteLocaleTags}"/>
+    <attr sel="#be-lang-card//#be-lang-name"
+          th:text="${lang == defaultLocaleTag} ? (${lang} + ' · ' + #{blog.edit.defaultLang}) : ${lang}"/>
+    <attr sel="#be-lang-card//#be-lang-on"
+          th:attr="name='locales_' + ${lang},checked=${entry.locales().contains(lang) ? 'checked' : null}"/>
+    <attr sel="#be-lang-card//#be-l-langon" th:text="#{blog.edit.langOn}"/>
+    <attr sel="#be-lang-card//.be-l-title" th:text="#{blog.edit.title}"/>
+    <attr sel="#be-lang-card//.be-title"
+          th:attr="name='title_' + ${lang},value=${entry.title().get(lang)}"/>
+    <attr sel="#be-lang-card//.be-l-slug" th:text="#{blog.edit.slug}"/>
+    <attr sel="#be-lang-card//.be-slug"
+          th:attr="name='slug_' + ${lang},title=#{blog.edit.slug.tip},
+                   value=${lang == defaultLocaleTag ? entry.effectiveSlug() : entry.localizedSlugs().get(lang)}"/>
+    <attr sel="#be-lang-card//.be-l-desc" th:text="#{blog.edit.description}"/>
+    <attr sel="#be-lang-card//.be-desc"
+          th:attr="name='description_' + ${lang},value=${entry.description().get(lang)}"/>
+    <attr sel="#be-lang-card//.be-l-body" th:text="#{blog.edit.body}"/>
+    <attr sel="#be-lang-card//.be-body"
+          th:attr="name='body_' + ${lang}" th:text="${bodies.get(lang)}"/>
+
+    <attr sel="#be-save" th:text="#{blog.edit.save}"/>
+</thlogic>

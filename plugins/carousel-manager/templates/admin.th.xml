@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Admin fragment logic. Values from ${@carouselManagerAdminModel...(tenantSiteId)}. The usage line keeps its literal
+     HTML example (no binding) so it renders verbatim. -->
+<thlogic>
+    <attr sel="#ca-title" th:text="#{carousel.admin.title}"/>
+    <attr sel="#ca-l-slides" th:text="#{carousel.admin.slides}"/>
+    <attr sel="#ca-slides" th:text="${@carouselManagerAdminModel.slideCount(tenantSiteId)}"/>
+    <attr sel="#ca-help-label" th:text="#{carousel.admin.help}"/>
+</thlogic>

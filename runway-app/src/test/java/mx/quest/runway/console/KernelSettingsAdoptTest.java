@@ -62,7 +62,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * "Use the file's value" on a locked Server settings field (1.0.0-rc4): moving a key from the host's
+ * "Use the file's value" on a locked Server settings field: moving a key from the host's
  * {@code application.yml} to the console used to cost two restarts and a start on the default, because the console
  * could not hold a value while the host's line was there. The action copies the value the server runs with into the
  * console's store, through the checks a save applies, so the line can be removed and the server restarted once with

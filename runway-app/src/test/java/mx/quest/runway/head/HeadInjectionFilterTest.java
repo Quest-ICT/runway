@@ -346,7 +346,7 @@ class HeadInjectionFilterTest {
         assertEquals(js, run(filter, request, js, "application/javascript").getContentAsString(StandardCharsets.UTF_8));
     }
 
-    /** HEAD keeps bypassing buffering (the beta10 rule), nonce feature or not. */
+    /** HEAD keeps bypassing buffering (buffering a HEAD zeroes its Content-Length), nonce feature or not. */
     @Test
     void headStillBypassesBufferingWithTheNonceFeatureOn() throws Exception {
         HeadInjectionFilter filter = new HeadInjectionFilter(new HeadContributorRegistry(List.of()),

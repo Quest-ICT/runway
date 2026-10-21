@@ -98,8 +98,8 @@ check "5: dry run changes nothing on disk" 'diff -r "$ROOT/c5-before" "$D" > /de
 check "5: a new file is installed without a warning" '[ -f "$D/external/plugins/protection/i18n/messages_fr.properties" ] && ! grep -q WARNING "$OUT"'
 check "5: a file the operator never had is in the new manifest" '[ -n "$(_ps_manifest_hash "$D/external/plugin-manifests/protection.sha256" "i18n/messages_fr.properties")" ]'
 
-# --- 6. Every upgrade refreshes an existing essential plugin — no flag (the 1.0.0-rc1 blocker) ----------------
-# Until rc1 an upgrade without --update-essential-plugins left the old protection in place; on SPI 1.0.0 an old
+# --- 6. Every upgrade refreshes an existing essential plugin — no flag ---------------------------------------
+# An upgrade that left the old protection in place would take the platform down: on SPI 1.0.0 an old
 # descriptor (no requiresSpi) is blocked, and a blocked essential plugin makes every tenant page answer 503. So the
 # old copy here is exactly that shape — no requiresSpi, and hand-disabled — and the upgrade must replace it.
 D="$ROOT/c6"; P="$D/external/plugins/protection"; : > "$OUT"
@@ -123,7 +123,7 @@ check "6: the old 'leaving it as-is' path is gone" '! grep -q "leaving it as-is"
 
 # --- 7. The previous jar AND descriptor are kept for a rollback, and a re-run never overwrites them -----------
 # A rollback is a symlink flip back to the older kernel, which then meets the refreshed plugin folder. The new jar
-# may link SPI types that kernel lacks (beta14's protection did: beta13 died on NoClassDefFoundError), and the new
+# may link SPI types that kernel lacks (an older kernel then dies on NoClassDefFoundError), and the new
 # descriptor carries a requiresSpi floor that refuses the old jar, so the rollback restores BOTH .bak files.
 D="$ROOT/c7"; P="$D/external/plugins/protection"; : > "$OUT"
 bundle "$ROOT/b1" v1; seed_bundled_plugins "$ROOT/b1" "$D"
@@ -182,9 +182,9 @@ bash "$B/scripts/install.sh" --help > "$INSTALL_OUT" 2>&1 || true
 check "9: --help no longer offers the flag as an opt-in" 'grep -q "Accepted and ignored" "$INSTALL_OUT" && grep -q "ALWAYS refreshed" "$INSTALL_OUT" && ! grep -q "plugins are never touched on upgrade" "$INSTALL_OUT"'
 
 # --- 10. install.sh keeps the bundle's seed/ in the release, the repair copy the kernel's message points at ------
-# A refused essential plugin's fix is the running release's copy; before 1.0.0-rc1 that copy lived only inside the
-# .bin, so the operator had to find and extract it. The installer now lays seed/ into <prefix>/runway-<version>/,
-# replaced whole (no stale file, no seed/seed nesting on a re-run), before the release is chowned and relabeled.
+# A refused essential plugin's fix is the running release's copy; were that copy only inside the .bin, the operator
+# would have to find and extract it. The installer therefore lays seed/ into <prefix>/runway-<version>/, replaced
+# whole (no stale file, no seed/seed nesting on a re-run), before the release is chowned and relabeled.
 # Reuses case 9's bundle and prefix; dry run, so the printed plan is the evidence.
 DEST9="$PREFIX9/runway-9.9.9"
 if install_dry; then pass; else fail "10: install.sh exits 0"; sed 's/^/    | /' "$INSTALL_OUT" >&2; fi

@@ -1,0 +1,80 @@
+/* Runway Contact plugin — form styles. Served at /__plugin/contact/static/contact.css.
+   Neutral defaults; override any .rw-contact* rule from your own CSS to match your theme. */
+
+.rw-contact {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-width: 32rem;
+}
+
+.rw-contact-label {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    font: 500 .95rem/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.rw-contact-input {
+    padding: .5rem .75rem;
+    border: 1px solid #ccc;
+    border-radius: .375rem;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+textarea.rw-contact-input {
+    resize: vertical;
+}
+
+.rw-contact-submit {
+    align-self: flex-start;
+    padding: .5rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: .375rem;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.rw-contact-submit:hover {
+    filter: brightness(.95);
+}
+
+.rw-contact-error {
+    color: #b02a37;
+    background: #f8d7da;
+    border-radius: .375rem;
+    padding: .5rem .75rem;
+    margin: 0;
+}
+
+.rw-contact-success {
+    color: #0f5132;
+    background: #d1e7dd;
+    border-radius: .375rem;
+    padding: .75rem 1rem;
+}
+
+/* Honeypot: visually and semantically hidden, but present for naive bots to fill. */
+.rw-contact-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.rw-contact-main {
+    max-width: 40rem;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1a1a1a;
+}
+
+.rw-contact-title {
+    font-size: 1.5rem;
+    margin: 0 0 1.25rem;
+}

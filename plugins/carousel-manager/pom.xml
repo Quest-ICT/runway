@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit the SAME managed versions the kernel uses (Spring Boot 4.0.6) so every `provided` platform type
+         is byte-identical at runtime. NOT a Boot app — no repackage; `mvn package` produces a THIN jar. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-carousel-manager</artifactId>
+    <version>2.1.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Carousel Manager Plugin</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        An image/slide carousel content widget for Runway: a site manager configures slides per site and drops
+        the carousel onto any page with a data-widget anchor. Self-contained CSS + JS, no external libraries.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
+             produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
+             never match what was published — which silently broke the "the tree holds what was shipped"
+             invariant that releases are checked against. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-21T18:56:00Z</project.build.outputTimestamp>
+        <runway.version>1.0.0</runway.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <!-- NO runway-app dependency, in any scope: the plugin links only the SPI, so a host
+             import no longer compiles and the kernel's host-linkage scanner finds nothing to report. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-carousel-manager</finalName>
+        <plugins>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/carousel-manager"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-carousel-manager.jar" todir="${stage}"/>
+                                <copy todir="${stage}/static">
+                                    <fileset dir="${project.basedir}/static"/>
+                                </copy>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <!-- Ant's <zip> stamps each entry from the staged file's mtime, and the stage
+                                     is re-copied every build — so without this the zip differs on every run
+                                     even when the jar inside is byte-identical. Pin the stage to the same
+                                     instant as project.build.outputTimestamp so the archive is reproducible. -->
+                                <!-- file="${stage}" is the STAGE ROOT itself: it becomes the archive's own
+                                     "carousel-manager/" entry, and neither <fileset> nor <dirset> covers the
+                                     base directory. Without it the archive differed by exactly two bytes —
+                                     that entry's DOS time in the local header and again in the central
+                                     directory. -->
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <!-- DIRECTORIES TOO. A <fileset> matches files only, and the zip carries
+                                         an entry per directory whose DOS timestamp comes from the directory's
+                                         own mtime — so with files alone the archive still differed on every
+                                         build. `unzip -lv` hides this: it rounds the displayed time to the
+                                         minute, so the entry listings compare equal while the bytes do not. -->
+                                    <dirset dir="${stage}"/>
+                                    <!-- and the stage ROOT itself, which becomes the archive's own
+                                         "carousel-manager/" entry. Neither of the collections above covers a
+                                         base directory, and Ant refuses `file=` for a directory ("Use a
+                                         resource collection to touch directories") — so name it from its
+                                         PARENT. Without this the archive differed by exactly two bytes: that
+                                         entry's DOS time in the local header and again in the central dir. -->
+                                    <dirset dir="${project.build.directory}" includes="carousel-manager"/>
+                                </touch>
+                                <zip destfile="${project.build.directory}/runway-plugin-carousel-manager-${project.version}.zip">
+                                    <!-- Zip the REAL staged directory rather than synthesising the folder
+                                         with prefix=. Ant stamps a prefix-synthesised directory entry with
+                                         the CURRENT time and ignores the touched directory's mtime, so the
+                                         archive stayed irreproducible by exactly those two bytes however the
+                                         stage was touched. Including the directory itself in the fileset
+                                         makes Ant use its (pinned) mtime. -->
+                                    <zipfileset dir="${project.build.directory}" includes="carousel-manager/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-carousel-manager-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

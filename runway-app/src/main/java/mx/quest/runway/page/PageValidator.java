@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * {@code If-None-Match} header is present it alone decides, and a non-match forces a fresh render even
  * if the date would have matched.
  *
- * <p>Public pages carry no modification time (since 1.0.0-rc1): {@link PageValidatorService} always yields
+ * <p>Public pages carry no modification time: {@link PageValidatorService} always yields
  * {@code lastModified == 0}, so {@code If-Modified-Since} never answers {@code 304} for a page — most of what the ETag
  * folds has no date that could move with it. The date path stays for a caller that can vouch for one.
  *

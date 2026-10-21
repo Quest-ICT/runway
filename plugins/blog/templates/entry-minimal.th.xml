@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blog entry (minimal): title + body only — no date line, no back link. Same contract as classic: the tenant's
+     master chrome, only the documented render model (${master}, ${content.*}), tenant-invariant file. -->
+<thlogic>
+    <attr sel="head" th:replace="~{${master} :: head}"/>
+    <attr sel="#site-header" th:replace="~{${master} :: #site-header}"/>
+    <attr sel="#site-footer" th:replace="~{${master} :: #site-footer}"/>
+
+    <attr sel="#entry-title" th:text="${content.title}"/>
+    <attr sel="#entry-body" th:utext="${content.bodyHtml}"/>
+</thlogic>

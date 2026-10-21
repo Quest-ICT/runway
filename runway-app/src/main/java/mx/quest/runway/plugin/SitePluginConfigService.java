@@ -67,7 +67,7 @@ public class SitePluginConfigService {
      * <p><b>Why that was worth fixing rather than documenting:</b> it failed in the <i>permissive</i> direction
      * with <i>false assurance</i>. The reload returned {@code {"reloaded":"<id>"}}, so an operator who had just
      * added a {@code robots.extra-disallow} to keep crawlers off a path reasonably concluded it was in force. It
-     * was not, and nothing errored at any point. Found on a live deployment of {@code 0.5.0-beta6}, and reproduced
+     * was not, and nothing errored at any point. Found on a live deployment, and reproduced
      * against a live tenant with a full restart as the control.
      *
      * <p>Scoped rather than {@link StoreCache#invalidateAll()} on purpose: {@code UPDATED} also fires on every

@@ -12,11 +12,12 @@ package mx.quest.runway.web;
  * <p>The set: the application realm exactly as {@link AppRealmPaths#isAppRealm} defines it (the console, its
  * sign-in and recovery routes, {@code /actuator}), the per-site {@code /__health} probe, and the operator
  * {@code /__reload} endpoint. It takes a <b>decoded</b> path ({@link RequestPaths#normalized}): {@code /%5F%5Fapp}
- * is console traffic, and was once charged to the site whose host it was sent to. Before {@code 1.0.0-rc4} the realm part
- * was a loose prefix ({@code /__app…}, {@code /app/…}, {@code /actuator…}), which also left every other path under
- * {@code /app/} unmetered (now only the four console routes are). Health is excluded because a monitoring system polls it continuously and by design:
- * charging that to the tenant would let an operator's own probe consume the tenant's quota and eventually 503 the
- * site it is meant to be watching, and it would bury real traffic in the per-site request timer.
+ * is console traffic, not traffic to charge to the site whose host it was sent to. The realm part is matched as
+ * {@link AppRealmPaths} matches it — real namespaces and exact routes, never a loose prefix ({@code /__app…},
+ * {@code /app/…}, {@code /actuator…}), which would also leave every other path under {@code /app/} unmetered (only
+ * the four console routes are unmetered). Health is excluded because a monitoring system polls it continuously and
+ * by design: charging that to the tenant would let an operator's own probe consume the tenant's quota and
+ * eventually 503 the site it is meant to be watching, and it would bury real traffic in the per-site request timer.
  *
  * <p><b>{@code /__health} matches EXACTLY, never by prefix.</b> The realm prefixes below are genuine namespaces
  * whose whole subtree is platform traffic; {@code /__health} is one concrete route, so a hypothetical

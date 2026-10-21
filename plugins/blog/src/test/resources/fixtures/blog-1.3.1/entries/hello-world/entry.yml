@@ -1,0 +1,15 @@
+---
+title:
+  es: "Hola mundo"
+  en: "Hello world"
+description:
+  es: "La primera entrada."
+  en: "The very first post."
+locales:
+- "en"
+- "es"
+localizedSlugs:
+  es: "hola-mundo"
+published: true
+publishedOn: "2026-07-17"
+author: "Jane Doe"

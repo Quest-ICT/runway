@@ -15,7 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Bounds the request body of a caller who is <b>not signed in</b>, on every kernel path, by the pre-authentication
- * cap ({@code runway.endpoints.max-form-bytes}, 256 KiB by default), since 1.0.0-rc1.
+ * cap ({@code runway.endpoints.max-form-bytes}, 256 KiB by default).
  *
  * <h2>Why</h2>
  * The container's own form limit is 16 MiB ({@code JettyFormLimitsConfig}: the Messages editor's no-JS fallback posts

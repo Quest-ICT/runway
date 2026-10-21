@@ -11,7 +11,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.core.io.FileSystemResource;
 
-/** The plugin-asset {@code Cache-Control} parser and the content ETag (1.0.0-rc5). */
+/** The plugin-asset {@code Cache-Control} parser and the content ETag. */
 class PluginAssetCacheControlTest {
 
     private static String header(String configured) {
