@@ -1,0 +1,76 @@
+# =============================================================================
+#  Runway Database
+#  Lets plugins keep their own data in PostgreSQL or MariaDB. Runway's own data
+#  (pages, users, settings) stays on files.
+#
+#  - One schema per site (a database per site on MariaDB), created by Runway the
+#    first time a site uses it, plus one installation-wide schema.
+#  - Each consumer plugin's objects carry its prefix; its migration scripts are
+#    read only from its own jar and checked for ownership.
+#  - A site's database data travels in its full backups (not in transfer copies).
+#  - The product comes from a provider plugin: database-postgresql or
+#    database-mariadb. This plugin holds no driver.
+#
+#  The install folder name MUST equal this `id`: external/plugins/database/.
+# =============================================================================
+id: database
+name: Database
+version: 1.0.0
+
+mainClass: mx.quest.database.DatabasePluginConfig
+
+# SPI 1.1.0: PluginSettings.appSecret, which reads the Runway-wide password in clear.
+requiresSpi: ">=1.1.0"
+
+# In each site's folder (sites/<id>/plugins/database/): the token that ties the site to its schema, and data kept
+# for plugins that were not installed when a backup was restored. Both stay out of transfer copies: a copy of a site
+# gets a fresh schema rather than sharing the original's.
+siteData:
+  personal:
+    - schema.yml
+    - deferred/
+
+settingGroups:
+  - { id: connection, label: database.group.connection, help: database.group.connection.help }
+  - { id: limits, label: database.group.limits, help: database.group.limits.help }
+
+# Runway-wide settings, applied on RESTART. In a cluster every node needs the same values and the same platform
+# secret key. Changing the server or the provider does not move data: move sites with backup and restore.
+settings:
+  - { key: provider, type: enum, range: "postgresql,mariadb", default: postgresql, group: connection,
+      label: database.set.provider, help: database.set.provider.help }
+  - { key: host, type: string, group: connection, label: database.set.host, help: database.set.host.help }
+  - { key: port, type: int, range: "1..65535", group: connection, label: database.set.port,
+      help: database.set.port.help }
+  - { key: database, type: string, group: connection, label: database.set.database,
+      help: database.set.database.help }
+  - { key: username, type: string, group: connection, label: database.set.username }
+  # Bound to where it goes: changing any of these without typing the password again removes the stored one.
+  - key: password
+    type: secret
+    group: connection
+    label: database.set.password
+    secretBoundTo: [provider, host, port, database, username, tls, caCertificate]
+  - { key: tls, type: enum, range: "verify-full,require,disable", default: verify-full, group: connection,
+      label: database.set.tls, help: database.set.tls.help }
+  - { key: caCertificate, type: text, group: connection, advanced: true, label: database.set.caCertificate,
+      help: database.set.caCertificate.help }
+  - { key: namespace, type: string, default: rw, group: connection, advanced: true, label: database.set.namespace,
+      help: database.set.namespace.help }
+  - { key: poolMax, type: int, default: 10, range: "2..200", group: limits, label: database.set.poolMax,
+      help: database.set.poolMax.help }
+  - { key: statementTimeoutSeconds, type: int, default: 10, range: "1..3600", group: limits,
+      label: database.set.statementTimeoutSeconds, help: database.set.statementTimeoutSeconds.help }
+  - { key: backupBudgetMiB, type: int, default: 128, range: "1..4096", group: limits,
+      label: database.set.backupBudgetMiB, help: database.set.backupBudgetMiB.help }
+  - { key: collation, type: string, group: limits, advanced: true, label: database.set.collation,
+      help: database.set.collation.help }
+
+# The health screen, under the application console's Settings menu. The controller enforces the same permission.
+menu:
+  - { realm: application, region: settings, order: 80, label: database.menu, path: "/__app/database",
+      permission: "CONFIGURE_PLATFORM" }
+
+# One line on each site's dashboard: whether the site has database data, its size, the last restore.
+dashboardCards:
+  - { realm: tenant, order: 95, fragment: dashboard }

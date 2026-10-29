@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Decoupled logic of the guestbook console screen. `gb` is the Screen record the controller put in the model. -->
+<thlogic>
+    <attr sel="#gb-heading" th:text="#{guestbook.console.title}"/>
+    <attr sel="#gb-flash" th:if="${guestbookFlash != null}"/>
+    <attr sel="#gb-flash-text" th:text="${guestbookFlash}"/>
+    <attr sel="#gb-error" th:if="${guestbookError != null}"/>
+    <attr sel="#gb-error-text" th:text="${guestbookError}"/>
+    <attr sel="#gb-unavailable" th:unless="${gb.available()}" th:text="#{guestbook.console.unavailable}"/>
+    <attr sel="#gb-card" th:if="${gb.available()}"/>
+    <attr sel="#gb-count-label" th:text="#{guestbook.console.count}"/>
+    <attr sel="#gb-count" th:text="${gb.count()}"/>
+    <attr sel="#gb-empty" th:if="${gb.page().entries().isEmpty()}" th:text="#{guestbook.console.empty}"/>
+    <attr sel="#gb-table" th:unless="${gb.page().entries().isEmpty()}"/>
+    <attr sel="#gb-h-at" th:text="#{guestbook.console.at}"/>
+    <attr sel="#gb-h-name" th:text="#{guestbook.name}"/>
+    <attr sel="#gb-h-message" th:text="#{guestbook.message}"/>
+    <attr sel="#gb-row" th:each="e : ${gb.page().entries()}"/>
+    <attr sel="#gb-row//.gb-at" th:text="${e.at()}"/>
+    <attr sel="#gb-row//.gb-name" th:text="${e.name()}"/>
+    <attr sel="#gb-row//.gb-message" th:text="${e.message()}"/>
+    <attr sel="#gb-row//.gb-id" th:value="${e.id()}"/>
+    <attr sel="#gb-row//.gb-delete" th:text="#{guestbook.console.delete}"/>
+    <attr sel=".gb-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#gb-pager" th:if="${gb.page().page() > 0 or gb.page().more()}"/>
+    <attr sel="#gb-newer" th:if="${gb.page().page() > 0}" th:href="@{''(page=${gb.page().page() - 1})}"
+          th:text="#{guestbook.console.newer}"/>
+    <attr sel="#gb-older" th:if="${gb.page().more()}" th:href="@{''(page=${gb.page().page() + 1})}"
+          th:text="#{guestbook.console.older}"/>
+</thlogic>

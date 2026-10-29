@@ -19,6 +19,8 @@ public interface Sites {
      *
      * @return the view, or empty when no site has this (well-formed) id
      * @throws IllegalArgumentException if {@code siteId} is not a safe identifier
+     * @throws java.io.UncheckedIOException if the site's record cannot be read (since SPI 1.1.0; before, such a site
+     *                                      read as missing): a caller must not take that for "no such site"
      */
     Optional<SiteView> find(String siteId);
 }

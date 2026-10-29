@@ -1,5 +1,6 @@
 package mx.quest.runway.mail;
 
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -27,6 +28,13 @@ import org.springframework.stereotype.Component;
  * here (via the injected {@link SecretCipher}) only at send time, handed straight to Jakarta Mail, and never
  * logged ({@link PlatformSettings.Smtp#toString()} masks it).
  *
+ * <p><b>Two ways to sign in.</b> With a password (SMTP {@code AUTH PLAIN}/{@code LOGIN}, whichever the server offers),
+ * or with an OAuth2 access token (SASL {@code XOAUTH2}), which Microsoft 365 requires once it retires password SMTP
+ * and Google also accepts. For OAuth2 the stored client secret is decrypted at send time, exchanged for a token by
+ * {@link OAuth2TokenClient} (cached until shortly before it expires), and the token is handed to Jakarta Mail in
+ * place of a password, as the mailbox named by the username (or, when that is blank, the From address). An OAuth2
+ * account must use TLS (STARTTLS or implicit): a bearer token is as good as a password to whoever reads it.
+ *
  * <p>The build/send seam is {@link MailTransport}, injected so the full MIME build is unit-testable against a
  * mock with no socket opened (the production {@link JakartaMailTransport} delegates to {@code jakarta.mail
  * .Transport}). Jakarta Mail is a core kernel capability (bundled in the app jar), so no plugin is required.
@@ -44,11 +52,14 @@ public class PlatformMailer {
     private final PlatformSettingsStore settings;
     private final SecretCipher cipher;
     private final MailTransport transport;
+    private final OAuth2TokenClient tokens;
 
-    public PlatformMailer(PlatformSettingsStore settings, SecretCipher cipher, MailTransport transport) {
+    public PlatformMailer(PlatformSettingsStore settings, SecretCipher cipher, MailTransport transport,
+                          OAuth2TokenClient tokens) {
         this.settings = settings;
         this.cipher = cipher;
         this.transport = transport;
+        this.tokens = tokens;
     }
 
     /**
@@ -74,7 +85,14 @@ public class PlatformMailer {
         if (smtp == null || !smtp.isConfigured()) {
             throw new MessagingException("platform mail is not configured");
         }
-        transport.send(build(smtp, to, subject, body));
+        try {
+            transport.send(build(smtp, to, subject, body));
+        } catch (AuthenticationFailedException refused) {
+            if (smtp.usesOAuth2()) {
+                tokens.forget(); // a revoked or re-scoped token must not be offered again until it expires
+            }
+            throw refused;
+        }
     }
 
     /** Builds the MIME message from the platform relay settings. Package-visible for direct MIME-shape testing. */
@@ -134,6 +152,32 @@ public class PlatformMailer {
             props.put("mail.smtp.ssl.checkserveridentity", "true");
         } else {
             props.put("mail.smtp.starttls.enable", "false");
+        }
+        if (auth && smtp.usesOAuth2()) {
+            if (!ssl && !starttls) {
+                throw new MessagingException("OAuth2 sign-in needs STARTTLS or implicit TLS: the access token must "
+                        + "not cross the network in the clear");
+            }
+            String secret;
+            try {
+                secret = cipher.decrypt(smtp.oauthClientSecret() == null ? "" : smtp.oauthClientSecret());
+            } catch (RuntimeException unreadable) {
+                throw new MessagingException("platform mail OAuth2 client secret cannot be decrypted (wrong "
+                        + "runway.security.secret-key or corrupted value)", unreadable);
+            }
+            String token = tokens.token(new OAuth2TokenClient.Request(smtp.oauthTokenUrl(), smtp.oauthClientId(),
+                    secret, smtp.oauthScope()));
+            String mailbox = smtp.username() == null || smtp.username().isBlank() ? smtp.from() : smtp.username();
+            // XOAUTH2 is off unless named; naming it alone keeps a server that does not offer it from being sent
+            // the token as a PLAIN password.
+            props.put("mail.smtp.auth.mechanisms", "XOAUTH2");
+            Authenticator authenticator = new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(mailbox, token);
+                }
+            };
+            return Session.getInstance(props, authenticator);
         }
         if (auth) {
             String username = smtp.username();

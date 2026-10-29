@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Decoupled logic of the database screen. `db` is the DatabaseScreens.Health record the controller put in the model;
+  besides it, the template uses only what a console screen may rely on: _csrf and #{..} messages. `//` reaches nested
+  elements of an iterated row. Form actions are constants in the markup.
+-->
+<thlogic>
+    <attr sel="#db-pretitle" th:text="#{database.console.pretitle}"/>
+    <attr sel="#db-heading" th:text="#{database.console.heading}"/>
+
+    <attr sel="#db-flash" th:if="${databaseFlash != null}"/>
+    <attr sel="#db-flash-text" th:text="${databaseFlash}"/>
+    <attr sel="#db-error" th:if="${databaseError != null}"/>
+    <attr sel="#db-error-text" th:text="${databaseError}"/>
+
+    <attr sel=".db-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+
+    <!-- Status -->
+    <attr sel="#db-status-title" th:text="#{database.console.status}"/>
+    <attr sel="#db-badge-ok" th:if="${db.available()}" th:text="#{database.console.available}"/>
+    <attr sel="#db-badge-down" th:unless="${db.available()}" th:text="#{database.console.unavailable}"/>
+    <attr sel="#db-detail" th:text="#{'database.status.' + ${db.runtime().status().name()}(${db.runtime().detail()})}"/>
+    <attr sel="#db-l-provider" th:text="#{database.console.provider}"/>
+    <attr sel="#db-provider" th:text="${db.provider().isEmpty() ? '—' : db.provider()}"/>
+    <attr sel="#db-l-server" th:text="#{database.console.server}"/>
+    <attr sel="#db-server" th:text="${db.runtime().server() == null ? '—' : db.runtime().server()}"/>
+    <attr sel="#db-l-driver" th:text="#{database.console.driver}"/>
+    <attr sel="#db-driver" th:text="${db.runtime().driver() == null ? '—' : db.runtime().driver()}"/>
+    <attr sel="#db-l-target" th:text="#{database.console.target}"/>
+    <attr sel="#db-target" th:text="${db.target().isEmpty() ? '—' : db.target()}"/>
+    <attr sel="#db-l-tls" th:text="#{database.console.tls}"/>
+    <attr sel="#db-tls" th:text="${db.tls().isEmpty() ? '—' : db.tls()}"/>
+    <attr sel="#db-l-namespace" th:text="#{database.console.namespace}"/>
+    <attr sel="#db-namespace" th:text="${db.namespace().isEmpty() ? '—' : db.namespace()}"/>
+    <attr sel="#db-l-pool" th:text="#{database.console.pool}"/>
+    <attr sel="#db-pool" th:text="${db.runtime().poolActive()} + ' / ' + ${db.runtime().poolMax()}"/>
+    <attr sel="#db-l-schemas" th:text="#{database.console.schemas}"/>
+    <attr sel="#db-schemas" th:text="${db.liveSchemas()}"/>
+    <attr sel="#db-last-error" th:if="${db.runtime().lastError() != null}"/>
+    <attr sel="#db-l-last-error" th:text="#{database.console.lastError}"/>
+    <attr sel="#db-last-error-at" th:text="${db.runtime().lastErrorAt()}"/>
+    <attr sel="#db-last-error-text" th:text="${db.runtime().lastError()}"/>
+    <attr sel="#db-problem" th:if="${db.problem() != null}" th:text="${db.problem()}"/>
+
+    <!-- Connection tests -->
+    <attr sel="#db-test-title" th:text="#{database.console.tests}"/>
+    <attr sel="#db-test-running" th:text="#{database.console.testRunning}"/>
+    <attr sel="#db-test-new-help" th:text="#{database.console.testNew.help}"/>
+    <attr sel="#db-fl-provider" th:text="#{database.set.provider}"/>
+    <attr sel="#db-fl-host" th:text="#{database.set.host}"/>
+    <attr sel="#db-fl-port" th:text="#{database.set.port}"/>
+    <attr sel="#db-fl-database" th:text="#{database.set.database}"/>
+    <attr sel="#db-fl-username" th:text="#{database.set.username}"/>
+    <attr sel="#db-fl-password" th:text="#{database.set.password}"/>
+    <attr sel="#db-fl-tls" th:text="#{database.set.tls}"/>
+    <attr sel="#db-fl-ca" th:text="#{database.set.caCertificate}"/>
+    <attr sel="#db-test-password-note" th:text="#{database.console.testNew.password}"/>
+    <attr sel="#db-test-new" th:text="#{database.console.testNew}"/>
+
+    <!-- Migration problems -->
+    <attr sel="#db-issues-title" th:text="#{database.console.issues}"/>
+    <attr sel="#db-issues-none" th:if="${db.issues().isEmpty()}"/>
+    <attr sel="#db-issues-none-text" th:text="#{database.console.none}"/>
+    <attr sel="#db-issues" th:unless="${db.issues().isEmpty()}"/>
+    <attr sel="#db-h-schema" th:text="#{database.console.schema}"/>
+    <attr sel="#db-h-plugin" th:text="#{database.console.plugin}"/>
+    <attr sel="#db-h-state" th:text="#{database.console.problem}"/>
+    <attr sel="#db-h-detail" th:text="#{database.console.detail}"/>
+    <attr sel="#db-h-actions" th:text="#{database.console.actions}"/>
+    <attr sel="#db-issue-row" th:each="i : ${db.issues()}"/>
+    <attr sel="#db-issue-row//.db-issue-schema" th:text="${i.schema()}"/>
+    <attr sel="#db-issue-row//.db-issue-plugin" th:text="${i.pluginId()}"/>
+    <attr sel="#db-issue-row//.db-issue-state" th:text="#{'database.issue.' + ${i.state()}}"/>
+    <attr sel="#db-issue-row//.db-issue-detail" th:text="${i.detail()}"/>
+    <attr sel="#db-issue-row//.db-issue-schema-in" th:value="${i.schema()}"/>
+    <attr sel="#db-issue-row//.db-issue-plugin-in" th:value="${i.pluginId()}"/>
+    <attr sel="#db-issue-row//.db-form-retry" th:if="${i.state() == 'FAILED'}"/>
+    <attr sel="#db-issue-row//.db-form-applied" th:if="${i.state() == 'FAILED'}"/>
+    <attr sel="#db-issue-row//.db-form-checksum" th:if="${i.state() == 'CHECKSUM'}"/>
+    <attr sel="#db-issue-row//.db-retry" th:text="#{database.recover.retry}"/>
+    <attr sel="#db-issue-row//.db-applied" th:text="#{database.recover.markApplied}"/>
+    <attr sel="#db-issue-row//.db-checksum" th:text="#{database.recover.acceptChecksum}"/>
+
+    <!-- Plugins, nodes, backups -->
+    <attr sel="#db-consumers-title" th:text="#{database.console.consumers}"/>
+    <attr sel="#db-consumers" th:unless="${db.consumers().isEmpty()}"/>
+    <attr sel="#db-consumer-row" th:each="p : ${db.consumers()}"/>
+    <attr sel="#db-consumer-row//.db-consumer" th:text="${p}"/>
+    <attr sel="#db-consumers-none" th:if="${db.consumers().isEmpty()}" th:text="#{database.console.none}"/>
+    <attr sel="#db-app-warning" th:unless="${db.appSchemaPlugins().isEmpty()}"/>
+    <attr sel="#db-app-warning-text" th:text="#{database.console.appWarning}"/>
+    <attr sel="#db-app-plugins" th:text="${#strings.listJoin(db.appSchemaPlugins(), ', ')}"/>
+    <attr sel="#db-nodes-title" th:text="#{database.console.nodes}"/>
+    <attr sel="#db-node-row" th:each="n : ${db.nodes()}"/>
+    <attr sel="#db-node-row//.db-node-host" th:text="${n.host()}"/>
+    <attr sel="#db-node-row//.db-node-seen" th:text="${n.seenAt()}"/>
+    <attr sel="#db-nodes-help" th:text="#{database.console.nodes.help}"/>
+    <attr sel="#db-backups-title" th:text="#{database.console.backups}"/>
+    <attr sel="#db-l-largest" th:text="#{database.console.largest}"/>
+    <attr sel="#db-largest" th:text="${db.largestBackup() == null ? '—' : db.largestBackup()}"/>
+    <attr sel="#db-budget-warning" th:if="${db.backupBudgetWarning()}" th:text="#{database.console.budgetWarning}"/>
+    <attr sel="#db-restore-failure" th:if="${db.lastRestoreFailure() != null}"/>
+    <attr sel="#db-l-restore-failure" th:text="#{database.console.restoreFailure}"/>
+    <attr sel="#db-restore-failure-text" th:text="${db.lastRestoreFailure()}"/>
+</thlogic>

@@ -191,4 +191,86 @@ class PluginSettingsImplTest {
         assertEquals("Demo's", settings("demo").site("acme").string("title", ""));
         assertEquals("Other's", settings("other").site("acme").string("title", ""));
     }
+
+    // ---- app-level secrets (SPI 1.1.0) -------------------------------------------------------------
+
+    private static final List<PluginSettingDef> APP_SCHEMA = List.of(
+            new PluginSettingDef("password", "secret", null, "l", null),
+            new PluginSettingDef("host", "string", "localhost", "l", null));
+
+    private final java.util.Map<String, String> environment = new java.util.HashMap<>();
+
+    private PluginSettingsImpl withApp(String plugin) {
+        return new PluginSettingsImpl(plugin, SCHEMA, APP_SCHEMA, environment::get, config, cipher);
+    }
+
+    @Test
+    void anAppSecretIsReadFromTheRunningEnvironmentUnderTheCallersOwnPrefixAndDecrypted() {
+        environment.put("runway.plugin.database.password", cipher.encrypt("s3cret"));
+        environment.put("runway.plugin.other.password", "not-mine");
+        assertEquals(Optional.of("s3cret"), withApp("database").appSecret("password"));
+        assertEquals(Optional.empty(), withApp("unconfigured").appSecret("password"),
+                "the lookup is keyed by the bound plugin's own id: another plugin's value is never read");
+    }
+
+    @Test
+    void aHandWrittenPlaintextAppSecretIsReturnedUnchanged() {
+        environment.put("runway.plugin.database.password", "plain");
+        assertEquals(Optional.of("plain"), withApp("database").appSecret("password"));
+    }
+
+    @Test
+    void onlyAKeyDeclaredSecretInTheAppLevelSchemaIsHandedOut() {
+        environment.put("runway.plugin.database.host", "db.example");
+        environment.put("runway.plugin.database.smtpPassword", "site-level-key");
+        environment.put("runway.plugin.database.undeclared", "x");
+        PluginSettingsImpl settings = withApp("database");
+        assertEquals(Optional.empty(), settings.appSecret("host"), "declared, but not a secret");
+        assertEquals(Optional.empty(), settings.appSecret("smtpPassword"),
+                "a secret declared only in siteSettings: is not an app-level secret");
+        assertEquals(Optional.empty(), settings.appSecret("undeclared"));
+        assertEquals(Optional.empty(), settings.appSecret(null));
+    }
+
+    @Test
+    void anUnsetBlankOrUndecryptableAppSecretIsEmpty() {
+        PluginSettingsImpl settings = withApp("database");
+        assertEquals(Optional.empty(), settings.appSecret("password"), "unset");
+        environment.put("runway.plugin.database.password", "   ");
+        assertEquals(Optional.empty(), settings.appSecret("password"), "blank");
+        environment.put("runway.plugin.database.password", cipher.encrypt("s3cret"));
+        cipherAvailable = false;
+        assertEquals(Optional.empty(), settings.appSecret("password"), "no usable platform secret key");
+        cipherAvailable = true;
+        cipherBroken = true;
+        assertEquals(Optional.empty(), settings.appSecret("password"), "wrong key or corrupted value");
+    }
+
+    @Test
+    void theValueFollowsTheEnvironmentItIsHandedNotAFileSavedSinceStartup() {
+        PluginSettingsImpl settings = withApp("database");
+        environment.put("runway.plugin.database.password", "first");
+        assertEquals(Optional.of("first"), settings.appSecret("password"));
+        environment.put("runway.plugin.database.password", "second");
+        assertEquals(Optional.of("second"), settings.appSecret("password"), "not cached past the environment");
+    }
+
+    @Test
+    void theSiteOnlyConstructorHasNoAppSecretsAndTheSpiDefaultIsEmpty() {
+        environment.put("runway.plugin.database.password", "plain");
+        assertEquals(Optional.empty(), settings("database").appSecret("password"));
+        mx.quest.runway.spi.service.PluginSettings bare = new mx.quest.runway.spi.service.PluginSettings() {
+            @Override
+            public SettingsView site(String siteId) {
+                return new SettingsView(java.util.Map.of());
+            }
+
+            @Override
+            public Optional<String> secret(String siteId, String key) {
+                return Optional.empty();
+            }
+        };
+        assertEquals(Optional.empty(), bare.appSecret("password"),
+                "an implementation written against SPI 1.0 still compiles and answers empty");
+    }
 }

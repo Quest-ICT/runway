@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      The generic database plugin: the pool, the settings, schema allocation and removal, migrations, backup and
+      restore, and the health screen. It publishes mx.quest.database.spi (the consumer and provider interfaces) and
+      bundles HikariCP in lib/. It holds no JDBC driver: a provider plugin (database-postgresql, database-mariadb)
+      brings one. Same managed versions as the Runway kernel (Spring Boot 4.0.6), thin jar, no repackage.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-database</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>Runway Database</name>
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0, with the Runway additional permission for plugins</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>See LICENSE and LICENSE-EXCEPTION.</comments>
+        </license>
+    </licenses>
+    <description>
+        Lets Runway plugins keep their own data in PostgreSQL or MariaDB: one schema per site plus one for the whole
+        installation, created by Runway; per-plugin migrations with ownership checks; per-site backup and restore;
+        a health screen in the application console. The database product comes from a provider plugin.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-29T00:00:00Z</project.build.outputTimestamp>
+        <!-- The runway-spi this plugin compiles against: SPI 1.1.0 adds PluginSettings.appSecret. -->
+        <runway.version>1.1.0</runway.version>
+        <!-- Bundled in lib/ (Apache-2.0). Managed by Boot 4.0.6; pinned here so the bundle never drifts. -->
+        <hikaricp.version>7.0.2</hikaricp.version>
+        <!-- Test only: the drivers the provider plugins bundle, for the tests against real servers. -->
+        <postgresql.version>42.7.10</postgresql.version>
+        <mariadb.version>3.5.8</mariadb.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The pool, bundled into lib/ by the assembly below. slf4j comes from the kernel. -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- The kernel supplies these at runtime; never bundled. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson 3 (tools.jackson): the backup format's JSON. -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>${mariadb.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-database</finalName>
+        <plugins>
+            <!-- 1. HikariCP into target/staged-lib, with its versioned file name; the assembly copies it into lib/. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bundle-libs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.zaxxer</groupId>
+                                    <artifactId>HikariCP</artifactId>
+                                    <version>${hikaricp.version}</version>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/staged-lib</outputDirectory>
+                            <stripVersion>false</stripVersion>
+                            <overWriteReleases>true</overWriteReleases>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 2. Assemble target/database/ (folder) and the UI zip. -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/database"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <copy file="${project.basedir}/THIRD-PARTY-NOTICES" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-database.jar" todir="${stage}"/>
+                                <copy todir="${stage}/lib">
+                                    <fileset dir="${project.build.directory}/staged-lib"/>
+                                </copy>
+                                <!-- Never a plugin zip without its libraries (it would load and fail at its first use). -->
+                                <fail message="no library in ${stage}/lib">
+                                    <condition><resourcecount when="equal" count="0">
+                                        <fileset dir="${stage}" includes="lib/*.jar"/></resourcecount></condition>
+                                </fail>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="database"/>
+                                </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-database-${project.version}.zip"/>
+                                <zip destfile="${project.build.directory}/runway-plugin-database-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="database/**"/>
+                                </zip>
+                                <echo message="Staged install folder (with lib/HikariCP): ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-database-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

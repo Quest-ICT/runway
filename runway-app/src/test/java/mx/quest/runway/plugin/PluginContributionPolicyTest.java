@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import mx.quest.runway.backup.BackupParticipantRegistry;
 import mx.quest.runway.content.ContentSourceRegistry;
 import mx.quest.runway.endpoint.EndpointContributorRegistry;
@@ -32,6 +33,7 @@ import mx.quest.runway.spi.model.PageView;
 import mx.quest.runway.spi.model.RenderFragment;
 import mx.quest.runway.spi.model.SiteView;
 import mx.quest.runway.spi.model.WidgetView;
+import mx.quest.runway.spi.service.PluginSettings;
 import mx.quest.runway.widget.ContentWidgetRegistry;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -390,6 +392,33 @@ class PluginContributionPolicyTest {
     private static org.springframework.beans.factory.InjectionPoint pointIn(Class<?> type, String field)
             throws Exception {
         return new org.springframework.beans.factory.InjectionPoint(type.getDeclaredField(field));
+    }
+
+    @Test
+    void theFactoryHandsAPluginItsOwnAppLevelSecretFromTheRunningEnvironmentAndNothingElse() throws Exception {
+        assumeTrue(PluginFixture.compilerAvailable());
+        PluginDescriptor withSecret = PluginDescriptor.read(new ByteArrayInputStream((
+                "id: p1\nversion: 1.0.0\nmainClass: x.Y\nsettings:\n"
+                        + "  - { key: apiKey, type: secret, label: l }\n"
+                        + "  - { key: host, type: string, label: l }\n").getBytes(StandardCharsets.UTF_8)));
+        PluginOwnership owners = PluginOwnership.of(new PluginRuntime(
+                List.of(new LoadedPlugin(withSecret, root.resolve("p1")), loaded("p2")), loader, Map.of(), false));
+        mx.quest.runway.storage.StorageProperties props = new mx.quest.runway.storage.StorageProperties();
+        props.setExternal(root.resolve("external"));
+        mx.quest.runway.storage.StorageLayout layout = mx.quest.runway.storage.StorageLayout.from(props);
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment()
+                .withProperty("runway.plugin.p1.apiKey", "p1-key")
+                .withProperty("runway.plugin.p1.host", "db.example")
+                .withProperty("runway.plugin.p2.apiKey", "p2-key");
+        PluginScopedServices scoped = new PluginScopedServices(owners,
+                new SitePluginConfigService(layout, null, event -> { }), null, layout, 1024, env);
+
+        PluginSettings p1 = scoped.pluginSettings(pointIn(head("p1", "k", false).getClass(), "key"));
+        PluginSettings p2 = scoped.pluginSettings(pointIn(head("p2", "k", false).getClass(), "key"));
+        assertEquals(Optional.of("p1-key"), p1.appSecret("apiKey"), "the running value of its own declared secret");
+        assertEquals(Optional.empty(), p1.appSecret("host"), "a non-secret app setting is never handed out here");
+        assertEquals(Optional.empty(), p2.appSecret("apiKey"),
+                "p2 declared no app-level secret, so the environment's value is not handed out");
     }
 
     @Test

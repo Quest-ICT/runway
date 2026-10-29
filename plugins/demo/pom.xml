@@ -21,7 +21,7 @@
     <!-- runway-plugin-<plugin id>, as for every plugin in this repository: the release zip is named after it
          (runway-plugin-runway-demo-<version>.zip under the tag runway-demo-<version>). -->
     <artifactId>runway-plugin-runway-demo</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
     <packaging>jar</packaging>
     <name>Runway Demo Plugin</name>
     <licenses>
@@ -47,7 +47,7 @@
         <!-- Reproducible builds: pins every archive entry's timestamp so two builds of the same source
              produce byte-identical artifacts. Without it a jar embeds the build time, so a rebuild can
              never match what was published. Bump at each release. -->
-        <project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-10-29T00:00:00Z</project.build.outputTimestamp>
         <!-- The Runway SPI this plugin compiles against: a RELEASED kernel (its SPI jars installed
              from that release's assets). The plugin's runtime floor is plugin.yml's
              requiresSpi, not this number. -->
@@ -169,6 +169,8 @@
                                     <dirset dir="${stage}"/>
                                     <dirset dir="${project.build.directory}" includes="runway-demo"/>
                                 </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/${project.artifactId}-${project.version}.zip"/>
                                 <zip destfile="${project.build.directory}/${project.artifactId}-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}" includes="runway-demo/**"/>
                                 </zip>

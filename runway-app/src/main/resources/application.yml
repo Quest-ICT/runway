@@ -87,6 +87,12 @@ server:
       # runway.cluster.session-ttl, which feeds the Hazelcast sessions-map max-idle-seconds (Hazelcast, not the
       # container, then evicts idle sessions). Keep the two in step.
       timeout: 30m
+  # Jetty's connection idle timeout, stated rather than left to Jetty's default (the same 30 s): it ends a read or a
+  # write that cannot proceed for that long, which is what bounds a client reading a response slowly.
+  # runway.http.min-request-data-rate ends a request body that keeps arriving too slowly to trip it. The request
+  # thread pool (server.jetty.threads.*) is a console setting: Settings -> Server settings -> Capacity.
+  jetty:
+    connection-idle-timeout: 30s
   # The gated TrustedForwardedHeaderFilter (FilterOrder.CORE_FORWARDED, outermost) is the SOLE handler of
   # X-Forwarded-* / Forwarded. Keep the container's native handling OFF — it would trust those headers from
   # ANY peer, letting a directly-reachable instance spoof its IP, host and scheme.
@@ -314,6 +320,12 @@ runway:
     trusted-cidrs:
       - "127.0.0.1/32"
       - "::1/128"
+  # How slowly a client may send a request body, in bytes per second, before Jetty answers 408 and frees the
+  # request thread (SlowClientConfig). Measured from the body's first byte on what has arrived, so a server that is
+  # slow to read is never blamed. 4096 is below any real connection; 0 turns the check off. Also on Settings ->
+  # Server settings -> Request limits.
+  http:
+    min-request-data-rate: 4096
   # Stored-backup retention (app-level, not tenant-editable). After a site backup is written, its own
   # older stored backups are pruned so `backups/<id>/` does not grow without bound. Both limits apply
   # independently; either set to 0 disables that dimension. The just-written backup is always kept.

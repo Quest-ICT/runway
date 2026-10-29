@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      The guestbook example. Links the Runway SPI and the database plugin's published SPI (provided: the shared
+      plugin class loader supplies it). Bundles nothing in lib/.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>mx.quest</groupId>
+    <artifactId>runway-plugin-runway-demo-database</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>Runway demo — database</name>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <description>
+        The worked example of a Runway plugin that keeps its data in the database: a per-site guestbook on
+        PostgreSQL or MariaDB through the database plugin, with an anonymous signing form, a never-cached entries
+        endpoint and a console screen.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Reproducible builds: pins every archive entry's timestamp. Bump at each release. -->
+        <project.build.outputTimestamp>2026-10-29T00:00:00Z</project.build.outputTimestamp>
+        <!-- The runway-spi this plugin compiles against: SPI 1.1.0 adds PluginSettings.appSecret. -->
+        <runway.version>1.1.0</runway.version>
+        <!-- The database plugin whose SPI this example uses (provided; install ../database first). -->
+        <database.version>1.0.0</database.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi</artifactId>
+            <version>${runway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-spi-testkit</artifactId>
+            <version>${runway.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-plugin-database</artifactId>
+            <version>${database.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- The kernel supplies these at runtime; never bundled. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson 3 (tools.jackson), the kernel's JSON library: the entries endpoint's answer. -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- The real providers (and so the real drivers), for the store's tests against real servers. -->
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-plugin-database-postgresql</artifactId>
+            <version>${database.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>mx.quest</groupId>
+            <artifactId>runway-plugin-database-mariadb</artifactId>
+            <version>${database.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>runway-plugin-runway-demo-database</finalName>
+        <plugins>
+            <!-- Assemble target/runway-demo-database/ (folder) and the UI zip. -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assemble-plugin-folder</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="stage" value="${project.build.directory}/runway-demo-database"/>
+                                <delete dir="${stage}"/>
+                                <mkdir dir="${stage}"/>
+                                <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
+                                <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
+                                <copy file="${project.basedir}/NOTICE" todir="${stage}"/>
+                                <copy file="${project.build.directory}/runway-plugin-runway-demo-database.jar" todir="${stage}"/>
+                                <copy todir="${stage}/templates">
+                                    <fileset dir="${project.basedir}/templates"/>
+                                </copy>
+                                <copy todir="${stage}/static">
+                                    <fileset dir="${project.basedir}/static"/>
+                                </copy>
+                                <copy todir="${stage}/i18n">
+                                    <fileset dir="${project.basedir}/i18n"/>
+                                </copy>
+                                <touch datetime="${project.build.outputTimestamp}"
+                                       pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
+                                    <fileset dir="${stage}"/>
+                                    <dirset dir="${stage}"/>
+                                    <dirset dir="${project.build.directory}" includes="runway-demo-database"/>
+                                </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-runway-demo-database-${project.version}.zip"/>
+                                <zip destfile="${project.build.directory}/runway-plugin-runway-demo-database-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}" includes="runway-demo-database/**"/>
+                                </zip>
+                                <echo message="Staged install folder: ${stage}"/>
+                                <echo message="UI-uploadable archive: ${project.build.directory}/runway-plugin-runway-demo-database-${project.version}.zip"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

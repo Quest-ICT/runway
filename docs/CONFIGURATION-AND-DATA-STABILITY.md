@@ -243,6 +243,12 @@ starts normally; the key is ignored.
 | `forwarded-headers` | boolean | `true` |
 | `trusted-cidrs` | list of CIDR | empty (trust nothing); the shipped `application.yml` sets `127.0.0.1/32`, `::1/128` |
 
+**`runway.http.*`**
+
+| Key | Type | Default |
+|---|---|---|
+| `min-request-data-rate` | long, bytes per second | `4096` (`0` = off) |
+
 **`runway.reload.*`** — `/__reload/**`
 
 | Key | Type | Default |

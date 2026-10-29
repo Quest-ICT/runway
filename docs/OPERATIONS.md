@@ -34,7 +34,8 @@ rolling back safely (**§9**).
 Runway runs as **one JVM**, filesystem/YAML-backed (there is no database to operate). Everything
 it writes lives under the version-independent data dir `/opt/runway-data/` (`external/`, `logs/`,
 `backups/`). Keep that fact in mind — nearly every recovery step below is a file operation there,
-not a database operation.
+not a database operation. The one exception is a plugin's data when the optional database plugins are
+installed: that lives in your PostgreSQL or MariaDB server (ADMINISTRATION §11.1).
 
 ## 2. Health checks & readiness
 

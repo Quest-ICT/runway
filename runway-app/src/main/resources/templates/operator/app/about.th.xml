@@ -23,6 +23,13 @@
     <attr sel="#rt-row/#rt-name" th:text="#{${nv.name()}}" th:id="${null}"/>
     <attr sel="#rt-row/#rt-val" th:text="${nv.value()}" th:id="${null}"/>
 
+    <!-- This request — how the trusted-proxy gate attributed it -->
+    <attr sel="#rq-title" th:text="#{op.about.request}"/>
+    <attr sel="#rq-note" th:text="#{op.about.request.note}"/>
+    <attr sel="#rq-row" th:each="nv : ${requestInfo}" th:id="${null}"/>
+    <attr sel="#rq-row/#rq-name" th:text="#{${nv.name()}}" th:id="${null}"/>
+    <attr sel="#rq-row/#rq-val" th:text="${nv.value()}" th:id="${null}"/>
+
     <!-- Bundled components — its own section -->
     <attr sel="#cmp-title" th:text="#{op.about.runtime.components}"/>
     <attr sel="#cmp-note" th:text="#{op.about.components.note}"/>

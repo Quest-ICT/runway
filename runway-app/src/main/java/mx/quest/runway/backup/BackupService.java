@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -259,6 +260,17 @@ public class BackupService {
      * @throws IOException if the archive is not a valid Runway backup, is unreadable, or a zip entry escapes
      */
     public void restore(String siteId, InputStream in) throws IOException {
+        restore(siteId, in, false);
+    }
+
+    /**
+     * Restores {@code siteId} from {@code in}, as {@link #restore(String, InputStream)}; with {@code keepRouting} the
+     * site keeps the hosts and base URL it has now instead of the archive's. How a site is reached is the platform's
+     * to set ({@code MANAGE_SITE_HOSTS}), so a site manager's restore never changes it: an archive is theirs to
+     * write, and the default site's base URL is where the console's reset links go when {@code runway.console.hosts}
+     * is unset.
+     */
+    public void restore(String siteId, InputStream in, boolean keepRouting) throws IOException {
         requireSafe(siteId);
         ReentrantLock lock = lockFor(siteId);
         // The write scope wraps the lock (HostWriteScope): plugin event callbacks for RESTORED run once the lock is
@@ -266,7 +278,7 @@ public class BackupService {
         try (HostWriteScope scope = HostWriteScope.enter()) {
             lock.lock();
             try {
-                doRestore(siteId, in);
+                doRestore(siteId, in, keepRouting);
             } finally {
                 lock.unlock();
             }
@@ -282,9 +294,14 @@ public class BackupService {
         return lock != null && lock.isHeldByCurrentThread();
     }
 
-    private void doRestore(String siteId, InputStream in) throws IOException {
+    private void doRestore(String siteId, InputStream in, boolean keepRouting) throws IOException {
+        Site live = keepRouting ? sites.find(siteId).orElseThrow(() -> new IOException("no site " + siteId)) : null;
         Staged staged = stageAndSwap(siteId, in);
-        releaseHostsClaimedElsewhere(siteId);
+        if (live != null) {
+            keepRouting(siteId, live);
+        } else {
+            releaseHostsClaimedElsewhere(siteId);
+        }
         // The on-disk swap is what the caches track — evict + fan out RESTORED NOW, before the (failure-tolerant)
         // participant imports, so a participant error can never leave stale caches serving the pre-restore site.
         sites.evict(siteId);
@@ -292,6 +309,17 @@ public class BackupService {
         importParticipants(siteId, staged.pluginData());
         deleteRecursively(staged.work());
         log.info("restored site '{}' from backup", siteId);
+    }
+
+    /** Puts the hosts and base URL the site had before the restore back on the restored record. */
+    private void keepRouting(String siteId, Site live) throws IOException {
+        sites.evict(siteId);
+        Site restored = sites.find(siteId).orElseThrow(() -> new IOException("the restored site has no record"));
+        if (!restored.hosts().equals(live.hosts()) || !Objects.equals(restored.baseUrl(), live.baseUrl())) {
+            sites.save(restored.withHosts(live.hosts()).withBaseUrl(live.baseUrl()));
+            log.info("restored site '{}' keeps its hosts and base URL (the backup's were {} and {})", siteId,
+                    restored.hosts(), restored.baseUrl());
+        }
     }
 
     /**
@@ -666,12 +694,17 @@ public class BackupService {
 
     /** Restores a site from one of its stored backups. */
     public void restoreStored(String siteId, String name) throws IOException {
+        restoreStored(siteId, name, false);
+    }
+
+    /** Restores a site from one of its stored backups; {@code keepRouting} as {@link #restore(String, InputStream, boolean)}. */
+    public void restoreStored(String siteId, String name, boolean keepRouting) throws IOException {
         Path resolved = resolveBackup(siteId, name);
         if (resolved == null || !Files.isRegularFile(resolved)) {
             throw new IOException("no such backup: " + name);
         }
         try (InputStream in = Files.newInputStream(resolved)) {
-            restore(siteId, in);
+            restore(siteId, in, keepRouting);
         }
     }
 

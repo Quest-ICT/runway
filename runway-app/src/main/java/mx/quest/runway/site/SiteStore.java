@@ -3,7 +3,9 @@ package mx.quest.runway.site;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -13,6 +15,8 @@ import mx.quest.runway.storage.PathSafety;
 import mx.quest.runway.storage.StorageLayout;
 import mx.quest.runway.storage.StoreCache;
 import mx.quest.runway.storage.YamlStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SiteStore {
 
+    private static final Logger log = LoggerFactory.getLogger(SiteStore.class);
     private static final String SITE_FILE = "site.yml";
 
     private final StorageLayout layout;
@@ -34,7 +39,12 @@ public class SiteStore {
         this.store = Objects.requireNonNull(store, "store");
     }
 
-    /** The stored site with this id, or empty if it does not exist (or the id is unsafe). */
+    /**
+     * The stored site with this id, or empty if it does not exist (or the id is unsafe).
+     *
+     * @throws UncheckedIOException when its record cannot be read, its folder included (a folder without search
+     *                              permission, a stalled mount): "cannot tell" is never answered as "no such site"
+     */
     public Optional<Site> find(String id) {
         if (!PathSafety.isSafeId(id)) {
             return Optional.empty();
@@ -52,7 +62,7 @@ public class SiteStore {
             return entries.filter(Files::isDirectory)
                     .map(dir -> dir.getFileName().toString())
                     .filter(PathSafety::isSafeId)
-                    .map(this::find)
+                    .map(this::findForListing)
                     .flatMap(Optional::stream)
                     .sorted(Comparator.comparing(Site::id))
                     .toList();
@@ -104,9 +114,26 @@ public class SiteStore {
         }
     }
 
-    private Site load(String id) {
+    private Optional<Site> findForListing(String id) {
         try {
-            return store.read(siteFile(id), Site.class).orElse(null);
+            return find(id);
+        } catch (UncheckedIOException e) {
+            log.warn("Site '{}' is left out of the list: {}", id, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private Site load(String id) {
+        Path file = siteFile(id);
+        try {
+            // Only a file that is not there means no site: Files.isRegularFile would also say false when the folder
+            // cannot be searched, and a plugin would then take a live site for a deleted one.
+            if (!Files.readAttributes(file, BasicFileAttributes.class).isRegularFile()) {
+                return null;
+            }
+            return store.read(file, Site.class).orElse(null);
+        } catch (NoSuchFileException e) {
+            return null;
         } catch (IOException e) {
             throw new UncheckedIOException("reading site " + id, e);
         }

@@ -1,0 +1,36 @@
+# =============================================================================
+#  Runway demo — database
+#  The worked example of a plugin that keeps its data in the database: a
+#  per-site guestbook. Place it on any page with <div id="guestbook" data-widget="guestbook/main"></div>.
+#
+#  - Visitors sign through an anonymous form (honeypot, length caps, a
+#    per-address limit); each site keeps at most `maxEntries` entries.
+#  - The page carries a static shell; the entries load from
+#    /guestbook/entries.json, which is never cached, so pages stay cacheable.
+#  - Its tables are per site, so they travel in the site's full backups
+#    (not in transfer copies: visitors' entries are personal data).
+#
+#  The install folder name MUST equal this `id`: external/plugins/runway-demo-database/.
+# =============================================================================
+id: runway-demo-database
+name: Runway demo — database
+version: 1.0.0
+
+mainClass: mx.quest.demodatabase.DemoDatabaseConfig
+
+# Without the database plugin this example is Blocked, with the kernel's reason.
+requires: [ "database >= 1.0.0" ]
+
+requiresSpi: ">=1.1.0"
+
+permissions:
+  - { id: manage, realm: tenant, label: guestbook.perm.manage, defaultRoles: [] }
+
+siteSettings:
+  - { key: enabled, type: boolean, default: true, label: guestbook.set.enabled }
+  - { key: maxEntries, type: int, default: 500, range: "10..10000", label: guestbook.set.maxEntries,
+      help: guestbook.set.maxEntries.help }
+
+menu:
+  - { realm: tenant, region: menu, order: 62, label: guestbook.menu,
+      path: "/__admin/runway-demo-database", permission: "runway-demo-database|manage", icon: "fa-solid fa-book-open" }

@@ -160,7 +160,7 @@ public class ConsoleHostFilter extends OncePerRequestFilter {
      * A host name as {@link SiteResolver} compares it: lower case, trimmed, without the port. An IPv6 literal keeps
      * its address and loses the brackets, so {@code [::1]}, {@code [::1]:8443} and {@code ::1} are one host.
      */
-    static String normalize(String host) {
+    public static String normalize(String host) {
         if (host == null) {
             return "";
         }

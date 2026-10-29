@@ -157,6 +157,11 @@
                                 <copy todir="${stage}/lib">
                                     <fileset dir="${project.build.directory}/staged-lib"/>
                                 </copy>
+                                <!-- Never a plugin zip without its libraries (it would load and fail at its first use). -->
+                                <fail message="no library in ${stage}/lib">
+                                    <condition><resourcecount when="equal" count="0">
+                                        <fileset dir="${stage}" includes="lib/*.jar"/></resourcecount></condition>
+                                </fail>
                                 <copy todir="${stage}/templates">
                                     <fileset dir="${project.basedir}/templates"/>
                                 </copy>
@@ -169,6 +174,8 @@
                                     <dirset dir="${stage}"/>
                                     <dirset dir="${project.build.directory}" includes="blog"/>
                                 </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-blog-${project.version}.zip"/>
                                 <zip destfile="${project.build.directory}/runway-plugin-blog-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}" includes="blog/**"/>
                                 </zip>

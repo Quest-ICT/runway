@@ -71,7 +71,7 @@
                                 Brotli's native library did not load on this server; it falls back to gzip.</small>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-4 rw-smtp">
                             <div class="form-label" id="ps-l-mail">Platform mail (SMTP)</div>
                             <small class="form-hint d-block mb-2" id="ps-h-mail">
                                 Used for password recovery and other application messages. Not used for a site's
@@ -98,18 +98,58 @@
                                        name="smtpAuth" value="true">
                                 <span class="form-check-label" id="ps-smtp-auth-lbl">Requires authentication</span>
                             </label>
+                            <div class="mt-1">
+                                <label class="form-label" id="ps-l-smtp-method" for="ps-smtp-method">Sign-in method</label>
+                                <select id="ps-smtp-method" name="smtpAuthMethod" class="form-select">
+                                    <option id="ps-smtp-method-pw" value="password">Username and password</option>
+                                    <option id="ps-smtp-method-oauth" value="oauth2">OAuth2 token (Microsoft 365)</option>
+                                </select>
+                            </div>
                             <div class="row g-2 mt-1">
                                 <div class="col-md-6">
                                     <label class="form-label" id="ps-l-smtp-user" for="ps-smtp-user">Username</label>
                                     <input id="ps-smtp-user" name="smtpUsername" type="text" class="form-control"
                                            value="" autocomplete="off" spellcheck="false">
+                                    <small class="form-hint rw-smtp-oauth" id="ps-smtp-user-hint">
+                                        With OAuth2, the mailbox to send as; blank uses the From address.</small>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6 rw-smtp-pw">
                                     <label class="form-label" id="ps-l-smtp-pass" for="ps-smtp-pass">Password</label>
                                     <input id="ps-smtp-pass" name="smtpPassword" type="password"
                                            class="form-control" value="" autocomplete="new-password">
                                     <small class="form-hint" id="ps-smtp-pass-hint">
                                         A password is stored; leave blank to keep it.</small>
+                                </div>
+                            </div>
+                            <div class="rw-smtp-oauth mt-1">
+                                <small class="form-hint d-block mb-2" id="ps-h-oauth">
+                                    Runway asks the token endpoint for a token with the client credentials, and signs
+                                    in with it (XOAUTH2). Needs STARTTLS or implicit TLS.</small>
+                                <div>
+                                    <label class="form-label" id="ps-l-oauth-url" for="ps-oauth-url">Token endpoint</label>
+                                    <input id="ps-oauth-url" name="smtpOauthTokenUrl" type="url" class="form-control"
+                                           value="" autocomplete="off" spellcheck="false"
+                                           placeholder="https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/token">
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label" id="ps-l-oauth-client" for="ps-oauth-client">Client ID</label>
+                                        <input id="ps-oauth-client" name="smtpOauthClientId" type="text"
+                                               class="form-control" value="" autocomplete="off" spellcheck="false">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" id="ps-l-oauth-secret" for="ps-oauth-secret">Client secret</label>
+                                        <input id="ps-oauth-secret" name="smtpOauthClientSecret" type="password"
+                                               class="form-control" value="" autocomplete="new-password">
+                                        <small class="form-hint" id="ps-oauth-secret-hint">
+                                            A client secret is stored; leave blank to keep it.</small>
+                                    </div>
+                                </div>
+                                <div class="mt-1">
+                                    <label class="form-label" id="ps-l-oauth-scope" for="ps-oauth-scope">Scope</label>
+                                    <input id="ps-oauth-scope" name="smtpOauthScope" type="text" class="form-control"
+                                           value="" autocomplete="off" spellcheck="false"
+                                           placeholder="https://outlook.office365.com/.default">
                                 </div>
                             </div>
                             <label class="form-check form-switch mt-2">

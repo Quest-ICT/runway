@@ -1,0 +1,9 @@
+runway-demo-database — the Runway database example plugin
+Copyright 2026 Quest ICT SAS de CV
+
+Licensed under the Apache License, Version 2.0 (the file LICENSE). Unlike the Runway kernel and the database
+plugin, which are licensed under the GNU Affero General Public License version 3 with an additional permission for
+plugins, this example is offered under a permissive license so that it can be copied as the starting point of a
+plugin under any terms. The exception is the test GuestbookStoreRealServerTest, which links the database plugin's
+internal classes and its providers (AGPL-3.0, outside the plugin permission): a copy under other terms should
+delete it and its two test-scope provider dependencies.

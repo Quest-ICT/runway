@@ -59,7 +59,9 @@ public interface PluginSiteFiles {
      * @return the text; empty when the file is absent, or the leaf is a directory or a symbolic link
      * @throws IllegalArgumentException if {@code siteId} or {@code relPath} is unsafe, or the path escapes the
      *                                  subtree through a symbolic link
-     * @throws IOException              if the file is larger than the write cap, or cannot be read
+     * @throws IOException              if the file is larger than the write cap, or cannot be read — including when
+     *                                  whether it exists cannot be told (a folder that cannot be searched): only a
+     *                                  file that is certainly absent answers empty
      */
     Optional<String> readText(String siteId, String relPath) throws IOException;
 
@@ -98,7 +100,7 @@ public interface PluginSiteFiles {
      *
      * @return the entries; empty when the folder is absent, is a file, or is a symbolic link
      * @throws IllegalArgumentException if a path is unsafe or escapes the subtree
-     * @throws IOException              if the folder cannot be read
+     * @throws IOException              if the folder cannot be read, or cannot be searched to tell whether it is there
      */
     List<FileEntry> list(String siteId, String relDir) throws IOException;
 
@@ -107,7 +109,8 @@ public interface PluginSiteFiles {
      *
      * @return the entry; empty when absent, a symbolic link, or another kind of file
      * @throws IllegalArgumentException if a path is unsafe or escapes the subtree
-     * @throws IOException              if its attributes cannot be read
+     * @throws IOException              if its attributes cannot be read, or its folder cannot be searched to tell
+     *                                  whether it is there
      */
     Optional<FileEntry> stat(String siteId, String relPath) throws IOException;
 }

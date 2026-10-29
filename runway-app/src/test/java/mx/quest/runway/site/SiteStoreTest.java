@@ -2,16 +2,20 @@ package mx.quest.runway.site;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Locale;
 import mx.quest.runway.storage.StorageLayout;
 import mx.quest.runway.storage.StorageProperties;
 import mx.quest.runway.storage.YamlStore;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -124,5 +128,29 @@ class SiteStoreTest {
         Site loaded = store.find("legacy").orElseThrow();
         assertFalse(loaded.maintenance(), "missing maintenance key defaults to off");
         assertEquals(null, loaded.maintenanceMessage());
+    }
+
+    /**
+     * A site whose folder cannot be searched is "cannot tell", never "no such site": a plugin that takes a missing
+     * site for a deleted one would drop its data. A listing still goes on past it.
+     */
+    @Test
+    void aSiteFolderThatCannotBeSearchedIsAnErrorNotAMissingSite(@TempDir Path tmp) throws IOException {
+        Assumptions.assumeTrue(!"root".equals(System.getProperty("user.name")), "root reads any folder");
+        SiteStore store = storeIn(tmp);
+        store.save(site("acme", "acme.test"));
+        store.save(site("beta", "beta.test"));
+        Path dir = tmp.resolve("sites").resolve("acme");
+        Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rw-------"));
+        try {
+            store.evict("acme");
+            assertThrows(UncheckedIOException.class, () -> store.find("acme"));
+            assertEquals(List.of("beta"), store.findAll().stream().map(Site::id).toList());
+            assertTrue(store.find("gone").isEmpty(), "a site that is not there is still simply missing");
+        } finally {
+            Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwx------"));
+        }
+        store.evict("acme");
+        assertTrue(store.find("acme").isPresent());
     }
 }

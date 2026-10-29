@@ -2,8 +2,11 @@ package mx.quest.runway.crypto;
 
 /**
  * Symmetric encryption of stored secrets (AES-256-GCM) in the tagged {@code ENC(<base64>)} form — the kernel
- * seam plugins inject to decrypt their {@code secret}-typed settings (which bind as the raw {@code ENC(...)}
- * string via {@code @ConfigurationProperties}), and the settings service uses to encrypt them on save.
+ * service the settings code uses to encrypt {@code secret}-typed settings on save and to decrypt them on read.
+ * It is <b>kernel-internal</b>: a plugin cannot inject it (host linkage is blocked). A plugin reads its secrets in
+ * clear through the SPI instead — {@code PluginSettings.secret(siteId, key)} for per-site settings and
+ * {@code PluginSettings.appSecret(key)} (SPI 1.1.0) for app-level ones, which otherwise bind only in their
+ * {@code ENC(...)} form.
  *
  * <p>Encryption is <b>non-deterministic</b> (a fresh GCM nonce each call), so the same plaintext yields a
  * different ciphertext every time — never compare secrets by their stored form. The cipher is unavailable

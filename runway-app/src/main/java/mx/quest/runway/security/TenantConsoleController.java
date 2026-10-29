@@ -4,6 +4,7 @@ import java.util.Objects;
 import mx.quest.runway.console.AssetVersion;
 import mx.quest.runway.console.OperatorProperties;
 import mx.quest.runway.mail.PlatformMailer;
+import mx.quest.runway.recovery.RecoveryLinks;
 import mx.quest.runway.site.SiteResolver;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Controller;
@@ -28,9 +29,11 @@ public class TenantConsoleController {
     private final PlatformMailer mailer;
     private final OperatorProperties operator;
     private final AssetVersion assetVersion;
+    private final RecoveryLinks links;
 
     public TenantConsoleController(SiteResolver siteResolver, PlatformMailer mailer, OperatorProperties operator,
-                                   AssetVersion assetVersion) {
+                                   AssetVersion assetVersion, RecoveryLinks links) {
+        this.links = Objects.requireNonNull(links, "links");
         this.siteResolver = Objects.requireNonNull(siteResolver, "siteResolver");
         this.mailer = Objects.requireNonNull(mailer, "mailer");
         this.operator = Objects.requireNonNull(operator, "operator");
@@ -40,8 +43,10 @@ public class TenantConsoleController {
     @GetMapping("/login")
     public String login(Model model) {
         model.addAttribute("siteName", siteResolver.current().map(site -> site.name()).orElse("Runway"));
-        // "Forgot your password?" is shown only when the platform can actually email a reset link.
-        model.addAttribute("recoveryEnabled", mailer.isConfigured());
+        // "Forgot your password?" is shown only when the platform can actually email a reset link: mail is configured
+        // and the site has a host name for the link to point at.
+        model.addAttribute("recoveryEnabled", mailer.isConfigured()
+                && siteResolver.current().flatMap(links::siteBase).isPresent());
         // Pre-auth language switcher (this controller is outside the console-package OperatorModelAdvice that
         // supplies these on other operator pages): the offered languages, the one in force, and the return path.
         model.addAttribute("operatorLanguages", operator.getUiLanguages());

@@ -28,10 +28,13 @@ import mx.quest.runway.spi.model.Realm;
 import mx.quest.runway.storage.StorageLayout;
 import mx.quest.runway.storage.StorageProperties;
 import mx.quest.runway.storage.YamlStore;
+import mx.quest.runway.web.ForwardedFor;
+import mx.quest.runway.web.ProxyResolution;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -126,6 +129,39 @@ class AppAboutPageTest {
                 .andExpect(content().string(Matchers.containsString("grp-settings")))
                 .andExpect(content().string(Matchers.containsString("href=\"/__app/about\"")))
                 .andExpect(content().string(Matchers.containsString("href=\"/__app/settings\"")));
+    }
+
+    @Test
+    void aboutShowsThisRequestAsRunwaySeesIt() throws Exception {
+        MockHttpSession session = login();
+        mvc().perform(get("/__app/about").session(session).locale(Locale.ENGLISH))
+                .andExpect(status().isOk())
+                .andExpect(content().string(Matchers.containsString("This request")))
+                .andExpect(content().string(Matchers.containsString("Client address used")))
+                .andExpect(content().string(Matchers.containsString("Scheme and host")));
+    }
+
+    @Test
+    void theRequestRowsShowHowTheProxyGateAttributedIt() {
+        MockHttpServletRequest trusted = new MockHttpServletRequest("GET", "/__app/about");
+        trusted.setAttribute(ProxyResolution.ATTRIBUTE, new ProxyResolution("10.0.0.5", true, true,
+                new ForwardedFor.Chain(List.of("6.6.6.6", "203.0.113.7"), 2), "203.0.113.7"));
+        assertThat(info.request(trusted)).extracting(RuntimeInfoService.NameValue::value)
+                .containsExactly("10.0.0.5 (trusted proxy)", "6.6.6.6, 203.0.113.7", "203.0.113.7",
+                        "http://localhost");
+
+        MockHttpServletRequest direct = new MockHttpServletRequest("GET", "/__app/about");
+        direct.setAttribute(ProxyResolution.ATTRIBUTE, new ProxyResolution("198.51.100.9", false, false,
+                new ForwardedFor.Chain(List.of("6.6.6.6"), 1), "198.51.100.9"));
+        assertThat(info.request(direct)).extracting(RuntimeInfoService.NameValue::value)
+                .containsExactly("198.51.100.9 (not a trusted proxy)", "6.6.6.6 (ignored)", "198.51.100.9",
+                        "http://localhost");
+
+        MockHttpServletRequest none = new MockHttpServletRequest("GET", "/__app/about");
+        none.setAttribute(ProxyResolution.ATTRIBUTE,
+                new ProxyResolution("127.0.0.1", true, true, ForwardedFor.Chain.NONE, "127.0.0.1"));
+        assertThat(info.request(none)).extracting(RuntimeInfoService.NameValue::value)
+                .containsExactly("127.0.0.1 (trusted proxy)", "none", "127.0.0.1", "http://localhost");
     }
 
     @Test

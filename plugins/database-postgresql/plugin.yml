@@ -1,0 +1,19 @@
+# =============================================================================
+#  Runway Database — PostgreSQL provider
+#  Lets the database plugin use PostgreSQL 14 or later. It brings the pgjdbc
+#  driver (BSD-2-Clause, in lib/) and builds a configured DataSource; every
+#  statement Runway runs is written in the database plugin.
+#
+#  Choose it with the database plugin's `provider: postgresql` setting.
+#  The install folder name MUST equal this `id`: external/plugins/database-postgresql/.
+# =============================================================================
+id: database-postgresql
+name: Database — PostgreSQL
+version: 1.0.0
+
+mainClass: mx.quest.database.postgresql.PostgresProviderConfig
+
+# The database plugin publishes the DatabaseProvider interface this plugin implements.
+requires: [ "database >= 1.0.0" ]
+
+requiresSpi: ">=1.1.0"

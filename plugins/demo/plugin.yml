@@ -7,7 +7,7 @@
 # =============================================================================
 id: runway-demo
 name: Runway Demo (Kitchen-Sink Plugin)
-version: 2.1.0
+version: 2.1.1
 
 # The lowest SPI level this plugin needs; a kernel below it BLOCKS the plugin at startup with a reason. Declare the
 # floor of the NEWEST type you use: without it, an older kernel would load the plugin and fail at the first request

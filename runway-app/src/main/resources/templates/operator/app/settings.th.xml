@@ -55,6 +55,23 @@
     <attr sel="#ps-l-smtp-pass" th:text="#{op.settings.platform.smtp.password}"/>
     <attr sel="#ps-smtp-pass-hint" th:if="${smtpPasswordConfigured}"
           th:text="#{op.settings.platform.smtp.password.keep}"/>
+    <attr sel="#ps-l-smtp-method" th:text="#{op.settings.platform.smtp.method}"/>
+    <attr sel="#ps-smtp-method-pw" th:text="#{op.settings.platform.smtp.method.password}"
+          th:selected="${smtpAuthMethod == 'password'}"/>
+    <attr sel="#ps-smtp-method-oauth" th:text="#{op.settings.platform.smtp.method.oauth2}"
+          th:selected="${smtpAuthMethod == 'oauth2'}"/>
+    <attr sel="#ps-smtp-user-hint" th:text="#{op.settings.platform.smtp.username.oauth2}"/>
+    <!-- OAuth2 sign-in. The client secret is never sent to the form either. -->
+    <attr sel="#ps-h-oauth" th:text="#{op.settings.platform.smtp.oauth.help}"/>
+    <attr sel="#ps-l-oauth-url" th:text="#{op.settings.platform.smtp.oauth.url}"/>
+    <attr sel="#ps-oauth-url" th:value="${smtpOauthTokenUrl}"/>
+    <attr sel="#ps-l-oauth-client" th:text="#{op.settings.platform.smtp.oauth.client}"/>
+    <attr sel="#ps-oauth-client" th:value="${smtpOauthClientId}"/>
+    <attr sel="#ps-l-oauth-secret" th:text="#{op.settings.platform.smtp.oauth.secret}"/>
+    <attr sel="#ps-oauth-secret-hint" th:if="${smtpOauthSecretConfigured}"
+          th:text="#{op.settings.platform.smtp.oauth.secret.keep}"/>
+    <attr sel="#ps-l-oauth-scope" th:text="#{op.settings.platform.smtp.oauth.scope}"/>
+    <attr sel="#ps-oauth-scope" th:value="${smtpOauthScope}"/>
     <attr sel="#ps-smtp-starttls" th:checked="${smtpStarttls}"/>
     <attr sel="#ps-smtp-starttls-lbl" th:text="#{op.settings.platform.smtp.starttls}"/>
     <attr sel="#ps-smtp-ssl" th:checked="${smtpSsl}"/>

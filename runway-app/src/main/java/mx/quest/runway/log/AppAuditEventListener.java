@@ -1,6 +1,7 @@
 package mx.quest.runway.log;
 
 import jakarta.servlet.http.HttpServletRequest;
+import mx.quest.runway.web.ClientIp;
 import mx.quest.runway.web.RequestPaths;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
@@ -60,9 +61,9 @@ public class AppAuditEventListener {
                 ? attrs.getRequest() : null;
     }
 
-    /** The best-effort client IP (honors X-Forwarded-For only when the container was told to trust the proxy). */
+    /** The client IP as {@link ClientIp} resolved it (behind a trusted proxy, the visitor's), or empty. */
     private static String clientIp(HttpServletRequest request) {
-        String ip = request.getRemoteAddr();
+        String ip = ClientIp.of(request);
         return ip == null ? "" : ip;
     }
 }

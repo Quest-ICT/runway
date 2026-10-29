@@ -1,0 +1,20 @@
+# =============================================================================
+#  Runway Database — MariaDB provider
+#  Lets the database plugin use MariaDB 10.11 or later (not MySQL). It brings
+#  MariaDB Connector/J (LGPL-2.1, unmodified, in lib/; its sources are
+#  published next to this plugin's release) and builds a configured
+#  DataSource; every statement Runway runs is written in the database plugin.
+#
+#  Choose it with the database plugin's `provider: mariadb` setting.
+#  The install folder name MUST equal this `id`: external/plugins/database-mariadb/.
+# =============================================================================
+id: database-mariadb
+name: Database — MariaDB
+version: 1.0.0
+
+mainClass: mx.quest.database.mariadb.MariaDbProviderConfig
+
+# The database plugin publishes the DatabaseProvider interface this plugin implements.
+requires: [ "database >= 1.0.0" ]
+
+requiresSpi: ">=1.1.0"

@@ -1,6 +1,8 @@
 package mx.quest.runway.console;
 
+import jakarta.servlet.http.HttpServletRequest;
 import mx.quest.runway.mail.PlatformMailer;
+import mx.quest.runway.recovery.RecoveryLinks;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,20 +15,23 @@ import org.springframework.web.bind.annotation.GetMapping;
  * alerts. Replaces the interim {@code @ResponseBody} login that {@code AppConsoleController} used to serve.
  *
  * <p>The {@code recoveryEnabled} flag drives the "Forgot your password?" link: it is shown only when the
- * platform mail account is configured (there is no way to email a reset link otherwise).
+ * platform mail account is configured and the console has a known address for the link ({@link RecoveryLinks});
+ * there is no way to email a usable reset link otherwise.
  */
 @Controller
 public class AppLoginController {
 
     private final PlatformMailer mailer;
+    private final RecoveryLinks links;
 
-    public AppLoginController(PlatformMailer mailer) {
+    public AppLoginController(PlatformMailer mailer, RecoveryLinks links) {
         this.mailer = mailer;
+        this.links = links;
     }
 
     @GetMapping("/app/login")
-    public String login(Model model) {
-        model.addAttribute("recoveryEnabled", mailer.isConfigured());
+    public String login(Model model, HttpServletRequest request) {
+        model.addAttribute("recoveryEnabled", mailer.isConfigured() && links.appBase(request).isPresent());
         return "operator/login-app";
     }
 }

@@ -33,7 +33,8 @@ class KernelBeanNamesTest {
 
     /** The first-party plugin ids (runway-plugins plus the essential plugin). */
     static final List<String> FIRST_PARTY = List.of("blog", "carousel-manager", "contact", "runway-demo",
-            "discoverability", "search", "search-lucene", "lucene-provider", "protection");
+            "discoverability", "search", "search-lucene", "lucene-provider", "protection", "database",
+            "database-postgresql", "database-mariadb", "runway-demo-database");
 
     @DynamicPropertySource
     static void config(DynamicPropertyRegistry registry) throws IOException {

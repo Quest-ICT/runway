@@ -1,0 +1,10 @@
+/* Runway demo — guestbook. Plain, so it sits in any site's design. */
+.rw-guestbook form { display: grid; gap: .4rem; max-width: 36rem; margin: 0 0 1.5rem; }
+.rw-guestbook input, .rw-guestbook textarea { font: inherit; padding: .4rem; }
+.rw-guestbook button { justify-self: start; padding: .4rem 1rem; font: inherit; cursor: pointer; }
+.rw-guestbook-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.rw-guestbook-notice { padding: .5rem .75rem; border-left: 3px solid currentColor; }
+.rw-guestbook-list { list-style: none; padding: 0; margin: 0; }
+.rw-guestbook-list li { padding: .6rem 0; border-top: 1px solid rgba(127, 127, 127, .25); }
+.rw-guestbook-list time { opacity: .7; font-size: .875em; }
+.rw-guestbook-list p { margin: .25rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }

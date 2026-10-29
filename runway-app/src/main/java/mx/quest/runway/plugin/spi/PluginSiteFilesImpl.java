@@ -7,6 +7,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -90,10 +91,18 @@ public final class PluginSiteFilesImpl implements PluginSiteFiles {
     @Override
     public Optional<String> readText(String siteId, String relPath) throws IOException {
         Path file = resolve(siteId, relPath, false);
-        if (!isRegularFile(file)) {
+        BasicFileAttributes attrs;
+        try {
+            attrs = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException absent) {
             return Optional.empty();
         }
-        if (Files.size(file) > maxBytes) {
+        // Only a file that is certainly not there is "absent": a folder that cannot be searched (permissions, a stale
+        // network mount) throws, so a caller never mistakes "cannot tell" for "nothing there" and acts on it.
+        if (!attrs.isRegularFile()) {
+            return Optional.empty();
+        }
+        if (attrs.size() > maxBytes) {
             throw new IOException("plugin '" + pluginId + "' file '" + relPath + "' of site '" + siteId
                     + "' is larger than the " + maxBytes + "-byte limit (runway.plugins.site-files.max-write-bytes)");
         }
@@ -169,13 +178,14 @@ public final class PluginSiteFilesImpl implements PluginSiteFiles {
     @Override
     public List<FileEntry> list(String siteId, String relDir) throws IOException {
         Path dir = resolve(siteId, relDir, true);
-        if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) {
+        Optional<FileEntry> self = entryOf(dir); // a folder that cannot be searched throws, never reads as empty
+        if (self.isEmpty() || !self.get().directory()) {
             return List.of();
         }
         List<FileEntry> entries = new ArrayList<>();
         try (DirectoryStream<Path> children = Files.newDirectoryStream(dir)) {
             for (Path child : children) {
-                entryOf(child).ifPresent(entries::add);
+                entryOf(child).ifPresent(entries::add); // one removed while listing reads as absent and is skipped
             }
         }
         entries.sort(Comparator.comparing(FileEntry::name));
@@ -194,12 +204,17 @@ public final class PluginSiteFilesImpl implements PluginSiteFiles {
 
     // --- internals ----------------------------------------------------------------------------------------------
 
-    /** A regular file or a folder, never a link (nor a device, socket, …); empty for anything else or nothing. */
+    /**
+     * A regular file or a folder, never a link (nor a device, socket, …); empty for anything else or nothing. Only a
+     * path that is certainly not there is absent: one whose folder cannot be searched throws.
+     */
     private static Optional<FileEntry> entryOf(Path path) throws IOException {
-        if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+        BasicFileAttributes attrs;
+        try {
+            attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException absent) {
             return Optional.empty();
         }
-        BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (attrs.isSymbolicLink() || !(attrs.isRegularFile() || attrs.isDirectory())) {
             return Optional.empty();
         }

@@ -1,5 +1,6 @@
 package mx.quest.demo;
 
+import mx.quest.runway.spi.CaptchaService;
 import mx.quest.runway.spi.model.PluginInfo;
 import mx.quest.runway.spi.service.AccessCheck;
 import mx.quest.runway.spi.service.ContentCatalogView;
@@ -99,8 +100,9 @@ public class DemoPluginConfig {
     }
 
     @Bean
-    public DemoFeedbackWidget runwayDemoFeedbackWidget(PluginSettings settings, Messages messages) {
-        return new DemoFeedbackWidget(settings, messages);
+    public DemoFeedbackWidget runwayDemoFeedbackWidget(PluginSettings settings, Messages messages,
+                                                       CaptchaService captcha) {
+        return new DemoFeedbackWidget(settings, messages, captcha);
     }
 
     @Bean
@@ -110,8 +112,8 @@ public class DemoPluginConfig {
 
     @Bean
     public DemoEndpoints runwayDemoEndpoints(AccessCheck access, DemoNotesStore notes, Messages messages,
-                                             PluginSettings settings) {
-        return new DemoEndpoints(access, notes, messages, settings);
+                                             PluginSettings settings, CaptchaService captcha) {
+        return new DemoEndpoints(access, notes, messages, settings, captcha);
     }
 
     /** A content source AND a SOURCE-phase listener (it drops its own cache before consumers re-read). */

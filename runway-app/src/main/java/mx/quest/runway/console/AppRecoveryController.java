@@ -1,16 +1,20 @@
 package mx.quest.runway.console;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
 import mx.quest.runway.recovery.PasswordRecoveryService;
+import mx.quest.runway.recovery.RecoveryLinks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * The <b>application-realm</b> password-recovery flow — {@code /app/forgot-password} and {@code /app/reset},
@@ -21,17 +25,23 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  *
  * <p>The request path is deliberately <b>non-enumerating</b>: a POST always shows the same neutral
  * confirmation, whether or not any account matched.
+ *
+ * <p>The emailed link's address comes from {@link RecoveryLinks}, never from the request's host: a request with a
+ * made-up {@code Host} would otherwise have the platform mail a real user a link to the sender's site.
  */
 @Controller
 public class AppRecoveryController {
 
+    private static final Logger log = LoggerFactory.getLogger(AppRecoveryController.class);
     private static final String BRAND = "Runway";
     private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final PasswordRecoveryService recovery;
+    private final RecoveryLinks links;
 
-    public AppRecoveryController(PasswordRecoveryService recovery) {
+    public AppRecoveryController(PasswordRecoveryService recovery, RecoveryLinks links) {
         this.recovery = recovery;
+        this.links = links;
     }
 
     @GetMapping("/app/forgot-password")
@@ -42,11 +52,18 @@ public class AppRecoveryController {
     }
 
     @PostMapping("/app/forgot-password")
-    public String requestLink(@RequestParam(required = false) String email, Locale locale) {
-        String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-        Function<String, String> linkFor =
-                token -> base + "/app/reset?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
-        recovery.requestApp(email, BRAND, linkFor, locale);
+    public String requestLink(@RequestParam(required = false) String email, Locale locale,
+                              HttpServletRequest request) {
+        Optional<String> base = links.appBase(request);
+        if (base.isPresent()) {
+            Function<String, String> linkFor =
+                    token -> base.get() + "/app/reset?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+            log.info("password recovery requested on the console; a link, if mailed, points at {}", base.get());
+            recovery.requestApp(email, BRAND, linkFor, locale);
+        } else {
+            log.warn("password recovery requested on a host that is not the console's known address; no link sent "
+                    + "(set runway.console.hosts, or give the default site a public host name or a base URL)");
+        }
         // Post-redirect-get to the neutral confirmation (no account enumeration, no form re-submit).
         return "redirect:/app/forgot-password?sent";
     }

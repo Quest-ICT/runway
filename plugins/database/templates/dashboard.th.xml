@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Site dashboard card logic. Values from ${@databaseScreens.site(tenantSiteId)}, read once at the root. -->
+<thlogic>
+    <attr sel="#dbd" th:with="dl=${@databaseScreens.site(tenantSiteId)}"/>
+    <attr sel="#dbd-title" th:text="#{database.dashboard.title}"/>
+    <attr sel="#dbd-has" th:if="${dl.hasData()}"/>
+    <attr sel="#dbd-has-text" th:text="#{database.dashboard.has}"/>
+    <attr sel="#dbd-size" th:text="${dl.size()}"/>
+    <attr sel="#dbd-none" th:unless="${dl.hasData()}"
+          th:text="#{database.dashboard.none}"/>
+    <attr sel="#dbd-restore" th:unless="${dl.lastRestore().isEmpty()}"
+          th:classappend="${dl.lastRestoreOk() ? '' : 'text-danger'}"/>
+    <attr sel="#dbd-l-restore" th:text="#{database.dashboard.restore}"/>
+    <attr sel="#dbd-restore-text" th:text="${dl.lastRestore()}"/>
+</thlogic>

@@ -125,6 +125,8 @@
                                          entry's DOS time in the local header and again in the central dir. -->
                                     <dirset dir="${project.build.directory}" includes="carousel-manager"/>
                                 </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-carousel-manager-${project.version}.zip"/>
                                 <zip destfile="${project.build.directory}/runway-plugin-carousel-manager-${project.version}.zip">
                                     <!-- Zip the REAL staged directory rather than synthesising the folder
                                          with prefix=. Ant stamps a prefix-synthesised directory entry with

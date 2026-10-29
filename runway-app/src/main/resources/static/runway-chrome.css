@@ -237,3 +237,7 @@ body.layout-fluid .page-header {
     margin: 0;
     padding: 0;
 }
+
+/* Platform mail: show the fields of the chosen sign-in method only (no script; :has() on the select's state). */
+.rw-smtp:has(#ps-smtp-method option[value="password"]:checked) .rw-smtp-oauth { display: none; }
+.rw-smtp:has(#ps-smtp-method option[value="oauth2"]:checked) .rw-smtp-pw { display: none; }

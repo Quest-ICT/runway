@@ -1,5 +1,6 @@
 package mx.quest.runway.console;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.InetAddress;
@@ -22,7 +23,10 @@ import mx.quest.runway.i18n.I18nProperties;
 import mx.quest.runway.platform.PlatformSettingsStore;
 import mx.quest.runway.security.ActivePasswordStrength;
 import mx.quest.runway.storage.StorageLayout;
+import mx.quest.runway.web.ClientIp;
 import mx.quest.runway.web.CompressionFilter;
+import mx.quest.runway.web.ProxyResolution;
+import mx.quest.runway.web.RequestOrigin;
 import mx.quest.runway.web.RunwayProxyProperties;
 import mx.quest.runway.web.RunwayTlsProperties;
 import org.springframework.beans.factory.ObjectProvider;
@@ -162,6 +166,30 @@ public class RuntimeInfoService {
     }
 
     /** The "Host &amp; JVM" table describing the node serving the request. Row names are {@code op.about.rt.*} keys. */
+    /**
+     * The current request as Runway sees it: the connection it came in on, the {@code X-Forwarded-For} chain, the
+     * client address that rate limits, lockouts and logs use, and the origin. Lets an operator check a reverse-proxy
+     * setup ({@code runway.proxy.*}) from the browser: behind a correctly trusted proxy the client row shows the
+     * operator's own public address, not the proxy's. Values are the operator's own request data, nothing secret.
+     */
+    public List<NameValue> request(HttpServletRequest request) {
+        List<NameValue> rows = new ArrayList<>();
+        ProxyResolution resolution = ProxyResolution.of(request);
+        if (resolution == null) {
+            rows.add(new NameValue("op.about.req.client", ClientIp.of(request)));
+        } else {
+            rows.add(new NameValue("op.about.req.peer", resolution.peer() + (resolution.peerTrusted()
+                    ? " (trusted proxy)" : " (not a trusted proxy)")));
+            String chain = resolution.forwardedFor().text();
+            rows.add(new NameValue("op.about.req.forwardedFor", chain.isEmpty() ? "none"
+                    : resolution.honoured() ? chain : chain + " (ignored)"));
+            rows.add(new NameValue("op.about.req.client", resolution.clientIp()));
+        }
+        String origin = RequestOrigin.of(request);
+        rows.add(new NameValue("op.about.req.origin", origin.isEmpty() ? "—" : origin));
+        return rows;
+    }
+
     public List<NameValue> runtime() {
         RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
         Runtime rt = Runtime.getRuntime();

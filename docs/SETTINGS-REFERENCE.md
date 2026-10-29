@@ -47,6 +47,7 @@ How large a request may be. Applies after a restart.
 | Setting | Key | What it does | Values |
 |---|---|---|---|
 | Largest request before sign-in (bytes) | `runway.endpoints.max-form-bytes` | The most a visitor who is not signed in may send in one request, on any path. Default 262144 (256 KiB). | whole number from 1024 to 104857600; default `262144` |
+| Slowest request body (bytes per second) *(Advanced)* | `runway.http.min-request-data-rate` | A request body arriving more slowly is answered 408 Request Timeout, so a client sending a byte now and then cannot hold a request thread. Measured on what has arrived since the body's first byte. Default 4096; 0 turns the check off. | whole number from 0 to 1048576; default `4096` |
 | Largest request to a plugin (bytes) | `runway.endpoints.max-body-bytes` | The most a signed-in user may send to a plugin's route. Default 10485760 (10 MiB). | whole number from 1024 to 1073741824; default `10485760` |
 | Largest uploaded file | `spring.servlet.multipart.max-file-size` | For uploads such as a backup to restore. A size like 256MB or 1GB. Default 256MB. | text; default `256MB` |
 | Largest upload request | `spring.servlet.multipart.max-request-size` | All the files of one upload together. A size like 256MB. Default 256MB. | text; default `256MB` |
@@ -132,7 +133,7 @@ Whether to trust X-Forwarded-* headers, and from which addresses. Only from your
 | Setting | Key | What it does | Values |
 |---|---|---|---|
 | Read X-Forwarded-* headers | `runway.proxy.forwarded-headers` | From the trusted addresses below only. | `true` or `false`; default `true` |
-| Trusted proxy addresses | `runway.proxy.trusted-cidrs` | The exact address of your reverse proxy, e.g. 10.0.0.5/32. A /0 (0.0.0.0/0, ::/0), or ranges that add up to every address (0.0.0.0/1 with 128.0.0.0/1), would trust every client to fake its address, so it is refused. | comma-separated list; default `127.0.0.1/32,::1/128` |
+| Trusted proxy addresses | `runway.proxy.trusted-cidrs` | The exact address of your reverse proxy, e.g. 10.0.0.5/32, and of every proxy in front of it (a CDN). Check the result under About Runway → This request. A /0 (0.0.0.0/0, ::/0), or ranges that add up to every address (0.0.0.0/1 with 128.0.0.0/1), would trust every client to fake its address, so it is refused. | comma-separated list; default `127.0.0.1/32,::1/128` |
 
 #### Capacity
 

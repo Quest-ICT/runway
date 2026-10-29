@@ -191,6 +191,6 @@ class TenantAuditRecordingTest {
     @Test
     void aTenantSignOutIsJournaled() throws Exception {
         mvc.perform(post("/logout").session(admin()).with(csrf())).andExpect(status().is3xxRedirection());
-        verify(siteLog).audit("acme", "admin", "logout", "");
+        verify(siteLog).audit("acme", "admin", "logout", "ip=127.0.0.1"); // MockMvc's client address
     }
 }

@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The shipped descriptor of the essential plugin against the SPI 1.0.0 loader rules: it is
- * on the kernel's version line ({@code 1.0.0}) and declares the kernel's SPI as its floor, so the mandatory floor can
- * never block it — a blocked essential plugin would put the whole platform in fail-closed mode.
+ * on the kernel's version line and declares the SPI major's floor ({@code >=1.0.0}, met by every 1.x kernel), so the
+ * mandatory floor can never block it — a blocked essential plugin would put the whole platform in fail-closed mode.
  */
 class ProtectionDescriptorK4Test {
 
@@ -35,7 +35,7 @@ class ProtectionDescriptorK4Test {
         PluginDescriptor descriptor = shipped();
         assertEquals("protection", descriptor.id());
         assertTrue(descriptor.isEssential());
-        assertEquals("1.0.1", descriptor.version(), "versioned on the kernel's line");
+        assertEquals("1.1.0", descriptor.version(), "versioned on the kernel's line");
         assertEquals(PluginVersion.parse("1.0.0"), descriptor.spiFloor());
         assertEquals(PluginVersion.parse(RunwaySpi.VERSION).major(), descriptor.spiFloor().major(),
                 "the floor names the kernel's own SPI major line");

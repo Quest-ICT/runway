@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import mx.quest.runway.platform.PlatformSettings;
 import mx.quest.runway.platform.PlatformSettingsStore;
@@ -23,6 +24,9 @@ import mx.quest.runway.security.PasswordStrength;
 import mx.quest.runway.security.Roles;
 import mx.quest.runway.security.User;
 import mx.quest.runway.security.UserStore;
+import mx.quest.runway.site.Site;
+import mx.quest.runway.site.SiteStatus;
+import mx.quest.runway.site.SiteStore;
 import mx.quest.runway.spi.model.Realm;
 import mx.quest.runway.storage.YamlStore;
 import org.hamcrest.Matchers;
@@ -71,6 +75,8 @@ class RecoveryScreenTest {
     private RecoveryTokenStore tokens;
     @Autowired
     private AppUserStore appUsers;
+    @Autowired
+    private SiteStore sites;
     private MockMvc mvc;
 
     @BeforeEach
@@ -160,12 +166,21 @@ class RecoveryScreenTest {
     }
 
     @Test
-    void theLoginPageShowsForgotOnlyWhenMailIsConfigured() throws Exception {
+    void theLoginPageShowsForgotOnlyWithMailAndAnAddressForTheLink() throws Exception {
         mvc.perform(get("/app/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.not(Matchers.containsString("/app/forgot-password"))));
 
+        // Mail alone is not enough: with no runway.console.hosts and no default site with a host name, there is no
+        // address a reset link may point at (never the request's own host), so recovery is not offered.
         configureMail();
+        mvc.perform(get("/app/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(Matchers.not(Matchers.containsString("/app/forgot-password"))));
+
+        sites.save(new Site("main", "Main", List.of("www.main.test"), Locale.ENGLISH, List.of(Locale.ENGLISH), null,
+                SiteStatus.ACTIVE, false, null));
+        platform.update(current -> current.withDefaultSiteId("main"));
         mvc.perform(get("/app/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.containsString("/app/forgot-password")));

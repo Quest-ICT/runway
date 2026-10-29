@@ -7,10 +7,10 @@
 > shows them working.
 
 - **id** `runway-demo` · **install folder** `external/plugins/runway-demo/` · **Java package** `mx.quest.demo`
-- **version** `2.1.0` · **`requiresSpi`** `">=1.0.0"` · links **only** `mx.quest.runway.spi`
+- **version** `2.1.1` · **`requiresSpi`** `">=1.0.0"` · links **only** `mx.quest.runway.spi`
 - **jar** `runway-plugin-demo.jar` (thin: 18 top-level classes, nothing bundled) · **Maven artifactId**
   `runway-plugin-runway-demo` · **release zip** `runway-plugin-runway-demo-<version>.zip`
-- **Verified** live against the packaged kernel (§9) and by 82 unit tests with 20 mutation checks (§8).
+- **Verified** live against the packaged kernel (§9) and by 84 unit tests with 21 mutation checks (§8).
 
 ---
 
@@ -20,7 +20,7 @@
 |---|---|---|
 | A generator `<meta>`, the plugin stylesheet and an inert analytics `<script>` in every page's `<head>` | visitors | `HeadContributor` + `PluginSettings` |
 | A notice callout at `data-widget="demo-notice/<instance>"` | visitors | `ContentWidget` + `PluginSettings` + `Messages.site` |
-| A "leave a message" form at `data-widget="demo-feedback/<instance>"`, posting without a CSRF token | visitors | `ContentWidget` + an **anonymous** `POST` route |
+| A "leave a message" form at `data-widget="demo-feedback/<instance>"`, posting without a CSRF token, with the site's CAPTCHA when it has one | visitors | `ContentWidget` + an **anonymous** `POST` route + `CaptchaService` |
 | `/demo/hello.txt`, `/demo/echo.json`, `/demo/notes.json` (permission-gated) | visitors / operators | `EndpointContributor` + `AccessCheck` + `Messages.site` |
 | SEO advice in the page editor (long title, no description, no `<h1>`) | site managers | `PageQualityCheck` + `PluginSettings` |
 | Per-site **notes** (operator notes, visitors' messages, a settings audit note), personal data | operators | `PluginSiteFiles` + `siteData.personal` |
@@ -125,7 +125,7 @@ are not here: they bind through `@ConfigurationProperties` under `runway.plugin.
 
 `started(PluginInfo self)` runs once the platform is up, in plugin load order; `stopping()` at shutdown, in reverse
 order, only if `started` returned normally. Both block the host's thread — keep them short. The demo logs
-`runway-demo 2.1.0 started — install dir …; built against SPI 1.0.0, running on SPI 1.0.0`:
+`runway-demo 2.1.1 started — install dir …; built against SPI 1.0.0, running on SPI 1.1.0`:
 `RunwaySpi.VERSION` is a compile-time constant (what the plugin was **built against**, copied into the plugin's
 classes), `RunwaySpi.runtimeVersion()` is the running kernel's. **Use it** to open an
 index, start your own executor, warm a cache — and to close them again.
@@ -303,10 +303,17 @@ A form on a page every visitor shares (and caches) cannot carry a per-session CS
 has no session. Declaring the route `anonymous` exempts **exactly that method and path** from CSRF; the kernel
 makes that safe by running the handler with **no principal** (`AccessCheck.may` is `false` even for a signed-in
 administrator) and accepting only an `application/x-www-form-urlencoded` body (`415` otherwise). The handler keeps
-its own guards — a honeypot field, a length cap, five messages per minute per `req.clientIp()` (the address after
-the kernel's trusted-proxy gate; never a header) — reads the fields from `req.form()` only (personal text never in
+its own guards — a honeypot field, a length cap, the site's CAPTCHA, five messages per minute per `req.clientIp()`
+(the address after the kernel's trusted-proxy gate; never a header) — reads the fields from `req.form()` only (personal text never in
 a URL), and answers `303` back with only an outcome flag the widget renders. **Use it** only for a form any visitor
 may submit with no account; never for an action on something a signed-in user owns.
+
+**The site's CAPTCHA.** A public form asks the site's challenge through `CaptchaService`, a platform service every
+plugin can inject. The widget appends `captcha.widgetForSite(siteId).html()` inside its form, and the route, after the
+honeypot and length checks, calls `captcha.verify(siteId, <the widget's tokenField()>, req.clientIp())` when
+`widgetForSite(siteId).active()`; an unsolved challenge answers `?demo-feedback=captcha` and keeps nothing. A site
+with no CAPTCHA configured gets an inactive widget (no markup) and every message through, so the form works either
+way; the site manager turns the challenge on in the site's protection settings, not in this plugin.
 
 ---
 
@@ -359,11 +366,11 @@ and counted on the plugins screen.
 
 ## 8. Tests
 
-`mvn verify` runs 82 tests over `runway-spi-testkit` (no kernel, no Spring Boot):
+`mvn verify` runs 84 tests over `runway-spi-testkit` (no kernel, no Spring Boot):
 
 | Class | Covers |
 |---|---|
-| `DemoSpiUnitTest` | head, both widgets, quality check, every endpoint route incl. the anonymous feedback POST (honeypot, blank, query ignored, rate limit, foreign return path), lowercase header names |
+| `DemoSpiUnitTest` | head, both widgets, quality check, every endpoint route incl. the anonymous feedback POST (honeypot, blank, the site's CAPTCHA, query ignored, rate limit, foreign return path), lowercase header names |
 | `DemoNotesStoreTest` | the notes over `TempDirSiteFiles`: a read shows the welcome and writes nothing, the first append keeps it, order, caps, isolation, lenient reads, an unreadable file never overwritten, a missing site, unsafe ids |
 | `DemoShowcaseTest` | publish/unpublish announce through `EventDispatch`, the source's refs/body/resolve, `updatedAt`, the TTL backstop, eviction on a replayed change and on wholesale events only, the kernel's refusal from inside a callback |
 | `DemoActivityTest` | own vs other plugins' settings, `local`, URLs before/after, the bound, wholesale drops, failures contained |
@@ -371,7 +378,7 @@ and counted on the plugins screen.
 | `DemoTemplatesTest` | every `POST` action has a form carrying the CSRF field; no link points at an action; no repeated id; every selector matches |
 | `DemoPluginConfigTest` | wiring from SPI fakes alone, bean names, forbidden Spring types, the controller's gates and mappings, template bean references, descriptor (floor, version, personal data, menu, secrets), i18n, **the compiled classes link no `mx.quest.runway` class outside `.spi`**, the removed classes are gone |
 
-Mutation-checked: 20 deliberate breaks (the `local` gate, each eviction, each announcement, the honeypot, the rate
+Mutation-checked: 21 deliberate breaks (the `local` gate, each eviction, each announcement, the honeypot, the CAPTCHA, the rate
 limit boundary, the permission gates, body-only fields, a missing `@PreAuthorize`, the notes bound, the
 personal-data declaration, the TTL boundary, escaping, the open-redirect guard, a form's CSRF field, an
 unprefixed bean name, the clamp) — each makes a test fail.
@@ -391,12 +398,12 @@ JAVA_HOME=/path/to/jdk-25 HOST_JAR=…/runway-app-1.0.0-exec.jar VERIFY_TMPDIR=�
 The first build downloads its Maven dependencies, and needs the `runway-spi` jars installed in `~/.m2` as the
 [authoring guide §2](../../docs/PLUGIN-AUTHORING-GUIDE.md#2-prerequisites) describes.
 
-The verify script never runs `mvn install`. Its result for 2.1.0: **58 passed, 0 failed**.
+The verify script never runs `mvn install`. Its result for 2.1.1, against Runway 1.1.0: **58 passed, 0 failed**.
 From the host log:
 
 ```
 plugins: 1 registered, 0 blocked
-runway-demo 2.1.0 started — install dir …/plugins/runway-demo; built against SPI 1.0.0, running on SPI 1.0.0
+runway-demo 2.1.1 started — install dir …/plugins/runway-demo; built against SPI 1.0.0, running on SPI 1.1.0
 runway-demo settings changed for site 'default': audit note appended (now 4 notes)
 transfer export: blanked 1 secret value(s) in runway-demo.yml: [analytics.site-token]
 ```

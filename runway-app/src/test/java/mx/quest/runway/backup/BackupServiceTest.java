@@ -442,6 +442,26 @@ class BackupServiceTest {
     }
 
     @Test
+    void aSiteManagersRestoreKeepsHowTheSiteIsReachedAPlatformAdminsBringsTheBackupsBack() throws IOException {
+        SiteStore store = new SiteStore(layout, new YamlStore());
+        store.save(new Site("r", "R", List.of("old.test"), Locale.ENGLISH, List.of(Locale.ENGLISH),
+                "https://evil.example", SiteStatus.ACTIVE)); // what an archive written by hand could say
+        ByteArrayOutputStream archive = new ByteArrayOutputStream();
+        svc.backup("r", archive);
+        store.save(store.find("r").orElseThrow().withHosts(List.of("r.test")).withBaseUrl(null));
+
+        svc.restore("r", new ByteArrayInputStream(archive.toByteArray()), true); // the site realm
+        Site kept = new SiteStore(layout, new YamlStore()).find("r").orElseThrow();
+        assertEquals(List.of("r.test"), kept.hosts());
+        assertEquals(null, kept.baseUrl());
+
+        svc.restore("r", new ByteArrayInputStream(archive.toByteArray())); // the application realm
+        Site back = new SiteStore(layout, new YamlStore()).find("r").orElseThrow();
+        assertEquals(List.of("old.test"), back.hosts());
+        assertEquals("https://evil.example", back.baseUrl());
+    }
+
+    @Test
     void createFromBackupRejectsAnExistingId() throws IOException {
         new SiteStore(layout, new YamlStore()).save(new Site("src", "Source", List.of(), Locale.ENGLISH,
                 List.of(Locale.ENGLISH), null, SiteStatus.ACTIVE));

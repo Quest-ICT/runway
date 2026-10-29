@@ -72,6 +72,11 @@ public final class RunwaySpi {
      *       is blocked), and blocks host linkage and Spring-surface violations instead of warning. A {@code 0.4.0}
      *       – {@code 0.6.0} floor is a 1.x floor: the service tier those versions introduced is the 1.0
      *       contract.</li>
+     *   <li><b>1.1.0</b> — one addition:
+     *       {@link mx.quest.runway.spi.service.PluginSettings#appSecret(String)} (a {@code default} method answering
+     *       empty), the calling plugin's own {@code secret}-typed <b>app-level</b> setting in clear. Before, such a
+     *       setting reached the plugin only in its stored {@code ENC(...)} form, which a plugin cannot decrypt. A
+     *       plugin that calls it declares {@code requiresSpi: ">=1.1.0"}.</li>
      * </ul>
      *
      * <p>Before 0.4.0: 0.3.4 added {@link HeadContributor#headInputs(String)} (a {@code default} method returning an empty list:
@@ -99,7 +104,7 @@ public final class RunwaySpi {
      * {@link mx.quest.runway.spi.model.WidgetView} (with the old-arity constructor kept). All additive and
      * binary-compatible (no existing member changed).
      */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
 
     /**
      * The SPI version of the <b>running</b> kernel — unlike {@link #VERSION}, which the compiler inlines into the

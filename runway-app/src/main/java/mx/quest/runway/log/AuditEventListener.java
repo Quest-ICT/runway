@@ -2,6 +2,7 @@ package mx.quest.runway.log;
 
 import jakarta.servlet.http.HttpServletRequest;
 import mx.quest.runway.site.SiteResolver;
+import mx.quest.runway.web.ClientIp;
 import mx.quest.runway.web.RequestPaths;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
@@ -19,6 +20,11 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * {@code /app/logout}) even when the app console was reached on a host that also resolves to a site: those belong
  * to the application activity log ({@link AppAuditEventListener}), and an operator's name must not leak into a
  * tenant's journal.
+ *
+ * <p>Each line carries the client address ({@code ip=…}) as {@link ClientIp} resolved it, behind a trusted proxy the
+ * visitor rather than the proxy, so a site's own audit trail answers "who signed in from where" the way the
+ * application activity log does. The address is kept whole: the site's "anonymize client IP addresses" setting covers
+ * the access log, not the audit log, which is a security record (a wrong current password is recorded the same way).
  */
 @Component
 public class AuditEventListener {
@@ -50,15 +56,22 @@ public class AuditEventListener {
         if (isAppRealmRequest()) {
             return;
         }
-        siteResolver.current().ifPresent(site -> siteLog.audit(site.id(), actor, action, ""));
+        HttpServletRequest request = currentRequest();
+        String detail = request == null || ClientIp.of(request) == null ? "" : "ip=" + ClientIp.of(request);
+        siteResolver.current().ifPresent(site -> siteLog.audit(site.id(), actor, action, detail));
     }
 
     private static boolean isAppRealmRequest() {
-        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs)) {
+        HttpServletRequest request = currentRequest();
+        if (request == null) {
             return false;
         }
-        HttpServletRequest request = attrs.getRequest();
         String path = RequestPaths.normalized(request);
         return AppAuditEventListener.APP_LOGIN_PATH.equals(path) || AppAuditEventListener.APP_LOGOUT_PATH.equals(path);
+    }
+
+    private static HttpServletRequest currentRequest() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs
+                ? attrs.getRequest() : null;
     }
 }

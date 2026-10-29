@@ -231,7 +231,8 @@ name or the default language. While no field is set and no manifest icon (192, 5
 
 The **Logs** screen (`/__admin/logs`) shows your site's own **access log** (public traffic — the most recent
 lines) and its **audit journal**: who did what on your site, and when. The journal records sign-ins
-(`login.success`, `login.failure`) and sign-outs (`logout`); password recovery through an emailed link
+(`login.success`, `login.failure`) and sign-outs (`logout`), each with the address it came from (`ip=…`, in full:
+the anonymizing setting below applies to the access log only); password recovery through an emailed link
 (`recovery.requested`, `recovery.completed`); page changes (`page.saved`, `page.deleted`, `page.published`,
 `page.unpublished`); user changes (`user.created`, `user.password-reset`, `user.deleted`); role and permission
 changes on **Permissions** (`permissions.role-assigned`, `permissions.permission-granted`,
@@ -1318,7 +1319,8 @@ a copy of everyone's credentials.
 page, template, user and setting reverts to the moment the backup was taken. Because it is
 destructive, **only the site's administrators (the site superadmin, or the Administrator tier) may
 restore**; the restore controls are hidden for everyone else. You can restore either from a **saved backup** (pick it from the list) or by
-**uploading a `.zip`** you downloaded earlier.
+**uploading a `.zip`** you downloaded earlier. One thing does not revert: the site's **host names and base URL**
+(how visitors reach it) stay as the platform operator has set them now, whatever the backup says.
 
 Restore is safe by design: the platform first checks the file is a genuine, complete site
 backup and only then swaps it in, in one step. **A corrupt, empty, or wrong file is rejected

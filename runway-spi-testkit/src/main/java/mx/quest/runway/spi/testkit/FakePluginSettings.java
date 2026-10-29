@@ -17,7 +17,8 @@ import mx.quest.runway.spi.service.PluginSettings;
  * FakePluginSettings settings = new FakePluginSettings()
  *         .defaults(Map.of("enabled", true, "limit", 20))
  *         .site("acme", Map.of("limit", 50))
- *         .secret("acme", "smtpPassword", "s3cret");
+ *         .secret("acme", "smtpPassword", "s3cret")
+ *         .appSecret("password", "app-s3cret");
  * MyWidget widget = new MyWidget(settings);
  * }</pre>
  *
@@ -32,6 +33,7 @@ public final class FakePluginSettings implements PluginSettings {
     private volatile Map<String, Object> defaults = Map.of();
     private final Map<String, Map<String, Object>> sites = new ConcurrentHashMap<>();
     private final Map<String, String> secrets = new ConcurrentHashMap<>();
+    private final Map<String, String> appSecrets = new ConcurrentHashMap<>();
 
     /** The declared {@code siteSettings:} defaults (replaces any set before). */
     public FakePluginSettings defaults(Map<String, ?> declaredDefaults) {
@@ -51,6 +53,12 @@ public final class FakePluginSettings implements PluginSettings {
         return this;
     }
 
+    /** An app-level secret's clear value, as the running environment would hand it out. */
+    public FakePluginSettings appSecret(String key, String clearValue) {
+        appSecrets.put(key, clearValue);
+        return this;
+    }
+
     @Override
     public SettingsView site(String siteId) {
         Map<String, Object> values = new LinkedHashMap<>(defaults);
@@ -66,6 +74,12 @@ public final class FakePluginSettings implements PluginSettings {
     @Override
     public Optional<String> secret(String siteId, String key) {
         String value = secrets.get(requireSafe(siteId) + "|" + key);
+        return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
+    }
+
+    @Override
+    public Optional<String> appSecret(String key) {
+        String value = key == null ? null : appSecrets.get(key);
         return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
     }
 

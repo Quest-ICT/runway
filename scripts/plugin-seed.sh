@@ -59,9 +59,10 @@ _ps_write_manifest() {
 # seed_bundled_plugins <bundle-dir> <data-dir>
 # Seeds every bundled plugin a fresh install lacks, and REFRESHES every one an upgrade finds — always; there is no
 # opt-in any more. The bundled plugins are the essential ones (today: protection), and an essential plugin is
-# lockstep with the kernel: it is the one plugin allowed to link kernel internals, and its descriptor names the
-# kernel's SPI level. An old copy beside a new kernel is refused — the essential plugin blocked puts the platform in
-# fail-closed mode, every tenant page 503 — or crashes on a missing class. An upgrade that left
+# lockstep with the kernel: it is the one plugin allowed to link kernel internals (its descriptor's SPI floor is the
+# major line's, >=1.0.0). An old copy beside a new kernel crashes on a missing internal class, or is refused if its
+# floor is ever above the kernel's — the essential plugin blocked puts the platform in fail-closed mode, every tenant
+# page 503. An upgrade that left
 # the old copy in place would, with SPI 1.0.0's mandatory floor, mean a 503 on every site, so the refresh is part
 # of every upgrade. What makes
 # "always" safe is what the refresh keeps:

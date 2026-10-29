@@ -4,13 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import mx.quest.runway.spi.model.FileEntry;
 import mx.quest.runway.storage.StorageLayout;
 import mx.quest.runway.storage.StorageProperties;
@@ -75,6 +78,26 @@ class PluginSiteFilesImplTest {
         assertFalse(files.delete("acme", "nope"));
         assertFalse(files.deleteTree("acme", "nope"));
         assertEquals(Optional.empty(), files.readText("ghost-site", "a.txt"), "an unknown site has no files");
+    }
+
+    @Test
+    void aFileWhoseFolderCannotBeSearchedIsAnErrorNotAbsent() throws IOException {
+        files.writeText("acme", "dir/token.yml", "token: x");
+        Path dir = root.resolve("dir");
+        Set<PosixFilePermission> before = Files.getPosixFilePermissions(dir);
+        Files.setPosixFilePermissions(dir, Set.of());
+        try {
+            assumeFalse(Files.isReadable(dir.resolve("token.yml")), "running as a user that ignores permissions");
+            // A caller that took "cannot tell" for "absent" would act as if the file were gone (the database plugin
+            // read a missing token as a recreated site and retired its data).
+            assertThrows(IOException.class, () -> files.readText("acme", "dir/token.yml"));
+            assertThrows(IOException.class, () -> files.stat("acme", "dir/token.yml"));
+            assertThrows(IOException.class, () -> files.list("acme", "dir/sub"));
+            assertThrows(IOException.class, () -> files.list("acme", "dir"), "a folder that cannot be listed");
+        } finally {
+            Files.setPosixFilePermissions(dir, before);
+        }
+        assertEquals(Optional.of("token: x"), files.readText("acme", "dir/token.yml"));
     }
 
     @Test

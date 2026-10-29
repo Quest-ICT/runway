@@ -30,7 +30,7 @@ mvn verify
 The first build downloads its Maven dependencies, and needs the `runway-spi` jars installed in `~/.m2` as the
 [authoring guide §2](../docs/PLUGIN-AUTHORING-GUIDE.md#2-prerequisites) describes.
 
-Runs 82 unit tests (over the SPI testkit's fakes, plus a scan proving the compiled classes link nothing of the host
+Runs 84 unit tests (over the SPI testkit's fakes, plus a scan proving the compiled classes link nothing of the host
 but the SPI) and produces the thin `target/runway-plugin-demo.jar` and **both** installable forms:
 `target/runway-demo/` (the install-ready folder) and `target/runway-plugin-runway-demo-<version>.zip` (the archive
 the management UI upload expects). Two builds produce byte-identical artifacts. The zip is named after the plugin id,
@@ -76,7 +76,7 @@ Copy this folder, rename the descriptor `id`, the Maven `artifactId`, the Java p
 bean-name prefix (`runwayDemo…` → your id in lowerCamelCase), and delete what you do not need. Keep the tests that
 check the contract (`DemoPluginConfigTest`, `DemoTemplatesTest`) — they are the cheapest way to stay inside it.
 
-_Java package `mx.quest.demo` · plugin id `runway-demo` · version 2.1.0 · `requiresSpi: ">=1.0.0"`._
+_Java package `mx.quest.demo` · plugin id `runway-demo` · version 2.1.1 · `requiresSpi: ">=1.0.0"`._
 
 ## License
 

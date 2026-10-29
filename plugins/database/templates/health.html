@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Database</title></head>
+<body>
+<!-- The database screen (@ConsoleScreen, application console). Markup only: every binding is in health.th.xml.
+     Every state change is a POST form carrying the console's CSRF token (.db-csrf). -->
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle" id="db-pretitle">Application</div>
+                <h2 class="page-title" id="db-heading">Database</h2>
+            </div>
+        </div>
+    </div>
+
+    <div id="db-flash" class="alert alert-success" role="status"><span id="db-flash-text">done</span></div>
+    <div id="db-error" class="alert alert-danger" role="alert"><span id="db-error-text">error</span></div>
+
+    <div class="row row-cards">
+        <!-- Status -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title" id="db-status-title">Status</h3>
+                    <div class="card-actions">
+                        <span class="badge bg-success-lt" id="db-badge-ok">Available</span>
+                        <span class="badge bg-danger-lt" id="db-badge-down">Not available</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary" id="db-detail">detail</p>
+                    <div class="datagrid">
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-provider">Provider</div>
+                            <div class="datagrid-content" id="db-provider">postgresql</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-server">Server</div>
+                            <div class="datagrid-content" id="db-server">PostgreSQL 17</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-driver">Driver</div>
+                            <div class="datagrid-content" id="db-driver">pgjdbc</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-target">Database</div>
+                            <div class="datagrid-content"><code id="db-target">host/db</code></div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-tls">TLS</div>
+                            <div class="datagrid-content" id="db-tls">verify-full</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-namespace">Namespace</div>
+                            <div class="datagrid-content"><code id="db-namespace">rw</code></div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-pool">Connections in use</div>
+                            <div class="datagrid-content" id="db-pool">0 / 10</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title" id="db-l-schemas">Sites with data</div>
+                            <div class="datagrid-content" id="db-schemas">0</div>
+                        </div>
+                    </div>
+                    <p class="text-danger small mt-3 mb-0" id="db-last-error"><span id="db-l-last-error">Last error</span>:
+                        <span id="db-last-error-at">time</span> — <span id="db-last-error-text">text</span></p>
+                    <p class="text-danger small mt-2 mb-0" id="db-problem">problem</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection tests -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="db-test-title">Connection tests</h3></div>
+                <div class="card-body">
+                    <form method="post" action="/__app/database/test-running" class="mb-3">
+                        <input class="db-csrf" type="hidden" name="_csrf" value="">
+                        <button type="submit" class="btn btn-outline-primary" id="db-test-running">Test running
+                            connection</button>
+                    </form>
+                    <p class="text-secondary small" id="db-test-new-help">Try other settings without saving them.</p>
+                    <form method="post" action="/__app/database/test-new" autocomplete="off">
+                        <input class="db-csrf" type="hidden" name="_csrf" value="">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label" for="db-f-provider" id="db-fl-provider">Provider</label>
+                                <select class="form-select" id="db-f-provider" name="provider">
+                                    <option value="postgresql">postgresql</option>
+                                    <option value="mariadb">mariadb</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label" for="db-f-host" id="db-fl-host">Host</label>
+                                <input class="form-control" id="db-f-host" name="host" type="text" value="">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="db-f-port" id="db-fl-port">Port</label>
+                                <input class="form-control" id="db-f-port" name="port" type="text" value="">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="db-f-database" id="db-fl-database">Database</label>
+                                <input class="form-control" id="db-f-database" name="database" type="text" value="">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="db-f-username" id="db-fl-username">Username</label>
+                                <input class="form-control" id="db-f-username" name="username" type="text" value="">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="db-f-password" id="db-fl-password">Password</label>
+                                <input class="form-control" id="db-f-password" name="password" type="password"
+                                       value="">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="db-f-tls" id="db-fl-tls">TLS</label>
+                                <select class="form-select" id="db-f-tls" name="tls">
+                                    <option value="verify-full">verify-full</option>
+                                    <option value="require">require</option>
+                                    <option value="disable">disable</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label" for="db-f-ca" id="db-fl-ca">CA certificate (PEM)</label>
+                                <textarea class="form-control font-monospace" id="db-f-ca" name="caCertificate"
+                                          rows="2"></textarea>
+                            </div>
+                        </div>
+                        <p class="text-secondary small mt-2" id="db-test-password-note">A blank password reuses the
+                            saved one only for the same server, database, account and TLS settings.</p>
+                        <button type="submit" class="btn btn-primary" id="db-test-new">Test these settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Migration problems -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="db-issues-title">Plugin tables needing
+                    attention</h3></div>
+                <div class="card-body" id="db-issues-none"><p class="text-secondary mb-0" id="db-issues-none-text">
+                    None.</p></div>
+                <div class="table-responsive" id="db-issues">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                        <tr>
+                            <th id="db-h-schema">Schema</th>
+                            <th id="db-h-plugin">Plugin</th>
+                            <th id="db-h-state">Problem</th>
+                            <th id="db-h-detail">Detail</th>
+                            <th id="db-h-actions">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="db-issue-row">
+                            <td><code class="db-issue-schema">schema</code></td>
+                            <td class="db-issue-plugin">plugin</td>
+                            <td><span class="badge bg-warning-lt db-issue-state">FAILED</span></td>
+                            <td class="small db-issue-detail">detail</td>
+                            <td class="text-nowrap">
+                                <form method="post" action="/__app/database/recover" class="d-inline db-form-retry">
+                                    <input class="db-csrf" type="hidden" name="_csrf" value="">
+                                    <input type="hidden" name="schema" class="db-issue-schema-in" value="">
+                                    <input type="hidden" name="plugin" class="db-issue-plugin-in" value="">
+                                    <input type="hidden" name="action" value="retry">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary db-retry">Retry</button>
+                                </form>
+                                <form method="post" action="/__app/database/recover" class="d-inline db-form-applied">
+                                    <input class="db-csrf" type="hidden" name="_csrf" value="">
+                                    <input type="hidden" name="schema" class="db-issue-schema-in" value="">
+                                    <input type="hidden" name="plugin" class="db-issue-plugin-in" value="">
+                                    <input type="hidden" name="action" value="mark_applied">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary db-applied">Mark
+                                        applied</button>
+                                </form>
+                                <form method="post" action="/__app/database/recover" class="d-inline db-form-checksum">
+                                    <input class="db-csrf" type="hidden" name="_csrf" value="">
+                                    <input type="hidden" name="schema" class="db-issue-schema-in" value="">
+                                    <input type="hidden" name="plugin" class="db-issue-plugin-in" value="">
+                                    <input type="hidden" name="action" value="accept_checksum">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning db-checksum">Accept
+                                        shipped checksum</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plugins, nodes, backups -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="db-consumers-title">Plugins using it</h3></div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0" id="db-consumers"><li id="db-consumer-row"><code
+                            class="db-consumer">plugin</code></li></ul>
+                    <p class="text-secondary mb-0" id="db-consumers-none">None.</p>
+                    <p class="text-warning small mt-3 mb-0" id="db-app-warning"><span id="db-app-warning-text">These
+                        plugins keep Runway-wide data, which does not move with a change of database:</span>
+                        <span id="db-app-plugins">plugin</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="db-nodes-title">Nodes seen recently</h3></div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0"><li id="db-node-row"><span class="db-node-host">host</span>
+                        <span class="text-secondary small db-node-seen">seen</span></li></ul>
+                    <p class="text-secondary small mt-2 mb-0" id="db-nodes-help">More than one node is normal in a
+                        cluster. Unknown nodes may mean another installation shares this namespace.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title" id="db-backups-title">Backups</h3></div>
+                <div class="card-body">
+                    <p class="mb-1"><span id="db-l-largest">Largest site backup</span>:
+                        <span id="db-largest">—</span></p>
+                    <p class="text-warning small" id="db-budget-warning">Close to the backup budget: raise it, or
+                        back the database up with its own tools.</p>
+                    <p class="text-danger small mb-0" id="db-restore-failure"><span id="db-l-restore-failure">Last
+                        failed restore</span>: <span id="db-restore-failure-text">text</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

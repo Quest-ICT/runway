@@ -65,7 +65,7 @@ a listing table's column menu). Day-to-day operational troubleshooting lives in
 |---|---|
 | **OS** | Linux with **systemd** (the installer and unit target it; tested on RHEL-family — Rocky/Fedora/Alma — and Debian-family). macOS/Windows are not covered by the installer. |
 | **Java** | A **JDK or JRE 25+** on the host. A JRE is sufficient — Runway does **not** compile at runtime. The installer auto-detects a 25+ runtime (Zulu, Temurin, generic OpenJDK) or you point it with `--java-home`. |
-| **Database** | **None.** The kernel is filesystem/YAML-backed on purpose; there is no SQL server to install or configure, and the first-run wizard never asks for one. A deployment that genuinely needs a database adds it as a plugin. |
+| **Database** | **None.** The kernel is filesystem/YAML-backed on purpose; there is no SQL server to install or configure, and the first-run wizard never asks for one. Plugins that need one use PostgreSQL or MariaDB through the **database plugins** (§11.1). |
 | **CPU / RAM** | Modest. The service runs in one JVM; the shipped heap is `-Xms256m -Xmx1g` (`JAVA_OPTS` in the unit), which suits a small VM. Note the sizing interlock: each Argon2id password verification costs 19–32 MiB, and the hash pool is bounded (`runway.security.max-concurrent-hashes`, default 8) precisely so a login flood cannot exhaust heap — keep `-Xmx` comfortably above `max-concurrent-hashes × memory-cost`. |
 | **Disk** | The code footprint is small (a single fat jar). Plan capacity for **editable state**: `external/` (config + all site folders), `logs/`, and `backups/` (site backup archives can be large — see **§13**). |
 | **Network / ports** | One HTTP listener. By default Runway serves **plain HTTP on port 8080** and expects a reverse proxy (HAProxy/nginx/Caddy) in front to terminate TLS (**§7**). Change the port with `--server.port=` (`RUNWAY_OPTS`). Binding a privileged port (80/443) directly needs `CAP_NET_BIND_SERVICE` — see the unit (**§6**). |
@@ -447,7 +447,7 @@ host is bound).
 
 ## 7. TLS & reverse-proxy setup
 
-**Trusting forwarded headers (implemented).** Runway honors `X-Forwarded-*`/`Forwarded` headers (client IP,
+**Trusting forwarded headers (implemented).** Runway honors `X-Forwarded-*` headers (client IP,
 host, scheme) **only** from proxy peers you list in `runway.proxy.trusted-cidrs`; from any other peer the
 headers are ignored and the raw connection is used, so a directly-reachable instance cannot spoof them. The
 container's own forwarded-header handling is off (`server.forward-headers-strategy: none`) — Runway's gated
@@ -457,6 +457,48 @@ proxy, add its exact IP** (prefer a single address over a broad range); an **emp
 nothing (every request attributed to its direct peer, logged at startup). A catch-all (`0.0.0.0/0`, `::/0`,
 or ranges that add up to one, such as `0.0.0.0/1` with `128.0.0.0/1`) trusts every client to fake its address:
 Server settings refuses it, and one set in `application.yml` is warned about at startup. Never put a tenant-editable value here — it is an isolation/abuse boundary.
+
+**Which address is the client.** Each proxy *appends* the address it received the request from to
+`X-Forwarded-For`, so everything to the left of what your own proxies wrote may have come from the client itself.
+Runway therefore reads the list **from the right**: it skips the addresses in `trusted-cidrs` and takes the first
+one that is not a proxy you trust. That is the address your nearest trusted proxy saw, and it is what rate limits,
+login lockouts, the access log and every plugin see. An entry that is not an IP address where one is needed
+(`unknown`, a host name) attributes the request to the proxy instead; Runway never looks names up. So list
+**every** proxy of yours in `trusted-cidrs`, a CDN in front of the reverse proxy included, or the client will be
+taken to be the outermost one.
+
+**Only the `X-Forwarded-*` headers are read.** The standard `Forwarded` header (RFC 7239) is ignored, even from a
+trusted proxy: a client could otherwise send its own `Forwarded` through a proxy that only manages
+`X-Forwarded-*` and choose its address, host and scheme. A proxy that sends only `Forwarded` must be set to send
+`X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` instead. From a trusted proxy Runway also applies
+`X-Forwarded-Port` and `X-Forwarded-Prefix` (and `X-Forwarded-Ssl`), so whatever of these the proxy does not write
+itself comes from the client. The proxy should **set** (replace) `X-Forwarded-Proto` and `X-Forwarded-Host`, and
+**delete** the others it does not set:
+
+```
+# HAProxy
+http-request set-header X-Forwarded-Proto https if { ssl_fc }
+http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
+http-request set-header X-Forwarded-Host %[req.hdr(host)]
+http-request del-header X-Forwarded-Port
+http-request del-header X-Forwarded-Prefix
+http-request del-header X-Forwarded-Ssl
+option forwardfor
+```
+
+nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, `proxy_set_header X-Forwarded-Proto
+$scheme;`, `proxy_set_header X-Forwarded-Host $host;`, and `proxy_set_header X-Forwarded-Port "";`,
+`proxy_set_header X-Forwarded-Prefix "";`, `proxy_set_header X-Forwarded-Ssl "";` (an empty value removes the
+header).
+
+**Check it.** **Settings → About Runway → This request** shows the request that loaded the page as Runway saw it:
+the connection it came from and whether that is a trusted proxy, the `X-Forwarded-For` list as received (marked
+*ignored* when the peer is not trusted), the client address Runway used, and the scheme and host. Behind a correctly
+trusted proxy the client address is your own public address, not the proxy's. To check that a client cannot choose
+its address, open the page once with a forged header (a browser extension that adds `X-Forwarded-For: 192.0.2.1`, or
+`curl -H 'X-Forwarded-For: 192.0.2.1'` with a signed-in session cookie). Behind a proxy that appends to the header
+(`option forwardfor`, `$proxy_add_x_forwarded_for`) the list shows `192.0.2.1` on its left; behind one that replaces
+it, `192.0.2.1` does not appear at all. Either way the client address stays yours.
 
 **The host name behind a proxy.** Runway decides which site a request is for, and whether the operator console
 answers (**§8.6**), from the host name it sees: the request's own `Host`, or the forwarded host from a trusted proxy.
@@ -665,9 +707,10 @@ from the configuration metadata shipped in the jar.
 | `runway.security.password-strength` | `STANDARD` | Argon2id memory-cost profile for **new** passwords: `STANDARD` (19 MiB) or `HIGH` (32 MiB). The Settings screen can override this (**§8.1**). |
 | `runway.security.max-concurrent-hashes` | `8` | Most password hashes computed at once before requests fail "busy" — bounds heap under a login flood. Read once at startup (Settings → Server settings → Capacity, or here); at least `1` — `0` or a negative value stops startup. |
 | `runway.security.acquire-timeout-millis` | `2000` | How long a request waits for a hashing slot before failing "busy". |
-| `runway.security.secret-key` | _(installer-set)_ | Master key for AES-256-GCM encryption of every stored secret (platform SMTP password, per-site CAPTCHA secrets, `secret`-typed plugin settings). The installer generates one on first install and stores it in a root-only systemd drop-in as `RUNWAY_SECURITY_SECRET_KEY` (see `--secret-key`, §3); Spring's relaxed binding maps that env var to this property. **While blank the secret cipher is unavailable and no secret can be saved** — the app console shows a persistent warning on every page until it is set. Holds a real secret — never in the classpath default. |
-| `runway.proxy.forwarded-headers` | `true` | Whether to honor `X-Forwarded-*` / `Forwarded` at all (still only from trusted peers) — see **§7**. |
+| `runway.security.secret-key` | _(installer-set)_ | Master key for AES-256-GCM encryption of every stored secret (platform SMTP password or OAuth2 client secret, per-site CAPTCHA secrets, `secret`-typed plugin settings). The installer generates one on first install and stores it in a root-only systemd drop-in as `RUNWAY_SECURITY_SECRET_KEY` (see `--secret-key`, §3); Spring's relaxed binding maps that env var to this property. **While blank the secret cipher is unavailable and no secret can be saved** — the app console shows a persistent warning on every page until it is set. Holds a real secret — never in the classpath default. |
+| `runway.proxy.forwarded-headers` | `true` | Whether to honor `X-Forwarded-*` at all (still only from trusted peers; the standard `Forwarded` header is never read) — see **§7**. |
 | `runway.proxy.trusted-cidrs` | `127.0.0.1/32`, `::1/128` | Proxy peers whose forwarded headers are trusted. The **bound default is empty** (trust nothing); the shipped file seeds loopback. **§7**. |
+| `runway.http.min-request-data-rate` | `4096` | The slowest a request body may arrive, in **bytes per second**, before Runway answers `408 Request Timeout` and frees the request thread. Without it a client sending a byte now and then kept a thread for as long as it liked (the idle timeout only limits one stalled read). Measured from the body's first byte on what has arrived, so a server slow to start reading is never blamed. 4096 (4 KiB/s) is below any real connection; `0` turns the check off. Set on **Settings → Server settings → Request limits**; applies after a restart. |
 | `runway.i18n.cache-seconds` | `5` | How often a message lookup **outside** a public page (an error page, a plugin's background text) and the operator console's own bundle re-check their files on disk (`0` = on every lookup). Public pages re-check on every request, so a bundle edited on disk shows on the next page view, under a new ETag. |
 | `runway.csp.mode` | `report` | Content-Security-Policy delivery: `report` (report-only — violations are logged, nothing is blocked), `enforce`, or `off`. Upper or lower case; blank means `report`. Any other value (`enforced`, say) stops startup with a message naming it. See **§8.4**. |
 | `runway.csp.strict-dynamic` | `true` | `'strict-dynamic'` on the nonced pages. `false` rolls the whole estate (console **and** public pages) back to the host allowlist. **§8.4**. |
@@ -695,6 +738,7 @@ from the configuration metadata shipped in the jar.
 | `spring.thymeleaf.servlet.produce-partial-output-while-processing` | `false` | A page is rendered whole before its first byte is sent. Streamed instead (Boot's default), an error halfway through a render would leave the visitor a blank or cut-off page instead of the error page. Do not turn it on. |
 | `server.servlet.session.timeout` | `30m` | How long a signed-in session (the operator console and every site console) may sit idle before it signs out. A duration such as `30m`, `2h` or `1d`; a bare number means seconds. Set on **Settings → Server settings → Sessions**; applies after a restart. With clustering on, `runway.cluster.session-ttl` decides instead — keep the two equal (§2). |
 | `server.jetty.threads.max` / `.min` | `200` / `8` | The request thread pool (§2, *Capacity*). Set on **Settings → Server settings → Capacity**; applies after a restart; the minimum may not exceed the maximum. |
+| `server.jetty.connection-idle-timeout` | `30s` | How long a connection may make no progress before Jetty closes it — a request with nothing more to read, or a response the client has stopped reading. Jetty's own default, stated so it has one home. It is what ends a client that reads a large response too slowly; a request body that keeps trickling in is ended by `runway.http.min-request-data-rate` instead. |
 | `server.ssl.*` | from `runway.tls.*` | Filled from `runway.tls.*` (§7.1). Never set these yourself: they would bypass Runway's TLS startup checks. |
 | `management.endpoints.web.exposure.include` | `health, prometheus` | The only actuator endpoints served. Do not add others: everything under `/actuator/` is open to the superadmin and System admins without the console's CSRF protection, and an endpoint such as `heapdump` would hand out what the server holds in memory, secrets included. |
 | `management.endpoint.health.probes.enabled` | `true` | Adds `/actuator/health/liveness` and `/actuator/health/readiness` for a supervisor or load balancer. |
@@ -741,14 +785,14 @@ it never travels in a per-site backup:
   `RUNWAY_NODE_NAME=web-1` suits that); a value saved in the field wins over it. The name is only displayed; nothing
   else uses it.
 - **Platform mail (SMTP)** — the application's own mail account: host, port, From address, and optional
-  authentication (username + password) with STARTTLS or implicit TLS. With STARTTLS chosen, a relay that does
+  authentication (a username and password, or an OAuth2 token for Microsoft 365) with STARTTLS or implicit TLS. With STARTTLS chosen, a relay that does
   not offer it fails the send rather than receiving the password in the clear, and with either TLS mode the
   relay's certificate must name its host. A relay that does not accept the connection within 10 seconds, or
   stalls for 30 seconds while sending, fails the send. It is used to send
   **password-recovery** links and any future operator notifications, for **both** the application and
   site consoles — and is **never** used for mail a site sends itself (a site keeps its own SMTP
   relay). The password is stored **encrypted** (leave the field blank on a later save to keep the stored
-  one), and a **Send test email** button verifies the account. See **§8.3**. The fields in detail:
+  one, as long as the server stays the same: see below), and a **Send test email** button verifies the account. See **§8.3**. The fields in detail:
   - Mail counts as configured — the *Forgot your password?* links appear and the test button works — only when
     **both** the host and the From address are set.
   - **Port** — blank means `587`; otherwise a number from 1 to 65535.
@@ -756,9 +800,77 @@ it never travels in a per-site backup:
     usually port `465`). If both are ticked, SSL is used and STARTTLS is ignored. With neither, the connection is
     not encrypted, and neither is the password when authentication is on.
   - **Authentication** — off by default; while it is off the username and password are not sent.
-  - **The password cannot be removed from this form:** a blank field always keeps the stored one, even when you
-    empty every other field. To remove it, delete the `smtp:` block (or its `password:` line) from
-    `external/platform.yml` and restart (see *Editing platform.yml by hand* below).
+  - **Sign-in method** — *Username and password*, or *OAuth2 token (Microsoft 365)*: see *Microsoft 365 and other
+    OAuth2 mail servers* below. The fields of the method not chosen are hidden but kept, so switching back does not
+    lose them.
+  - **A stored secret follows its server.** A blank password field keeps the stored password only while the host,
+    port and username stay the same; when one of them changes, the password is cleared, the page says so, and it
+    must be entered again. The OAuth2 client secret is kept only while the token endpoint, the client ID, the mail
+    server (host and port) and the scope stay the same, because the secret goes to the endpoint and the token minted
+    from it goes to the mail server; an OAuth2 account where one of them changes is not saved until the secret is
+    entered again. This way someone who may edit this screen, but does not know the secret, cannot have Runway send
+    it, or a token made from it, to a server of their choosing. The activity log's `platform.settings-changed` line names the settings each save
+    changed (never their values) and any secret it cleared.
+  - **Otherwise the password cannot be removed from this form:** with the same server, a blank field keeps the
+    stored one. To remove it, delete the `smtp:` block (or its `password:` line) from `external/platform.yml` and
+    restart (see *Editing platform.yml by hand* below). The same goes for the OAuth2 client secret
+    (`oauthClientSecret:`).
+
+**Microsoft 365 and other OAuth2 mail servers.** Microsoft is retiring password sign-in to SMTP (SMTP AUTH with
+"Basic authentication") in Exchange Online: Microsoft has announced that it is turned off by default from the end
+of December 2026 (Message Center MC786329), and it already fails in a tenant whose security defaults or
+Conditional Access block legacy sign-in. Runway can sign in the way Microsoft
+requires instead: it obtains an **OAuth2 access token** with an application's own credentials (the
+*client-credentials* grant) and presents it to the mail server with SASL `XOAUTH2`. In the Microsoft 365 admin
+tools, once:
+
+1. In **Microsoft Entra ID → App registrations**, register an application. Note its **Application (client) ID** and
+   the **Directory (tenant) ID**, and under **Certificates & secrets** create a **client secret** (note its *value*,
+   and when it expires).
+2. Under **API permissions**, add the application permission **Office 365 Exchange Online → SMTP.SendAsApp** and
+   **grant admin consent**.
+3. In Exchange Online PowerShell, register the application's service principal and give it the mailbox Runway sends
+   as: `New-ServicePrincipal -AppId <client id> -ObjectId <object id of the enterprise application>`, then
+   `Add-MailboxPermission -Identity <mailbox> -User <service principal id> -AccessRights FullAccess`.
+4. Make sure **Authenticated SMTP** is enabled for that mailbox (Microsoft 365 admin center → the user → Mail →
+   Manage email apps). OAuth2 still goes through SMTP AUTH.
+
+Then on this page: host `smtp.office365.com`, port `587`, **STARTTLS** on, **Authentication** on, sign-in method
+**OAuth2 token**, and:
+
+| Field | Microsoft 365 value |
+|---|---|
+| Username | the mailbox to send as (blank uses the From address) |
+| Token endpoint | `https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token` |
+| Client ID | the application (client) ID |
+| Client secret | the secret's value (stored encrypted, like the password) |
+| Scope | `https://outlook.office365.com/.default` |
+
+Save, then **Send test email**. A failure says which step failed: *"no OAuth2 token"* means the token endpoint
+refused or could not be reached, and the message carries Microsoft's reason (an `AADSTS…` code: a wrong secret, a
+wrong tenant, missing consent); any other failure came from the mail server after the token was issued (for
+Microsoft, a missing `SMTP.SendAsApp` permission or mailbox permission, or Authenticated SMTP turned off).
+
+How it behaves:
+
+- **TLS is required.** An OAuth2 account must use STARTTLS or implicit TLS; the page refuses to save one without it,
+  because a token, like a password, signs in whoever reads it.
+- **The token endpoint must be `https`** (`http` only to this machine's loopback address, for a local identity
+  provider). Runway does not follow a redirect from it, so the client secret is only ever sent to the address you
+  entered.
+- **Tokens are reused** until five minutes before they expire (Microsoft's last about an hour), so a burst of
+  recovery mails costs one token request. A mail server that rejects a token makes Runway fetch a new one on the
+  next send.
+- **Only `XOAUTH2` is offered** once OAuth2 is chosen: a server that does not support it fails the sign-in rather
+  than receiving the token as a password.
+- **Remember the secret's expiry.** Microsoft client secrets expire (24 months at most); when it does, recovery mail
+  stops with an `AADSTS7000222` error. Create a new secret and enter it here before then.
+- **Other providers.** Any mail server that accepts `XOAUTH2` tokens issued by a client-credentials grant works the
+  same way; enter that provider's token endpoint and scope. (Google Workspace issues such tokens to service accounts
+  through a signed JWT instead, which Runway does not do; use an app password or an SMTP relay there.)
+- **Instead of OAuth2**, Microsoft 365 also accepts mail without any sign-in through an **inbound connector** that
+  trusts the server's fixed public IP address (port 25, Authentication off in Runway). That is set up entirely in
+  Exchange Online.
 
 Leaving a field blank restores its default (no catch-all site; the `application.yml` password
 strength; the node name from `runway.node.name` or the host name; no platform mail). The three compression
@@ -785,6 +897,11 @@ smtp:
   from: runway@example.com
   starttls: true
   ssl: false
+  authMethod: password       # password | oauth2
+  oauthTokenUrl: https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token   # oauth2 only
+  oauthClientId: 00000000-0000-0000-0000-000000000000
+  oauthClientSecret: ENC(...)
+  oauthScope: https://outlook.office365.com/.default
 ```
 
 The same file also keeps `settings:` (Server settings and the policy cards, §8.5), `siteQuotas:` (each site's
@@ -812,7 +929,7 @@ Restricted to the application superadmin or a wildcard admin.
 
 **Settings → About Runway** (`/__app/about`) is a **read-only** view of the running platform — useful
 when diagnosing an install or filing a report. Unlike Platform settings it changes nothing and exposes
-no secret, so it is visible to **any** signed-in operator. It has three parts:
+no secret, so it is visible to **any** signed-in operator. It has four parts:
 
 - **Version & build** — the running version and, when the build carries it, the build timestamp.
 - **Effective configuration** — a curated table of the non-secret settings in force: whether TLS
@@ -825,14 +942,17 @@ no secret, so it is visible to **any** signed-in operator. It has three parts:
   heap, data-disk free/total, uptime, start time, PID, host name, time zone and locale — plus the
   versions of the bundled components (Spring Boot, Jetty, Thymeleaf, Jackson, and more). In a
   multi-node deployment these describe **whichever node answered you**.
+- **This request** — the request that loaded the page as Runway saw it: the connection it came from and whether
+  that is a trusted proxy, the `X-Forwarded-For` list as received, the client address Runway used, and the scheme
+  and host. It checks a reverse-proxy setup from the browser (§7).
 
 ### 8.3 Password recovery
 
 Both sign-in pages — the application login (`/app/login`) and each site's login (`/login`) — offer a
 **"Forgot your password?"** link that lets a user reset their own password by email, without an operator.
-The link appears **only when platform mail is configured** (§8.1); until then, recovery is done manually
-(reset an application user from **§9**, a tenant-superadmin from **§10**, or a site sub-user from the
-site console).
+The link appears **only when platform mail is configured** (§8.1) **and the emailed link has an address to point
+at** (below); until then, recovery is done manually (reset an application user from **§9**, a tenant-superadmin
+from **§10**, or a site sub-user from the site console).
 
 How it works:
 
@@ -855,8 +975,35 @@ How it works:
 account, and a site's link works **only on that site's own host**. A tenant-superadmin who manages
 several sites has one password; recovering it from any of their sites resets that single account.
 
-There is nothing to configure beyond the platform mail account — recovery is on automatically once mail
-works. Verify it with **Send test email** (§8.1), then exercise a full round-trip from a login page.
+**Where the emailed link points.** Never at the host name the request came in on: anyone can send a request that
+names any host (a made-up `Host`, or `X-Forwarded-Host` through a proxy that passes it on), and a reset mail with a
+link to that host would hand the sender the token. The address comes from what Runway was told:
+
+- **A site's sign-in:** the site's own address: its **base URL**, or else `https://` and its **first** host name,
+  with no port. A site with no host name offers no recovery, and nor does one whose first host is `localhost` (or
+  `127.0.0.1`, `::1`) and that has no base URL: that is what the setup wizard gives the default site, and
+  `https://localhost` reaches nobody who reads the mail. **A site served over plain `http` or on a port other than
+  443 needs its base URL set** (§10, *The site's base URL*), or its links point at `https://` and port 443.
+- **The application console:** with `runway.console.hosts` set (§8.6), the listed name the request came in on (as
+  listed: case and a trailing dot in the request do not count), the request's scheme, and the port listed with the
+  name if any, else the request's. The request's port is whatever the client wrote in its `Host` header (through a
+  proxy too: `X-Forwarded-Host` carries it), so list the name with its port (`ops.example.com:443`) to fix it.
+  Without `runway.console.hosts`, the **default site**'s address as above, on which the console also answers;
+  without one, the console offers no recovery: set `runway.console.hosts`, or give the default site a public host
+  name first, or a base URL.
+
+**Who decides the console's link.** Without `runway.console.hosts`, whoever sets the default site's hosts or base URL
+decides where the platform accounts' reset links go. So only a platform administrator (the application master or a
+wildcard administrator) can edit the default site's hosts, even where `MANAGE_SITE_HOSTS` is delegated, and a
+restore made from the site's own console keeps the site's hosts and base URL (§10). Setting `runway.console.hosts`
+takes the default site out of it altogether.
+
+The address a link points at is logged at INFO when one is requested (`a link, if mailed, points at …`), and a
+request that finds no address is logged at WARN with the reason.
+
+Beyond that there is nothing to configure: recovery is on once mail works. Verify it with **Send test email**
+(§8.1), then exercise a full round-trip from a login page and check that the link in the mail points at the
+address you expect.
 
 ### 8.4 Content-Security-Policy and the public-page nonce secret
 
@@ -1439,9 +1586,11 @@ entries are lowercased, trimmed and de-duplicated, each is validated as a hostna
 bound to **another** site is rejected (two sites can never claim the same host). The same rule applies
 wherever a site gets hosts: creating a site, installing a demo, and creating a site from a backup refuse a
 malformed host or one another site answers on, before anything is created. Restoring a backup brings back the
-hosts the site had when the backup was taken; a host given to another site since then is left off, the log
-says which (`restored site '…' without host(s) […]`), and you can add it back with **Edit hosts** once it is
-free. A host is a plain DNS name: no scheme, path,
+hosts and base URL the site had when the backup was taken when it is made from the application console (a host
+given to another site since then is left off, the log says which: `restored site '…' without host(s) […]`, and you
+can add it back with **Edit hosts** once it is free). A restore made from the site's own console keeps the hosts and
+base URL the site has: how a site is reached is yours to set, never the site manager's, and a backup file is
+theirs to write. A host is a plain DNS name: no scheme, path,
 port (`example.com:8080`), wildcard (`*.example.com`) or underscore, and an international name is written in its
 `xn--` form. The port is never part of the match: a site answers on its hosts on whatever port Runway listens on.
 The **first** host is the primary one: the site's links are built on it unless a base URL is set. Leaving the list empty
@@ -1449,7 +1598,9 @@ makes the site reachable only as the catch-all **default** (below). The change t
 request — no restart. Unlike the create/suspend/delete lifecycle actions (which are master-only), host
 editing is gated by the **grantable** `MANAGE_SITE_HOSTS` permission, so you can **delegate** it to an
 operator role or user on the **Permissions** screen (**§9.1**) without granting the full tenancy
-lifecycle. The application superadmin always has it.
+lifecycle. The application superadmin always has it. The **default site** is the exception: its hosts and base
+URL can be edited only by a platform administrator (the application master or a wildcard administrator), because
+without `runway.console.hosts` the console's password-reset links go to its address (§8.3).
 
 **The site's base URL.** The same dialog has a **Base URL** field (`baseUrl` in the site's `site.yml`): the origin
 every absolute link of the site is built on — canonical and alternate-language links, the sitemap, structured data
@@ -1607,7 +1758,8 @@ plugin installed). Delete it afterward to confirm it removes cleanly like any ot
 **Where the plugins come from.** Each Runway release on the releases page
 (<https://g.quest.mx/quest/runway/releases>) also carries the public plugins built for it —
 `runway-plugin-<id>-<version>.zip` for `blog`, `carousel-manager`, `contact`, `discoverability`, `runway-demo`, `search`,
-`search-lucene` and `lucene-provider` — listed in
+`search-lucene`, `lucene-provider` and, from 1.1.0, `database`, `database-postgresql`, `database-mariadb` and
+`runway-demo-database` (**§11.1**) — listed in
 the same `SHA256SUMS`. Install one by uploading its zip on **Plugins** (below), then restart.
 
 > ### ⚠️ Never park an old plugin version inside `external/plugins/`
@@ -1786,6 +1938,141 @@ Authoring plugins is covered in [PLUGIN-DEVELOPMENT.md](PLUGIN-DEVELOPMENT.md).
 > other plugin (search and search-lucene, for example) is installed
 > separately, so `external/plugins/` otherwise starts empty.
 
+### 11.1 The database plugins (PostgreSQL or MariaDB)
+
+Runway keeps its own data — sites, pages, users, settings — on files, and that does not change. The **database
+plugins** let *other plugins* keep their data in a database server: one per installation, PostgreSQL or MariaDB,
+chosen in settings. Nothing uses them unless a plugin that needs a database is installed (the first one is the
+`runway-demo-database` guestbook example).
+
+| Plugin | What it is |
+|---|---|
+| `database` | The generic plugin: the connection pool, the settings, one schema per site, migrations, backups, the **Database** screen. Requires Runway 1.1.0 or later. |
+| `database-postgresql` | The PostgreSQL provider: bundles the pgjdbc driver. PostgreSQL **14 or later**, database encoding `UTF8`. |
+| `database-mariadb` | The MariaDB provider: bundles MariaDB Connector/J (LGPL-2.1; its unmodified sources are published next to the zip). MariaDB **10.11 or later**; MySQL is not supported. |
+
+Install `database` and the provider for your server (installing both providers is harmless: the setting picks one),
+then restart. A plugin that needs the database declares it, so without `database` it shows as **Blocked** with the
+reason, and Runway runs normally.
+
+**What Runway creates.** Every name starts with the **namespace** (setting `namespace`, default `rw`):
+
+- `<ns>_app` — Runway's own registry tables (`rw_…`) and data that belongs to no site;
+- `<ns>_s_<site>_<n>` — one per site, created the first time a plugin uses the database for that site. `<n>` is a
+  generation number that is never reused: a site that is deleted and created again under the same id gets a new
+  schema, never the old data.
+
+On PostgreSQL these are **schemas** inside the database you name in the settings. On MariaDB, where a schema *is* a
+database, they are **databases** next to the one you name, which only serves as the place to connect to and stays
+empty. If several Runway installations share a server, give each its own namespace.
+
+**Preparing the server.** The account needs to create and drop what it owns, and nothing more:
+
+```sql
+-- PostgreSQL (as a superuser)
+CREATE ROLE runway LOGIN PASSWORD '…';
+CREATE DATABASE runway OWNER runway ENCODING 'UTF8' TEMPLATE template0;
+```
+
+`TEMPLATE template0` lets the database be UTF-8 even on a cluster created with another encoding, whose `template1`
+would refuse it; on a UTF-8 cluster it changes nothing. If PostgreSQL then answers that the encoding does not match
+the locale, the cluster's locale is not UTF-8 either: add `LOCALE 'C.UTF-8'` (PostgreSQL 14 and later).
+
+```sql
+-- MariaDB (as root). The pattern is the namespace, then an escaped underscore: `rw\_%` for the default `rw`.
+CREATE USER 'runway'@'10.0.0.%' IDENTIFIED BY '…';
+CREATE DATABASE runway CHARACTER SET utf8mb4;
+GRANT ALL PRIVILEGES ON `runway`.* TO 'runway'@'10.0.0.%';
+GRANT ALL PRIVILEGES ON `rw\_%`.* TO 'runway'@'10.0.0.%';
+```
+
+A MariaDB account without the pattern grant connects but cannot create the namespace's databases: the **Database**
+screen stays at *Connecting* with an "Access denied" error until the grant exists.
+
+**Settings** (**Plugins → database → Settings**, Runway-wide, applied on **restart**):
+
+| Setting | Meaning |
+|---|---|
+| `provider` | `postgresql` or `mariadb`. |
+| `host`, `port` | One server: a host name or an IP address (no lists, no options). A blank port means 5432 / 3306. |
+| `database` | The database to connect to (see above). |
+| `username`, `password` | The account. The password is stored encrypted. It is **bound** to provider, host, port, database, username, TLS and the CA certificate: change any of them without typing the password again and the stored password is removed, so it can never be sent to a server someone else chose. |
+| `tls` | `verify-full` (default: encrypted, the certificate and the host name checked against the Java trust store or `caCertificate`), `require` (encrypted, the server **not** checked), `disable`. Use `disable` only for a database on the same host or a private network you trust. |
+| `caCertificate` | Advanced. The PEM certificate of the CA that signed the server's certificate, when the Java trust store does not know it. |
+| `namespace` | Advanced. Default `rw`; lower-case letters and digits, up to 12. Changing it later starts from empty schemas: the old ones stay on the server. |
+| `poolMax` | Connections plugins may hold at once (default 10). One site may use at most half, so a busy site cannot starve the others. |
+| `statementTimeoutSeconds` | A plugin's statement that runs longer is stopped (default 10). Migrations, backups and restores have their own 30-minute limit. |
+| `backupBudgetMiB` | The compressed size a site's database data may reach in its backup (default 128). |
+| `collation` | Advanced, MariaDB only: for plugins' tables. Blank means `utf8mb4_uca1400_ai_ci`. Runway's own identifier columns are always binary. |
+
+**Runway never fails to start because of the database.** Nothing connects while Runway starts; the plugin connects
+right after, on its own thread, retrying with back-off. Until it succeeds, plugins that need it say so (for example
+the guestbook shows "This example needs the database …"), and everything else works.
+
+**The Database screen** (**Settings → Database**, needs `CONFIGURE_PLATFORM`, which the master and wildcard
+administrators hold) shows:
+
+- the status: *Connected*, *Connecting* (with the last error), *Not configured* (with the setting at fault), *No
+  provider*, or *Server not supported*; the provider, server version, driver, pool use and the number of sites with
+  data;
+- **Test running connection** (the live pool) and **Test these settings** (typed values, one throwaway connection,
+  nothing saved). Answers are fixed categories — unreachable, TLS failure, authentication failed, database missing or
+  no access, unsupported server — and the driver's own message goes only to the server log, never with a password.
+  A blank password in the test reuses the saved one only for exactly the same provider, server, database, account and
+  TLS settings;
+- **Plugin tables needing attention**, with recovery actions (below);
+- the plugins using the database, the nodes seen in the last five minutes, the largest site backup against the
+  budget (a warning from 75%), and the last failed restore.
+
+Each site's dashboard shows one line: whether the site keeps data in the database, its size, and the last database
+restore.
+
+**Plugin tables needing attention.** Each plugin brings its tables up to date by itself the first time it uses a
+schema (its *migrations*). If that cannot happen, only *that plugin* in *that schema* stops — other plugins and other
+sites carry on — and the screen lists the case:
+
+| Problem | Meaning | Action |
+|---|---|---|
+| Script failed | A migration script stopped at a statement (the detail names it). On PostgreSQL nothing of it was kept, nor of the plugin's other scripts that ran with it (the detail lists them); on MariaDB the statements before it were. | Fix the cause (often a permission, or data the script did not expect), then **Retry**. On MariaDB it continues from the failed statement; on PostgreSQL it runs the whole script again, and the scripts rolled back with it, so do not run part of it by hand first. **Mark applied** only if you completed the script by hand, on PostgreSQL every script the detail lists. If the detail says a script *was never applied* although a later one was, apply it by hand and **Mark applied** (**Retry** cannot run it), or restore the schema. |
+| Script changed | A script already applied is no longer the one the installed plugin ships. Released scripts must not change: report it to the plugin's author. | **Accept shipped checksum** once you know the change is harmless. |
+| Newer than installed | The schema was migrated by a newer version of the plugin (a downgrade, or nodes on different versions), or data a restore kept for the plugin (when it was not installed) is from a newer version. | Install that version or later; kept data then loads on the plugin's first use. |
+| Kept data cannot be loaded | A restore kept data for a plugin that was not installed then (in `deferred/<plugin>/` in the site's folder), and it cannot be read now, or the plugin's tables are already past its version. The plugin is refused on that site rather than started empty. | Fix the cause the detail names (often the folder's permissions) and the next use loads it. To go on without that data, remove `deferred/<plugin>/` from the site's folder, or restore the backup again. |
+
+Every recovery action is written to the server log with the operator's name.
+
+**Clusters.** Every node needs the same `external/plugin-settings/database.yml` and the same platform secret key
+(`runway.security.secret-key`), because the password is stored encrypted with it. The database is shared, so a site
+deleted on one node has its schema dropped once, by that node. To change the server or the provider, stop **every**
+node first.
+
+**Backups and restore.**
+
+- A site's **full backup** carries its database data (every plugin's tables in that site's schema), in a portable
+  format: a backup taken on PostgreSQL restores on MariaDB and the other way round. If the database is unreachable
+  when a backup runs, the backup **fails** and names the site — a backup is complete or it is not a backup.
+- A **transfer copy** of a site carries **no** database data, and the copy gets its own, empty schema. Plugins are
+  asked to keep in the database only data that a transfer may leave behind (visitors' entries, caches); content
+  that must travel stays in files.
+- A restore builds the data in a **new** schema next to the live one and switches the site to it only when
+  everything is loaded; the old schema is dropped later by a cleanup that runs every 15 minutes and waits until it
+  has been retired for at least 10. If anything fails, the new schema is
+  dropped, **the previous data stays live**, and the failure shows on the **Database** screen and the site's dashboard
+  ("Last database restore"). The site's files are restored either way.
+- A restore is refused when an installed plugin is **older** than the backup's data (upgrade it first). Data of a
+  plugin that is **not installed** is kept in the site's folder and loaded when that plugin is installed, at the
+  backup's version or later; an older one is refused with "newer than the installed plugin" and the data waits.
+- The backup budget (`backupBudgetMiB`) caps a site's database data in one backup; above it, the backup fails with a
+  message, and you back that data up with the database's own tools.
+- `<ns>_app` (Runway-wide data) is in **no** site backup. Back it up with the database's own tools (`pg_dump -n
+  rw_app`, `mariadb-dump rw_app`). The **Database** screen names the plugins that keep data there.
+
+**Moving to another server or provider.** Take a full backup of each site, change the settings, restart, then
+restore each site. Runway-wide data (`<ns>_app`) does not move this way: copy it with the database's tools if a
+plugin keeps data there.
+
+**Removing.** Uninstalling the database plugins leaves the schemas on the server. Drop them there (every name starts
+with the namespace) once you no longer need the data.
+
 ## 12. Protection & abuse defense
 
 **Posture.** The kernel ships the protection *floor* (the request-pipeline seams: the outermost reject point
@@ -1799,9 +2086,11 @@ upstream at the proxy/edge regardless.
 The protection plugin is an **allowlisted-essential** plugin: once its folder is present, it is **fail-closed**
 — if it is present but fails to load, the kernel serves tenant hosts a `503` (the app realm stays reachable)
 rather than booting open. **Every upgrade refreshes it** from the new release (§15): it is lockstep with the
-kernel — the one plugin allowed to use kernel internals, with a descriptor naming the kernel's own SPI level — so an
-older copy beside a newer kernel can be refused (Blocked) — and a refused essential plugin is the fail-closed `503`
-on every site — or load and run code written for the previous kernel. Your settings (`external/plugin-settings/protection.yml` and each site's `plugins/protection.yml`) live
+kernel — the one plugin allowed to use kernel internals; its descriptor's SPI floor is the major line's (`>=1.0.0`,
+met by every 1.x kernel, raised only when it uses a newer SPI member) — so an older copy beside a newer kernel can
+fail on a missing internal class, or be refused (Blocked) if its floor is ever above the kernel's — and a refused
+or failing essential plugin is the fail-closed `503` on every site — or load and run code written for the previous
+kernel. Your settings (`external/plugin-settings/protection.yml` and each site's `plugins/protection.yml`) live
 outside the folder and are never touched. There is no supported opt-out: setting `enabled: false` in its
 `plugin.yml` counts as a broken floor (`503`) and the next upgrade puts the shipped descriptor back, and removing the
 folder runs the sites without abuse defense until the next installer run seeds it again.
@@ -2523,8 +2812,9 @@ live outside the folder and are never touched. No flag is needed; `--update-esse
 and does nothing.
 
 *Why always.* The essential plugin moves in lockstep with the kernel: it is the one plugin allowed to use kernel
-internals, and its descriptor declares the kernel's own SPI level. An older copy beside a newer kernel can be
-refused (Blocked) or crash on a missing class — and because it is the essential, fail-closed plugin, either way
+internals; its descriptor's SPI floor is the major line's (`>=1.0.0`, met by every 1.x kernel, raised only when it
+uses a newer SPI member). An older copy beside a newer kernel can crash on a missing internal class, or be refused
+(Blocked) if its floor is ever above the kernel's — and because it is the essential, fail-closed plugin, either way
 every tenant page answers `503` — or it loads and runs the previous release's code. What makes "always" safe is what the refresh keeps, below.
 
 *What you see.* The installer logs `refreshing bundled plugin 'protection' from this release`, then one line per

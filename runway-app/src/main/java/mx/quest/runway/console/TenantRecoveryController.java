@@ -3,8 +3,10 @@ package mx.quest.runway.console;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
 import mx.quest.runway.recovery.PasswordRecoveryService;
+import mx.quest.runway.recovery.RecoveryLinks;
 import mx.quest.runway.site.Site;
 import mx.quest.runway.site.SiteResolver;
 import org.springframework.stereotype.Controller;
@@ -12,7 +14,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The <b>tenant-realm</b> password-recovery flow — {@code /forgot-password} and {@code /reset}, served on a
@@ -23,18 +26,25 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  *
  * <p>Like the login page, the routes are public; the flow is non-enumerating (a POST always shows the same
  * neutral confirmation). All logic lives in {@link PasswordRecoveryService}.
+ *
+ * <p>The emailed link points at the site's own base URL ({@link RecoveryLinks}), never at the host the request named:
+ * an unknown host reaches the default site, and a link built from it would hand the token to whoever sent it.
  */
 @Controller
 public class TenantRecoveryController {
 
+    private static final Logger log = LoggerFactory.getLogger(TenantRecoveryController.class);
     private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final PasswordRecoveryService recovery;
     private final SiteResolver siteResolver;
+    private final RecoveryLinks links;
 
-    public TenantRecoveryController(PasswordRecoveryService recovery, SiteResolver siteResolver) {
+    public TenantRecoveryController(PasswordRecoveryService recovery, SiteResolver siteResolver,
+                                    RecoveryLinks links) {
         this.recovery = recovery;
         this.siteResolver = siteResolver;
+        this.links = links;
     }
 
     @GetMapping("/forgot-password")
@@ -46,11 +56,18 @@ public class TenantRecoveryController {
 
     @PostMapping("/forgot-password")
     public String requestLink(@RequestParam(required = false) String email, Locale locale) {
-        String siteId = siteResolver.current().map(Site::id).orElse(null);
-        String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-        Function<String, String> linkFor =
-                token -> base + "/reset?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
-        recovery.requestTenant(siteId, email, brand(), linkFor, locale);
+        Optional<Site> site = siteResolver.current();
+        Optional<String> base = site.flatMap(links::siteBase);
+        if (base.isPresent()) {
+            Function<String, String> linkFor =
+                    token -> base.get() + "/reset?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+            log.info("password recovery requested for site '{}'; a link, if mailed, points at {}", site.get().id(),
+                    base.get());
+            recovery.requestTenant(site.get().id(), email, brand(), linkFor, locale);
+        } else {
+            log.warn("password recovery requested for site '{}', which has no public address to link to (no host "
+                    + "name, or only localhost and no base URL); no link sent", site.map(Site::id).orElse("?"));
+        }
         return "redirect:/forgot-password?sent";
     }
 

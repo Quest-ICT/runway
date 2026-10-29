@@ -122,6 +122,8 @@
                                     <dirset dir="${stage}"/>
                                     <dirset dir="${project.build.directory}" includes="search"/>
                                 </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-search-${project.version}.zip"/>
                                 <zip destfile="${project.build.directory}/runway-plugin-search-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}" includes="search/**"/>
                                 </zip>

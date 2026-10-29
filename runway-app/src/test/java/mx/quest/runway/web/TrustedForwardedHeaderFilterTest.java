@@ -89,4 +89,51 @@ class TrustedForwardedHeaderFilterTest {
         assertNull(seen.getHeader("X-Forwarded-Host"), "forwarded handling off => always hide");
         assertEquals("localhost", seen.getServerName());
     }
+    @Test
+    void aClientWrittenLeftmostEntryDoesNotChooseTheAddress() throws Exception {
+        TrustedForwardedHeaderFilter filter = new TrustedForwardedHeaderFilter(CidrSet.of(List.of("10.0.0.0/8")), true);
+        MockHttpServletRequest request = behindProxy("10.0.0.9");
+        request.removeHeader("X-Forwarded-For");
+        request.addHeader("X-Forwarded-For", "6.6.6.6, 203.0.113.7"); // client sent 6.6.6.6, the proxy appended
+        HttpServletRequest seen = run(filter, request);
+        assertEquals("203.0.113.7", seen.getRemoteAddr(), "the address the trusted proxy saw, not the client's claim");
+        assertEquals("203.0.113.7", seen.getRemoteHost(), "never the leftmost, never a reverse lookup");
+        assertEquals("203.0.113.7", ClientIp.of(seen));
+        assertEquals("example.com", seen.getServerName(), "Spring still applies the forwarded host");
+        assertEquals("https", seen.getScheme(), "and the forwarded scheme");
+    }
+
+    @Test
+    void theStandardForwardedHeaderIsHiddenEvenFromATrustedPeer() throws Exception {
+        TrustedForwardedHeaderFilter filter = new TrustedForwardedHeaderFilter(CidrSet.of(List.of("10.0.0.0/8")), true);
+        MockHttpServletRequest request = behindProxy("10.0.0.9");
+        // A client-sent RFC 7239 header that a proxy managing X-Forwarded-* passed through untouched.
+        request.addHeader("Forwarded", "for=6.6.6.6;host=evil.example;proto=http");
+        HttpServletRequest seen = run(filter, request);
+        assertEquals("203.0.113.7", seen.getRemoteAddr());
+        assertEquals("example.com", seen.getServerName(), "Forwarded must not override X-Forwarded-Host");
+        assertEquals("https", seen.getScheme(), "Forwarded must not override X-Forwarded-Proto");
+        assertNull(seen.getHeader("Forwarded"));
+    }
+
+    @Test
+    void eachRequestRecordsHowItWasAttributed() throws Exception {
+        TrustedForwardedHeaderFilter filter = new TrustedForwardedHeaderFilter(CidrSet.of(List.of("10.0.0.0/8")), true);
+        MockHttpServletRequest viaProxy = behindProxy("10.0.0.9");
+        run(filter, viaProxy);
+        ProxyResolution trusted = ProxyResolution.of(viaProxy);
+        assertEquals(new ProxyResolution("10.0.0.9", true, true,
+                new ForwardedFor.Chain(List.of("203.0.113.7"), 1), "203.0.113.7"), trusted);
+
+        MockHttpServletRequest direct = behindProxy("198.51.100.9");
+        run(filter, direct);
+        ProxyResolution untrusted = ProxyResolution.of(direct);
+        assertEquals(new ProxyResolution("198.51.100.9", false, false,
+                new ForwardedFor.Chain(List.of("203.0.113.7"), 1), "198.51.100.9"), untrusted);
+
+        MockHttpServletRequest off = behindProxy("10.0.0.9");
+        run(new TrustedForwardedHeaderFilter(CidrSet.of(List.of("10.0.0.0/8")), false), off);
+        assertEquals(new ProxyResolution("10.0.0.9", true, false,
+                new ForwardedFor.Chain(List.of("203.0.113.7"), 1), "10.0.0.9"), ProxyResolution.of(off));
+    }
 }

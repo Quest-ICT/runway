@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import mx.quest.runway.spi.CaptchaService;
+import mx.quest.runway.spi.model.CaptchaWidget;
 import mx.quest.runway.spi.model.Finding;
 import mx.quest.runway.spi.model.HeadContext;
 import mx.quest.runway.spi.model.PageMeta;
@@ -54,6 +56,22 @@ class DemoSpiUnitTest {
 
     private static FakePluginSettings settings(Map<String, ?> stored) {
         return new FakePluginSettings().site("acme", stored);
+    }
+
+    /** A site's CAPTCHA: inactive (the kernel's default), or active and accepting one token only. */
+    static CaptchaService captcha(boolean active, String accepted) {
+        return new CaptchaService() {
+            @Override
+            public CaptchaWidget widgetForSite(String siteId) {
+                return active ? new CaptchaWidget(true, "g-recaptcha-response", "<div class=\"challenge\"></div>")
+                        : CaptchaWidget.inactive();
+            }
+
+            @Override
+            public boolean verify(String siteId, String token, String clientIp) {
+                return !active || accepted.equals(token);
+            }
+        };
     }
 
     // --- HeadContributor -------------------------------------------------------------------------------
@@ -151,7 +169,7 @@ class DemoSpiUnitTest {
 
     @Test
     void feedbackFormPostsToTheAnonymousRouteWithReturnPathHoneypotAndNoCsrfField() {
-        String html = new DemoFeedbackWidget(settings(Map.of()), kernel).render(feedbackView(Map.of(), "/demo"))
+        String html = new DemoFeedbackWidget(settings(Map.of()), kernel, captcha(false, "")).render(feedbackView(Map.of(), "/demo"))
                 .html();
         assertTrue(html.contains("<form method=\"post\" action=\"/demo/feedback\">"), html);
         assertTrue(html.contains("name=\"return\" value=\"/demo\""), html);
@@ -159,11 +177,22 @@ class DemoSpiUnitTest {
         assertTrue(html.contains("name=\"website\"") && html.contains("rw-demo-hp"), "honeypot present");
         assertFalse(html.contains("_csrf"), "a shared, cacheable page carries no per-session token");
         assertFalse(html.contains("role=\"status\""), "no outcome without the flag");
+        assertFalse(html.contains("challenge"), "no CAPTCHA markup when the site has none");
+    }
+
+    @Test
+    void feedbackFormCarriesTheSitesChallengeWhenItHasOne() {
+        DemoFeedbackWidget widget = new DemoFeedbackWidget(settings(Map.of()), kernel, captcha(true, "solved"));
+        String html = widget.render(feedbackView(Map.of(), "/demo")).html();
+        assertTrue(html.indexOf("<div class=\"challenge\"></div>") > html.indexOf("<form")
+                && html.indexOf("<div class=\"challenge\"></div>") < html.indexOf("</form>"), html);
+        assertTrue(widget.render(feedbackView(Map.of("demo-feedback", "captcha"), "/demo")).html()
+                .contains("Please complete the challenge and try again."));
     }
 
     @Test
     void feedbackShowsTheOutcomeFlagAndEscapesTheReturnPath() {
-        DemoFeedbackWidget widget = new DemoFeedbackWidget(settings(Map.of()), kernel);
+        DemoFeedbackWidget widget = new DemoFeedbackWidget(settings(Map.of()), kernel, captcha(false, ""));
         assertTrue(widget.render(feedbackView(Map.of("demo-feedback", "thanks"), "/x")).html()
                 .contains("Thank you"));
         assertTrue(widget.render(feedbackView(Map.of("demo-feedback", "invalid"), "/x")).html()
@@ -180,7 +209,8 @@ class DemoSpiUnitTest {
 
     @Test
     void feedbackIsEmptyWhenTheSiteTurnedItOff() {
-        assertTrue(new DemoFeedbackWidget(settings(Map.of("feedback.enabled", false)), kernel)
+        assertTrue(new DemoFeedbackWidget(settings(Map.of("feedback.enabled", false)), kernel,
+                captcha(true, "solved"))
                 .render(feedbackView(Map.of(), "/demo")).isEmpty());
     }
 
@@ -217,7 +247,11 @@ class DemoSpiUnitTest {
     // --- EndpointContributor ---------------------------------------------------------------------------
 
     private DemoEndpoints endpoints(FakePluginSettings settings, AtomicLong clock) {
-        return new DemoEndpoints(kernel, notes, kernel, settings, clock::get);
+        return endpoints(settings, clock, captcha(false, ""));
+    }
+
+    private DemoEndpoints endpoints(FakePluginSettings settings, AtomicLong clock, CaptchaService captcha) {
+        return new DemoEndpoints(kernel, notes, kernel, settings, captcha, clock::get);
     }
 
     private static RouteRequest get(String path) {
@@ -307,6 +341,20 @@ class DemoSpiUnitTest {
                 "return", List.of("//evil.example/x")), "198.51.100.2"));
         assertEquals("/?demo-feedback=invalid", blank.headers().get("Location"), "never an off-site redirect");
         assertEquals(before, notes.count("acme"), "neither was stored");
+    }
+
+    @Test
+    void aSiteWithACaptchaKeepsNoMessageWithoutTheSolvedChallenge() {
+        DemoEndpoints ep = endpoints(settings(Map.of()), new AtomicLong(), captcha(true, "solved"));
+        int before = notes.count("acme");
+        assertEquals("/demo?demo-feedback=captcha", ep.handle(post("/demo/feedback", Map.of("message",
+                List.of("hi"), "return", List.of("/demo")), "198.51.100.4")).headers().get("Location"));
+        assertEquals("/?demo-feedback=captcha", ep.handle(post("/demo/feedback", Map.of("message", List.of("hi"),
+                "g-recaptcha-response", List.of("wrong")), "198.51.100.4")).headers().get("Location"));
+        assertEquals(before, notes.count("acme"), "an unsolved challenge keeps nothing");
+        assertEquals("/?demo-feedback=thanks", ep.handle(post("/demo/feedback", Map.of("message", List.of("hi"),
+                "g-recaptcha-response", List.of("solved")), "198.51.100.4")).headers().get("Location"));
+        assertEquals(before + 1, notes.count("acme"));
     }
 
     @Test

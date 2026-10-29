@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import mx.quest.runway.spi.CaptchaService;
 import mx.quest.runway.spi.ContentSource;
 import mx.quest.runway.spi.ContentWidget;
 import mx.quest.runway.spi.EndpointContributor;
@@ -95,6 +96,7 @@ class DemoPluginConfigTest {
             ctx.registerBean(ContentChanges.class, () -> new EventDispatch("runway-demo", Set.of("runway-demo")));
             ctx.registerBean(PluginInfo.class, () -> new PluginInfo("runway-demo", "2.0.1", sites));
             ctx.registerBean(FakeSiteServices.class, () -> kernel);
+            ctx.registerBean(CaptchaService.class, () -> DemoSpiUnitTest.captcha(false, ""));
             ctx.registerBean(FakeContentCatalog.class, () -> new FakeContentCatalog().site("acme"));
             ctx.register(DemoPluginConfig.class);
             ctx.refresh();
@@ -236,10 +238,10 @@ class DemoPluginConfigTest {
         Matcher version = Pattern.compile("<artifactId>runway-plugin-runway-demo</artifactId>\\s*<version>([^<]+)")
                 .matcher(pom);
         assertTrue(version.find());
-        assertEquals("2.1.0", version.group(1));
+        assertEquals("2.1.1", version.group(1));
         assertEquals(version.group(1), String.valueOf(yml.get("version")), "plugin.yml and pom.xml agree");
         assertFalse(pom.contains("<artifactId>runway-app</artifactId>"), "no runway-app dependency in any scope");
-        assertTrue(pom.contains("<project.build.outputTimestamp>2026-10-21T17:23:00Z</project.build.outputTimestamp>"));
+        assertTrue(pom.contains("<project.build.outputTimestamp>2026-10-29T00:00:00Z</project.build.outputTimestamp>"));
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> menu = (List<Map<String, Object>>) yml.get("menu");
         assertEquals(DemoConsoleController.BASE, menu.get(0).get("path"), "the menu opens the console screen");

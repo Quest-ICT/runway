@@ -93,11 +93,12 @@
     <attr sel="#si-row//.s-edit-cancel" th:text="#{op.sites.hosts.cancel}"/>
     <attr sel="#si-row//.s-edit-save" th:text="#{op.sites.edit.save}"/>
 
-    <!-- Edit hosts (grantable MANAGE_SITE_HOSTS): a modal keyed by row index (CSS-safe, unlike a site id that
+    <!-- Edit hosts (grantable MANAGE_SITE_HOSTS; the default site's only for a platform admin): a modal keyed by row index (CSS-safe, unlike a site id that
          may contain a dot) opened via the Tabler data-API; the form posts and redirects, so no JS closes it. -->
-    <attr sel="#si-row//.s-hosts-editbtn" th:if="${canEditHosts}" th:text="#{op.sites.hosts.edit}"
+    <attr sel="#si-row//.s-hosts-editbtn" th:if="${canEditHosts and (canEditSites or site.id() != defaultSiteId)}"
+          th:text="#{op.sites.hosts.edit}"
           th:attr="data-bs-target='#si-hosts-modal-' + ${iter.index}"/>
-    <attr sel="#si-row//.s-hosts-modal" th:if="${canEditHosts}"
+    <attr sel="#si-row//.s-hosts-modal" th:if="${canEditHosts and (canEditSites or site.id() != defaultSiteId)}"
           th:attr="id='si-hosts-modal-' + ${iter.index},aria-labelledby='si-hosts-title-' + ${iter.index}"/>
     <attr sel="#si-row//.s-hosts-title" th:text="#{op.sites.hosts.edit}" th:id="|si-hosts-title-${iter.index}|"/>
     <attr sel="#si-row//.s-hosts-siteid" th:text="${site.id()}"/>

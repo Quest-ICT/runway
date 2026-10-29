@@ -156,21 +156,51 @@ public record PlatformSettings(String defaultSiteId, String passwordStrength, St
      * @param from     the envelope/From address platform messages are sent as; blank ⇒ not configured
      * @param starttls whether to upgrade a plain connection with STARTTLS ({@code null} ⇒ false)
      * @param ssl      whether to open an implicit-TLS (SMTPS) connection ({@code null} ⇒ false)
+     * @param authMethod        how to authenticate when {@code auth}: {@value #AUTH_PASSWORD} (the default, also for
+     *                          {@code null} or an unknown value) or {@value #AUTH_OAUTH2} (SASL XOAUTH2 with a token
+     *                          from an OAuth2 client-credentials grant, as Microsoft 365 requires)
+     * @param oauthTokenUrl     the OAuth2 token endpoint (OAuth2 only); {@code https}, or {@code http} to a loopback
+     *                          address
+     * @param oauthClientId     the OAuth2 client (application) id (OAuth2 only)
+     * @param oauthClientSecret the OAuth2 client secret as the stored {@code ENC(...)} ciphertext (OAuth2 only)
+     * @param oauthScope        the scope requested with the token (OAuth2 only), e.g. Microsoft 365's
+     *                          {@code https://outlook.office365.com/.default}
      */
     public record Smtp(String host, Integer port, Boolean auth, String username, String password, String from,
-                       Boolean starttls, Boolean ssl) {
+                       Boolean starttls, Boolean ssl, String authMethod, String oauthTokenUrl, String oauthClientId,
+                       String oauthClientSecret, String oauthScope) {
+
+        /** {@link #authMethod} for a username and password. */
+        public static final String AUTH_PASSWORD = "password";
+        /** {@link #authMethod} for SASL XOAUTH2 with an OAuth2 client-credentials token. */
+        public static final String AUTH_OAUTH2 = "oauth2";
+
+        /** A password-only (or unauthenticated) account: the shape stored before OAuth2 sign-in existed. */
+        public Smtp(String host, Integer port, Boolean auth, String username, String password, String from,
+                    Boolean starttls, Boolean ssl) {
+            this(host, port, auth, username, password, from, starttls, ssl, null, null, null, null, null);
+        }
 
         /** Whether enough is set to attempt a send: a non-blank host AND a non-blank From address. */
         public boolean isConfigured() {
             return host != null && !host.isBlank() && from != null && !from.isBlank();
         }
 
-        /** Never leak the (encrypted) password in diagnostics. */
+        /** Whether the account authenticates with an OAuth2 token rather than a password. */
+        public boolean usesOAuth2() {
+            return Boolean.TRUE.equals(auth) && AUTH_OAUTH2.equals(authMethod);
+        }
+
+        /** Never leak the (encrypted) password or client secret in diagnostics. */
         @Override
         public String toString() {
-            return "Smtp[host=" + host + ", port=" + port + ", auth=" + auth + ", username=" + username
-                    + ", from=" + from + ", starttls=" + starttls + ", ssl=" + ssl
-                    + ", password=" + (password == null || password.isBlank() ? "<none>" : "<set>") + "]";
+            return "Smtp[host=" + host + ", port=" + port + ", auth=" + auth + ", authMethod=" + authMethod
+                    + ", username=" + username + ", from=" + from + ", starttls=" + starttls + ", ssl=" + ssl
+                    + ", password=" + (password == null || password.isBlank() ? "<none>" : "<set>")
+                    + ", oauthTokenUrl=" + oauthTokenUrl + ", oauthClientId=" + oauthClientId
+                    + ", oauthClientSecret="
+                    + (oauthClientSecret == null || oauthClientSecret.isBlank() ? "<none>" : "<set>")
+                    + ", oauthScope=" + oauthScope + "]";
         }
     }
 

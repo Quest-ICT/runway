@@ -25,12 +25,19 @@ public final class RequestOrigin {
         if (scheme == null || scheme.isBlank() || host == null || host.isBlank()) {
             return "";
         }
+        return origin(scheme, host, request.getServerPort());
+    }
+
+    /**
+     * {@code scheme://host[:port]}: lowercase, the scheme's default port (or a port {@code <= 0}) omitted, an IPv6
+     * literal bracketed.
+     */
+    public static String origin(String scheme, String host, int port) {
         scheme = scheme.toLowerCase(Locale.ROOT);
         host = host.toLowerCase(Locale.ROOT);
         if (host.indexOf(':') >= 0 && !host.startsWith("[")) {
             host = "[" + host + "]";
         }
-        int port = request.getServerPort();
         boolean defaultPort = port <= 0 || ("http".equals(scheme) && port == 80)
                 || ("https".equals(scheme) && port == 443);
         return scheme + "://" + host + (defaultPort ? "" : ":" + port);

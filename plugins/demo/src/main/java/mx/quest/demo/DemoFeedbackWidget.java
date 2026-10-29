@@ -1,6 +1,7 @@
 package mx.quest.demo;
 
 import java.util.Locale;
+import mx.quest.runway.spi.CaptchaService;
 import mx.quest.runway.spi.ContentWidget;
 import mx.quest.runway.spi.model.Capabilities;
 import mx.quest.runway.spi.model.RenderFragment;
@@ -18,7 +19,8 @@ import mx.quest.runway.spi.service.PluginSettings;
  * <p>The form carries <b>no CSRF token</b> on purpose: it sits on a page every visitor shares (and caches), and an
  * anonymous visitor has no session. That is exactly the case the anonymous-route flag exists for — see
  * {@link DemoEndpoints}. Its abuse guards are a honeypot field (hidden from people, filled by naive bots), a length
- * cap and a per-address rate limit on the server.
+ * cap, the site's CAPTCHA challenge ({@link CaptchaService}: rendered here, verified by the route; nothing when the
+ * site has none) and a per-address rate limit on the server.
  *
  * <p>A widget stays a pure function of its view: it only <i>reads</i> the query; storing the message is the
  * endpoint's job. All text comes from {@link Messages#site} in the visitor's locale and is escaped here.
@@ -30,10 +32,12 @@ public class DemoFeedbackWidget implements ContentWidget {
 
     private final PluginSettings settings;
     private final Messages messages;
+    private final CaptchaService captcha;
 
-    public DemoFeedbackWidget(PluginSettings settings, Messages messages) {
+    public DemoFeedbackWidget(PluginSettings settings, Messages messages, CaptchaService captcha) {
         this.settings = settings;
         this.messages = messages;
+        this.captcha = captcha;
     }
 
     @Override
@@ -68,6 +72,8 @@ public class DemoFeedbackWidget implements ContentWidget {
                 // The honeypot: off-screen for people and assistive technology, tempting for a form-filling bot.
                 .append("<div class=\"rw-demo-hp\" aria-hidden=\"true\"><label>Website <input type=\"text\" ")
                 .append("name=\"website\" tabindex=\"-1\" autocomplete=\"off\"></label></div>")
+                // The site's CAPTCHA challenge when it has one: trusted markup from the platform, empty otherwise.
+                .append(captcha.widgetForSite(siteId).html())
                 .append("<button type=\"submit\">")
                 .append(Html.escape(text(siteId, locale, "runwaydemo.feedback.send", "Send")))
                 .append("</button></form></div>");
@@ -83,6 +89,8 @@ public class DemoFeedbackWidget implements ContentWidget {
             case "invalid" -> text(siteId, locale, "runwaydemo.feedback.invalid", "Please write a message first.");
             case "limited" -> text(siteId, locale, "runwaydemo.feedback.limited",
                     "Too many messages from your address — please try again in a minute.");
+            case "captcha" -> text(siteId, locale, "runwaydemo.feedback.captcha",
+                    "Please complete the challenge and try again.");
             default -> "";
         };
     }

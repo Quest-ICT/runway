@@ -44,6 +44,26 @@ class K2FakesTest {
     }
 
     @Test
+    void tempDirSiteFilesTellsCannotSearchFromAbsentLikeTheKernel() throws IOException {
+        TempDirSiteFiles files = new TempDirSiteFiles(sites, "contact", 32);
+        Files.createDirectories(sites.resolve("acme"));
+        files.writeText("acme", "dir/a.txt", "x");
+        Path dir = sites.resolve("acme").resolve("plugins").resolve("contact").resolve("dir");
+        var before = Files.getPosixFilePermissions(dir);
+        Files.setPosixFilePermissions(dir, java.util.Set.of());
+        try {
+            org.junit.jupiter.api.Assumptions.assumeFalse(Files.isReadable(dir.resolve("a.txt")),
+                    "running as a user that ignores permissions");
+            assertThrows(IOException.class, () -> files.stat("acme", "dir/a.txt"));
+            assertThrows(IOException.class, () -> files.list("acme", "dir"));
+            assertEquals(Optional.empty(), files.stat("acme", "nope"));
+            assertEquals(List.of(), files.list("acme", "nope"));
+        } finally {
+            Files.setPosixFilePermissions(dir, before);
+        }
+    }
+
+    @Test
     void fakeSiteServicesBehaveLikeTheKernel() {
         SiteView acme = new SiteView("acme", "Acme", Locale.ENGLISH, List.of(Locale.ENGLISH), null);
         FakeSiteServices kernel = new FakeSiteServices().site(acme).grant("contact|settings")

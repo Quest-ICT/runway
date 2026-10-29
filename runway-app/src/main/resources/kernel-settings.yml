@@ -41,6 +41,7 @@ settings:
   - { key: runway.csp.form-action, type: string, default: "'self'", label: op.ks.runway.csp.form-action, help: op.ks.runway.csp.form-action.help, group: server.csp, advanced: true }
   - { key: runway.csp.frame-ancestors, type: string, default: "'self'", label: op.ks.runway.csp.frame-ancestors, help: op.ks.runway.csp.frame-ancestors.help, group: server.csp, advanced: true }
   - { key: runway.endpoints.max-form-bytes, type: int, default: "262144", range: "1024..104857600", label: op.ks.runway.endpoints.max-form-bytes, help: op.ks.runway.endpoints.max-form-bytes.help, group: server.limits }
+  - { key: runway.http.min-request-data-rate, type: int, default: "4096", range: "0..1048576", label: op.ks.runway.http.min-request-data-rate, help: op.ks.runway.http.min-request-data-rate.help, group: server.limits, advanced: true }
   - { key: runway.endpoints.max-body-bytes, type: int, default: "10485760", range: "1024..1073741824", label: op.ks.runway.endpoints.max-body-bytes, help: op.ks.runway.endpoints.max-body-bytes.help, group: server.limits }
   - { key: spring.servlet.multipart.max-file-size, type: string, default: "256MB", label: op.ks.spring.servlet.multipart.max-file-size, help: op.ks.spring.servlet.multipart.max-file-size.help, group: server.limits }
   - { key: spring.servlet.multipart.max-request-size, type: string, default: "256MB", label: op.ks.spring.servlet.multipart.max-request-size, help: op.ks.spring.servlet.multipart.max-request-size.help, group: server.limits }

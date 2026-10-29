@@ -194,7 +194,7 @@ public class TenantBackupsController {
         Site site = boundTenancy();
         tenantAuthority.require(authentication, site.id());
         try {
-            backups.restoreStored(site.id(), name);
+            backups.restoreStored(site.id(), name, true); // a site manager never changes how the site is reached
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
@@ -216,7 +216,7 @@ public class TenantBackupsController {
             return "redirect:/__admin/backups";
         }
         try (InputStream in = file.getInputStream()) {
-            backups.restore(site.id(), in);
+            backups.restore(site.id(), in, true); // a site manager never changes how the site is reached
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));

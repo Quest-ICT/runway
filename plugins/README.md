@@ -2,8 +2,8 @@
 
 This folder holds **Runway plugin projects**. Each plugin is a **standalone project** (its own build) that
 compiles against the Runway SPI only (`mx.quest:runway-spi`, plus `runway-spi-testkit` for its tests) from the local Maven repository and deploys as a
-folder under a Runway install's `external/plugins/<id>/`. The contract is **SPI `1.0.0`** (Runway `1.0.0`): the
-kernel blocks a plugin that links its internal classes. The SPI jars are not yet published to a Maven repository — see the authoring
+folder under a Runway install's `external/plugins/<id>/`. The contract is **SPI `1.1.0`** (Runway `1.1.0`; every `1.0.0`
+plugin still loads): the kernel blocks a plugin that links its internal classes. The SPI jars are not yet published to a Maven repository — see the authoring
 guide, §2.
 
 Each Runway release on the releases page (<https://g.quest.mx/quest/runway/releases>) carries the zips of these
@@ -21,7 +21,11 @@ plugins/
 ├── discoverability/                 # SEO+ & GEO: sitemap.xml, robots.txt, llms.txt and schema.org JSON-LD
 ├── search/                          # on-site search: box widget + /search + /search/api + a published SiteSearchEngine SPI
 ├── search-lucene/                   # a Lucene engine for `search` (requires: search + lucene-provider; per-locale analyzers, heap or disk)
-└── lucene-provider/                 # CODE-LESS library provider: bundles Apache Lucene under lib/ (no mainClass)
+├── lucene-provider/                 # CODE-LESS library provider: bundles Apache Lucene under lib/ (no mainClass)
+├── database/                        # plugins' own data in PostgreSQL or MariaDB: schema per site, migrations, backups
+├── database-postgresql/             # the PostgreSQL provider for `database` (bundles pgjdbc)
+├── database-mariadb/                # the MariaDB provider for `database` (bundles MariaDB Connector/J)
+└── runway-demo-database/            # the worked example of a database consumer: a per-site guestbook
 ```
 
 The essential **protection** plugin is not here: it is `runway-plugin-protection` at the root of the repository,
@@ -29,9 +33,10 @@ and ships inside the Runway installer.
 
 Each plugin carries a `README.md` and a `plugin.yml` (and, when it has code, its unit tests), and versions independently (its
 version is in its `plugin.yml`). Each also carries a `docs/<NAME>-PLUGIN.md`, and most a
-`scripts/verify-against-host.sh` that checks it against the packaged host. One does not have the verify script:
-**`lucene-provider`** has `docs/LUCENE-PROVIDER-PLUGIN.md` but no verify script — it is a code-less library bundle
-with no code of its own to verify.
+`scripts/verify-against-host.sh` that checks it against the packaged host. Three do not have their own verify script:
+**`lucene-provider`** is a code-less library bundle with no code of its own to verify, and the two database
+providers (**`database-postgresql`**, **`database-mariadb`**) are verified by `database/scripts/verify-against-host.sh`,
+which installs both.
 
 ## Start here
 
@@ -51,6 +56,8 @@ with no code of its own to verify.
   - Server routes and `<head>` markup for a whole site (`EndpointContributor`, `HeadContributor`) →
     [`discoverability/`](discoverability/).
   - A self-contained content widget with its own static assets → [`carousel-manager/`](carousel-manager/).
+  - Keeping your data in a database (PostgreSQL or MariaDB) → [`runway-demo-database/`](runway-demo-database/), on
+    [`database/`](database/) (authoring guide §7.14).
 
 ## Conventions
 

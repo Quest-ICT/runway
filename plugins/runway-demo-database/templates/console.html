@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Guestbook</title></head>
+<body>
+<!-- The guestbook console screen (@ConsoleScreen, site console). Markup only: bindings in console.th.xml. -->
+<div id="content">
+    <div class="page-header d-print-none mb-3">
+        <h2 class="page-title" id="gb-heading">Guestbook</h2>
+    </div>
+    <div id="gb-flash" class="alert alert-success" role="status"><span id="gb-flash-text">done</span></div>
+    <div id="gb-error" class="alert alert-danger" role="alert"><span id="gb-error-text">error</span></div>
+    <div class="alert alert-warning" id="gb-unavailable">The database is not available.</div>
+    <div class="card" id="gb-card">
+        <div class="card-header"><h3 class="card-title"><span id="gb-count-label">Entries</span>:
+            <span id="gb-count">0</span></h3></div>
+        <p class="card-body text-secondary mb-0" id="gb-empty">No entries yet.</p>
+        <div class="table-responsive" id="gb-table">
+            <table class="table table-vcenter card-table">
+                <thead><tr><th id="gb-h-at">When</th><th id="gb-h-name">Name</th><th id="gb-h-message">Message</th>
+                    <th></th></tr></thead>
+                <tbody>
+                <tr id="gb-row">
+                    <td class="text-nowrap small gb-at">time</td>
+                    <td class="gb-name">name</td>
+                    <td class="gb-message">message</td>
+                    <td>
+                        <form method="post" action="/__admin/runway-demo-database/delete" class="m-0">
+                            <input class="gb-csrf" type="hidden" name="_csrf" value="">
+                            <input class="gb-id" type="hidden" name="id" value="">
+                            <button type="submit" class="btn btn-sm btn-outline-danger gb-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer" id="gb-pager">
+            <a class="btn btn-sm" id="gb-newer" href="?page=0">Newer</a>
+            <a class="btn btn-sm" id="gb-older" href="?page=1">Older</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

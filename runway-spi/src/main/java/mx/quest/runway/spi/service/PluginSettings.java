@@ -25,8 +25,10 @@ import mx.quest.runway.spi.model.SettingsView;
  *       next call returns the new values.</li>
  * </ul>
  *
- * <p>App-level (platform-wide) plugin settings are not here: they bind through Spring
- * {@code @ConfigurationProperties} under {@code runway.plugin.<id>.*}, which is descriptor contract.
+ * <p>App-level (platform-wide) plugin settings ({@code settings:} in {@code plugin.yml}) bind through Spring
+ * {@code @ConfigurationProperties} under {@code runway.plugin.<id>.*}, which is descriptor contract. The one
+ * exception is a {@code secret}-typed app-level setting: it binds there only in its stored {@code ENC(...)} form, so
+ * {@link #appSecret(String)} hands it out in clear (since SPI 1.1.0).
  *
  * @since SPI 0.4.0
  */
@@ -51,4 +53,27 @@ public interface PluginSettings {
      * @throws IllegalArgumentException if {@code siteId} is not a safe identifier
      */
     Optional<String> secret(String siteId, String key);
+
+    /**
+     * A {@code secret}-typed <b>app-level</b> setting of the calling plugin, in clear — the platform-wide twin of
+     * {@link #secret(String, String)}, for a credential that belongs to the whole Runway (a database password, an
+     * API key) rather than to one site.
+     *
+     * <p>The value is the one the <b>running</b> application was started with, read from the same environment
+     * the plugin's {@code @ConfigurationProperties} bind from: an app-level setting saved on the console applies
+     * on the next restart, and so does this answer. A stored {@code ENC(...)} value is decrypted; any other value
+     * (a hand-written plaintext) is returned unchanged.
+     *
+     * <p>Empty when the key is not declared {@code type: secret} in the plugin's own {@code settings:} — a key
+     * declared only in {@code siteSettings:} does not count, and no plugin can name another's — when it is unset
+     * or blank, when it is encrypted but no platform secret key is configured, or when decryption fails (logged
+     * once per key, never with the value).
+     *
+     * @param key the setting key as declared in {@code settings:}
+     * @return the clear value, or empty
+     * @since SPI 1.1.0
+     */
+    default Optional<String> appSecret(String key) {
+        return Optional.empty();
+    }
 }

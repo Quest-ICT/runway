@@ -50,7 +50,7 @@ contribution, a host-coupled seam that is not part of the 1.0 contract (see "Wha
 
 | Type | Since | Scope | What it gives a plugin |
 |---|---|---|---|
-| `service.PluginSettings` (+ `model.SettingsView`) | 0.4.0 | plugin-scoped | its per-site settings, defaults applied, and its declared secrets decrypted (app-level settings bind through `@ConfigurationProperties("runway.plugin.<id>")`, not this service) |
+| `service.PluginSettings` (+ `model.SettingsView`) | 0.4.0 | plugin-scoped | its per-site settings, defaults applied, and its declared secrets decrypted (app-level settings bind through `@ConfigurationProperties("runway.plugin.<id>")`; an app-level `secret` setting in clear through `appSecret(key)`, since 1.1.0) |
 | `model.PluginInfo` | 0.4.0 | plugin-scoped | its own id, version and install facts |
 | `service.PluginLifecycle` | 0.4.0 | callback | `started(PluginInfo)` / `stopping()`, in load order and reverse |
 | `service.PluginSiteFiles` (+ `model.FileEntry`) | 0.5.0 | plugin-scoped | its own per-site subtree `sites/<id>/plugins/<pluginId>/`: atomic text writes, capped reads, listing, deletes; confined against crafted paths **and** symbolic links |
@@ -91,6 +91,15 @@ additive rules below apply to them unchanged.
 - **`CatalogEntry.xDefaultPath` / `pathFor`** never name an address the item is not served at: when the site does
   not serve an item's primary locale, x-default is the item's first **available** locale (it used to be the site
   default, an unprefixed path the item may not exist at — which llms.txt then linked).
+
+### What `1.1.0` added
+
+- **`PluginSettings.appSecret(key)`**: the calling plugin's own `secret`-typed **app-level** setting (`settings:` in
+  `plugin.yml`), in clear. App-level settings bind through `@ConfigurationProperties`, where a secret arrives only in
+  its stored `ENC(...)` form, and a plugin has no way to decrypt that. The answer is the value the running application
+  was started with, so a change saved on the console applies after the restart, as every app-level setting does.
+  It is a `default` method answering empty, so an implementation written against `1.0.0` still compiles. A plugin
+  that calls it declares `requiresSpi: ">=1.1.0"`.
 
 ## The compatibility rules (in force from `1.0.0`)
 

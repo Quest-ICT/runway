@@ -13,7 +13,7 @@
 
     <groupId>mx.quest</groupId>
     <artifactId>runway</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
 
     <name>Runway</name>
@@ -42,7 +42,7 @@
              extended timestamp through the build JVM's default time zone, so the same source built in CST and
              in UTC differed by exactly 6 h inside the exec jar (found 2026-10-17 on a second host).
              .mvn/jvm.config pins -Duser.timezone=UTC for the Maven JVM, which removes the host's zone. -->
-        <project.build.outputTimestamp>2026-10-21T19:41:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-10-29T15:02:00Z</project.build.outputTimestamp>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- runway-spi and runway-spi-testkit attach a sources jar (release assets for third-party plugin authors,
              docs/PLUGIN-DEVELOPMENT.md §3). Boot's parent manages 3.3.1; 3.4.0 is the version the build hosts'

@@ -271,8 +271,10 @@ public class SitesController {
     /**
      * Edits a site's routing {@link Site#hosts} from the Sites screen. Gated to the grantable
      * {@code MANAGE_SITE_HOSTS} permission by the {@code /__app/sites/*}/{@code hosts} request gate — so it is
-     * delegable to a role/user and the app master always passes — hence <b>no</b> in-controller
-     * {@link PlatformAuthority} check, unlike the master-only lifecycle actions. The service normalizes and
+     * delegable to a role/user and the app master always passes. The <b>default site</b> is the exception: with
+     * {@code runway.console.hosts} unset, the console's own password-reset links go to its base URL, so whoever sets
+     * it decides where the platform accounts' reset tokens are mailed; editing it needs a platform admin
+     * ({@link PlatformAuthority}), like the lifecycle actions. The service normalizes and
      * validates the comma-separated hosts and rejects one already owned by another site; failures surface as a
      * flash error and the page is redisplayed. The same dialog sets the site's base URL ({@link
      * mx.quest.runway.site.SiteBaseUrl}), the origin of its absolute links: it is part of how the site is reached,
@@ -282,6 +284,9 @@ public class SitesController {
     public String updateHosts(@PathVariable String id, @RequestParam(required = false) String hosts,
                              @RequestParam(required = false) String baseUrl,
                              Authentication authentication, RedirectAttributes redirect) {
+        if (platform.get().defaultSite().filter(id::equals).isPresent()) {
+            platformAuthority.require(authentication);
+        }
         try {
             // The base URL rides in the same dialog: absent (an older form) keeps it, blank means derived.
             if (baseUrl == null) {

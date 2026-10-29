@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.env.Environment;
 
 /**
  * The factories behind the <b>plugin-scoped</b> SPI services ({@link PluginSettings}, {@link PluginSiteFiles},
@@ -53,6 +54,7 @@ public class PluginScopedServices {
     private final SecretCipher cipher;
     private final StorageLayout layout;
     private final long siteFilesMaxBytes;
+    private final Environment environment;
     private final Map<String, PluginSettings> settings = new ConcurrentHashMap<>();
     private final Map<String, PluginSiteFiles> siteFiles = new ConcurrentHashMap<>();
     private final Map<String, PluginInfo> infos = new ConcurrentHashMap<>();
@@ -62,16 +64,26 @@ public class PluginScopedServices {
      * @param layout            where the per-site plugin subtrees live ({@code null} only in tests that never ask
      *                          for {@link PluginSiteFiles})
      * @param siteFilesMaxBytes {@code runway.plugins.site-files.max-write-bytes} (non-positive = the default)
+     * @param environment       the running environment, which holds each plugin's app-level settings as
+     *                          {@code runway.plugin.<id>.<key>} ({@code null} only in tests: no app-level secrets)
      */
     @Autowired
     public PluginScopedServices(PluginOwnership ownership, SitePluginConfigService siteConfig, SecretCipher cipher,
                                 StorageLayout layout,
-                                @Value("${runway.plugins.site-files.max-write-bytes:16777216}") long siteFilesMaxBytes) {
+                                @Value("${runway.plugins.site-files.max-write-bytes:16777216}") long siteFilesMaxBytes,
+                                Environment environment) {
         this.ownership = ownership;
         this.siteConfig = siteConfig;
         this.cipher = cipher;
         this.layout = layout;
         this.siteFilesMaxBytes = siteFilesMaxBytes;
+        this.environment = environment;
+    }
+
+    /** Test form without the running environment: app-level secrets answer empty. */
+    public PluginScopedServices(PluginOwnership ownership, SitePluginConfigService siteConfig, SecretCipher cipher,
+                                StorageLayout layout, long siteFilesMaxBytes) {
+        this(ownership, siteConfig, cipher, layout, siteFilesMaxBytes, null);
     }
 
     /** Test form without the per-site files (the SPI 0.4.0 shape). */
@@ -86,7 +98,8 @@ public class PluginScopedServices {
         LoadedPlugin plugin = owner(injectionPoint, PluginSettings.class,
                 "kernel code reads per-site plugin settings through SitePluginConfigService");
         return settings.computeIfAbsent(plugin.id(), id -> new PluginSettingsImpl(id,
-                plugin.descriptor().siteSettings(), siteConfig, cipher));
+                plugin.descriptor().siteSettings(), plugin.descriptor().settings(),
+                key -> environment == null ? null : environment.getProperty(key), siteConfig, cipher));
     }
 
     /** {@link PluginSiteFiles} bound to the injecting plugin's subtree {@code sites/<id>/plugins/<pluginId>/}. */

@@ -155,12 +155,19 @@
                                 <copy file="${project.basedir}/plugin.yml" todir="${stage}"/>
                                 <copy file="${project.basedir}/LICENSE" todir="${stage}"/>
                                 <copy file="${project.basedir}/LICENSE-EXCEPTION" todir="${stage}"/>
+                                <!-- Never a plugin zip without its libraries (it would load and fail at its first use). -->
+                                <fail message="no library in ${stage}/lib">
+                                    <condition><resourcecount when="equal" count="0">
+                                        <fileset dir="${stage}" includes="lib/*.jar"/></resourcecount></condition>
+                                </fail>
                                 <touch datetime="${project.build.outputTimestamp}"
                                        pattern="yyyy-MM-dd'T'HH:mm:ss'Z'">
                                     <fileset dir="${stage}"/>
                                     <dirset dir="${stage}"/>
                                     <dirset dir="${project.build.directory}" includes="lucene-provider"/>
                                 </touch>
+                                <!-- The stamped files predate any earlier zip, so <zip> would skip the rebuild. -->
+                                <delete file="${project.build.directory}/runway-plugin-lucene-provider-${project.version}.zip"/>
                                 <zip destfile="${project.build.directory}/runway-plugin-lucene-provider-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}" includes="lucene-provider/**"/>
                                 </zip>

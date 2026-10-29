@@ -2,7 +2,7 @@
 
 > **What this is:** an honest, current list of what Runway does **not** do, or does only partially, in the
 > code as it stands (release `1.0.0`; the exact version is in the [CHANGELOG](../CHANGELOG.md)). The plugin
-> contract is frozen at SPI `1.0.0` and enforced at load time ([SPI-STABILITY.md](SPI-STABILITY.md));
+> contract was frozen at SPI `1.0.0`, changes only additively within `1.x`, and is enforced at load time ([SPI-STABILITY.md](SPI-STABILITY.md));
 > configuration, the data folder and backups are governed by
 > [CONFIGURATION-AND-DATA-STABILITY.md](CONFIGURATION-AND-DATA-STABILITY.md), which binds from `1.0.0`. The data
 > folder and backup archives carry the version markers that promise is built on (`external/layout.yml`, a
@@ -146,9 +146,16 @@ closes it. Items marked **after 1.0** are decided: they are not part of the `1.0
 
 ## By design — not limitations
 
-- **No database.** The kernel is filesystem/YAML-backed on purpose; there is no SQL layer to
-  configure. A deployment that genuinely needs one adds it as a **datasource-provider plugin** (the
-  first-run wizard therefore provisions the app superadmin + first site, never a DB).
+- **Runway's own data is on files.** The kernel is filesystem/YAML-backed on purpose; there is no SQL
+  layer to configure, and the first-run wizard provisions the app superadmin and first site, never a
+  database. Plugins that need one use PostgreSQL or MariaDB through the **database plugins**
+  (ADMINISTRATION §11.1), with these limits:
+  - a site's **transfer copy** carries no database data (the copy starts with an empty schema), so
+    plugins keep there only data a transfer may leave behind;
+  - the Runway-wide schema (`<ns>_app`) is in no site backup; back it up with the database's own tools;
+  - a site's database data in one backup is capped by `backupBudgetMiB` (default 128 MiB compressed);
+  - isolation between sites inside the database is enforced by the plugins' code (one account reaches
+    every schema), as everywhere else in Runway where plugins are trusted code.
 - **Central seed changes do not back-propagate to existing tenants.** Each tenant owns its copy of the
   seeded master/templates after creation (the self-containment law); improving the seed affects only
   *new* tenants. This is the deliberate price of complete tenant isolation and portable backups.

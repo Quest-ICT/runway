@@ -28,7 +28,7 @@ class K3RecordsTest {
 
     @Test
     void theSpiIsAtOneZero() {
-        assertEquals("1.0.0", RunwaySpi.VERSION);
+        assertEquals("1.1.0", RunwaySpi.VERSION);
     }
 
     // --- LocalizedUrl ----------------------------------------------------------------------------------------

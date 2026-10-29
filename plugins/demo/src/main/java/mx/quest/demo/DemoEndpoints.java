@@ -11,8 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
+import mx.quest.runway.spi.CaptchaService;
 import mx.quest.runway.spi.EndpointContributor;
 import mx.quest.runway.spi.model.Capabilities;
+import mx.quest.runway.spi.model.CaptchaWidget;
 import mx.quest.runway.spi.model.Realm;
 import mx.quest.runway.spi.model.Route;
 import mx.quest.runway.spi.model.RouteRequest;
@@ -46,8 +48,9 @@ import tools.jackson.databind.json.JsonMapper;
  *       exempts exactly this method and path from CSRF and makes that safe by running the handler with <b>no
  *       principal</b> ({@code AccessCheck.may} is {@code false} even for a signed-in administrator) and accepting only
  *       an {@code application/x-www-form-urlencoded} body. Keep your own abuse guards: here a honeypot field, a length
- *       cap and a per-address rate limit keyed by {@link RouteRequest#clientIp()} (the address after the kernel's
- *       trusted-proxy gate — never a header). Never use the flag for an action on something a signed-in user owns;
+ *       cap, the site's CAPTCHA through {@link CaptchaService} when the site has configured one, and a per-address
+ *       rate limit keyed by {@link RouteRequest#clientIp()} (the address after the kernel's trusted-proxy gate —
+ *       never a header). Never use the flag for an action on something a signed-in user owns;
  *       those are CSRF-checked {@code POST}s (the demo's console screen, {@link DemoConsoleController}).</li>
  * </ul>
  */
@@ -68,20 +71,23 @@ public class DemoEndpoints implements EndpointContributor {
     private final DemoNotesStore notes;
     private final Messages messages;
     private final PluginSettings settings;
+    private final CaptchaService captcha;
     private final LongSupplier clockMillis;
     private final JsonMapper json = JsonMapper.builder().build();
     private final ConcurrentMap<String, Deque<Long>> recentFeedback = new ConcurrentHashMap<>();
 
-    public DemoEndpoints(AccessCheck access, DemoNotesStore notes, Messages messages, PluginSettings settings) {
-        this(access, notes, messages, settings, System::currentTimeMillis);
+    public DemoEndpoints(AccessCheck access, DemoNotesStore notes, Messages messages, PluginSettings settings,
+                         CaptchaService captcha) {
+        this(access, notes, messages, settings, captcha, System::currentTimeMillis);
     }
 
     DemoEndpoints(AccessCheck access, DemoNotesStore notes, Messages messages, PluginSettings settings,
-                  LongSupplier clockMillis) {
+                  CaptchaService captcha, LongSupplier clockMillis) {
         this.access = access;
         this.notes = notes;
         this.messages = messages;
         this.settings = settings;
+        this.captcha = captcha;
         this.clockMillis = clockMillis;
     }
 
@@ -165,6 +171,12 @@ public class DemoEndpoints implements EndpointContributor {
         String message = formField(req, "message");
         if (message.isEmpty()) {
             return redirect(back, "invalid");
+        }
+        // The site's challenge, when it has one (the kernel's default answers "inactive"); verified with the gated
+        // client address, as the provider expects the visitor's.
+        CaptchaWidget challenge = captcha.widgetForSite(siteId);
+        if (challenge.active() && !captcha.verify(siteId, formField(req, challenge.tokenField()), req.clientIp())) {
+            return redirect(back, "captcha");
         }
         if (!allow(req.clientIp())) {
             return redirect(back, "limited");

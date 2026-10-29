@@ -7,6 +7,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
@@ -65,10 +66,17 @@ public final class TempDirSiteFiles implements PluginSiteFiles {
     @Override
     public Optional<String> readText(String siteId, String relPath) throws IOException {
         Path file = resolve(siteId, relPath, false);
-        if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+        BasicFileAttributes attrs;
+        try {
+            attrs = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException absent) {
             return Optional.empty();
         }
-        if (Files.size(file) > maxBytes) {
+        // As the host: a folder that cannot be searched throws; only a file certainly not there reads as empty.
+        if (!attrs.isRegularFile()) {
+            return Optional.empty();
+        }
+        if (attrs.size() > maxBytes) {
             throw new IOException("'" + relPath + "' is larger than the " + maxBytes + "-byte limit");
         }
         try (InputStream in = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
@@ -142,7 +150,8 @@ public final class TempDirSiteFiles implements PluginSiteFiles {
     @Override
     public List<FileEntry> list(String siteId, String relDir) throws IOException {
         Path dir = resolve(siteId, relDir, true);
-        if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) {
+        Optional<FileEntry> self = entryOf(dir); // a folder that cannot be searched throws, as in Runway
+        if (self.isEmpty() || !self.get().directory()) {
             return List.of();
         }
         List<FileEntry> entries = new ArrayList<>();
@@ -161,10 +170,12 @@ public final class TempDirSiteFiles implements PluginSiteFiles {
     }
 
     private static Optional<FileEntry> entryOf(Path path) throws IOException {
-        if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+        BasicFileAttributes attrs;
+        try {
+            attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (NoSuchFileException absent) {
             return Optional.empty();
         }
-        BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (attrs.isSymbolicLink() || !(attrs.isRegularFile() || attrs.isDirectory())) {
             return Optional.empty();
         }

@@ -80,6 +80,10 @@ class AppSiteHostsScreenTest {
         sites.save(new Site("beta", "Beta", List.of("beta.test"), EN, List.of(EN), null, SiteStatus.ACTIVE));
         sites.save(new Site("gamma", "Gamma", List.of("gamma.test"), EN, List.of(EN), null, SiteStatus.ACTIVE));
         sites.save(new Site("delta", "Delta", List.of("delta.test"), EN, List.of(EN), null, SiteStatus.ACTIVE));
+        // The default site: with runway.console.hosts unset, the console's reset links go to its address.
+        sites.save(new Site("main", "Main", List.of("main.test"), EN, List.of(EN), null, SiteStatus.ACTIVE));
+        new mx.quest.runway.platform.PlatformSettingsStore(StorageLayout.from(props), new YamlStore())
+                .update(current -> current.withDefaultSiteId("main"));
         new GrantStore(StorageLayout.from(props), new YamlStore())
                 .saveAppGrants(GrantFile.empty().withUserPermission("app-hosts", "MANAGE_SITE_HOSTS"));
         registry.add("runway.storage.external", () -> external.toString());
@@ -149,6 +153,29 @@ class AppSiteHostsScreenTest {
         assertEquals(List.of("gamma.example"), siteStore.find("gamma").orElseThrow().hosts());
         mvc.perform(post("/__app/sites/gamma/suspend").session(session).with(csrf()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void onlyAPlatformAdminChangesTheDefaultSitesHostsOrBaseUrl() throws Exception {
+        MockHttpSession hoster = login("hoster", OPERATOR_PW);
+        mvc.perform(post("/__app/sites/main/hosts").session(hoster).with(csrf())
+                        .param("hosts", "main.test").param("baseUrl", "https://evil.example"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/__app/sites/main/hosts").session(hoster).with(csrf()).param("hosts", "evil.example"))
+                .andExpect(status().isForbidden());
+        Site main = siteStore.find("main").orElseThrow();
+        assertEquals(List.of("main.test"), main.hosts());
+        assertEquals(null, main.baseUrl());
+        String html = mvc.perform(get("/__app/sites").session(hoster)).andReturn().getResponse().getContentAsString();
+        assertFalse(html.contains("/__app/sites/main/hosts"), "no Edit hosts on the default site's row for them");
+        assertTrue(html.contains("/__app/sites/gamma/hosts") || html.contains("/__app/sites/acme/hosts"),
+                "the other rows keep it");
+
+        MockHttpSession master = login("admin", MASTER_PW);
+        mvc.perform(post("/__app/sites/main/hosts").session(master).with(csrf())
+                        .param("hosts", "main.test, www.main.test"))
+                .andExpect(status().is3xxRedirection());
+        assertEquals(List.of("main.test", "www.main.test"), siteStore.find("main").orElseThrow().hosts());
     }
 
     @Test

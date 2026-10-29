@@ -10,7 +10,7 @@ feature delivered as a plugin or a first-class SPI implementation.
 | Version | `1.0.0` (plugin contract: SPI `1.0.0`) — the exact version is in the root `pom.xml` and each release in [CHANGELOG.md](CHANGELOG.md) |
 | Java | 25+ |
 | Framework | Spring Boot 4 on embedded Jetty |
-| Storage | Filesystem / YAML (no database) |
+| Storage | Filesystem / YAML (no database); plugins may use PostgreSQL or MariaDB through the database plugins |
 | Status | **Stable.** Semantic Versioning from `1.0.0`. The kernel, both realms, the setup wizard (with a catch-all default site), the page editor, per-site backups and optional in-app TLS termination run today; open items are in [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md). |
 
 ## Modules
@@ -23,11 +23,13 @@ runway/                      reactor (this pom)
 ├── runway-plugin-protection/ the essential protection plugin (rate-limit edge guard, login gate, CAPTCHA;
 │                             shipped inside the installer and seeded on a fresh install)
 ├── runway-dist/             packaging only: the dist zip, the self-extracting .bin installer, checksums
-└── plugins/                 the plugins demo, search, search-lucene, lucene-provider (not reactor modules)
+└── plugins/                 every first-party plugin, each a standalone project (not reactor modules)
 ```
 
 The plugins under `plugins/` are **standalone** projects, each with its own build; one with code is built
-against `runway-spi` alone as a `provided` dependency (with `runway-spi-testkit` for its tests). A plugin that links `runway-app` classes is refused at
+against `runway-spi` as a `provided` dependency (with `runway-spi-testkit` for its tests), plus another plugin's
+published SPI when it implements or uses one (search-lucene uses search's; the database providers and the guestbook
+example use database's). A plugin that links `runway-app` classes is refused at
 load time — the 1.0 plugin contract is the SPI ([SPI-STABILITY.md](docs/SPI-STABILITY.md)).
 
 ## Quick start
@@ -57,8 +59,8 @@ The installer lays the code under `/opt/runway-<version>`, points `/opt/runway` 
 keeps editable state (`external/`, `logs/`, `backups/`) in the version-independent
 `/opt/runway-data/` so upgrades never clobber it, installs a systemd unit, relabels
 SELinux contexts (required on enforcing RHEL-family hosts), and starts the service.
-There is **no database to configure** — Runway is filesystem/YAML-backed; first-run
-configuration happens in the app's own wizard (below).
+There is **no database to configure** — Runway is filesystem/YAML-backed (plugins that need a database use
+the optional database plugins); first-run configuration happens in the app's own wizard (below).
 
 Confirm it is up:
 

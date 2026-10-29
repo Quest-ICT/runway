@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import mx.quest.runway.crypto.SecretCipher;
 import mx.quest.runway.plugin.PluginSettingDef;
 import mx.quest.runway.plugin.SettingType;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
  * {@code PluginScopedServices} and handed to every injection point in that plugin's own jar. It reads through
  * {@link SitePluginConfigService} (whose per-site cache is evicted on every save, on this node and — from SPI 0.4.0
  * — on peers through the replayed change event), overlays the descriptor's declared defaults, and drops secrets.
+ * App-level secrets ({@link #appSecret}) come from the running environment instead, through a lookup the factory
+ * hands in, because app-level settings bind as {@code runway.plugin.<id>.<key>} properties at startup.
  *
  * <h2>Caching</h2>
  * The merged view is memoised per site against the <b>identity</b> of the stored map the config service returns:
@@ -36,6 +39,8 @@ public final class PluginSettingsImpl implements PluginSettings {
 
     private final String pluginId;
     private final Map<String, PluginSettingDef> schema;
+    private final Map<String, PluginSettingDef> appSchema;
+    private final Function<String, String> appValues;
     private final SitePluginConfigService config;
     private final SecretCipher cipher;
     private final Map<String, Memo> memo = new ConcurrentHashMap<>();
@@ -45,6 +50,8 @@ public final class PluginSettingsImpl implements PluginSettings {
     }
 
     /**
+     * Without app-level settings: {@link #appSecret} always answers empty.
+     *
      * @param pluginId     the plugin this instance answers for
      * @param siteSettings that plugin's declared {@code siteSettings:} schema
      * @param config       the per-site settings store
@@ -52,16 +59,37 @@ public final class PluginSettingsImpl implements PluginSettings {
      */
     public PluginSettingsImpl(String pluginId, List<PluginSettingDef> siteSettings, SitePluginConfigService config,
                               SecretCipher cipher) {
+        this(pluginId, siteSettings, List.of(), key -> null, config, cipher);
+    }
+
+    /**
+     * @param pluginId     the plugin this instance answers for
+     * @param siteSettings that plugin's declared {@code siteSettings:} schema
+     * @param appSettings  that plugin's declared app-level {@code settings:} schema
+     * @param appValues    resolves a full property key ({@code runway.plugin.<id>.<key>}) to the value the running
+     *                     environment holds, or {@code null}
+     * @param config       the per-site settings store
+     * @param cipher       decrypts {@code ENC(...)} secrets
+     */
+    public PluginSettingsImpl(String pluginId, List<PluginSettingDef> siteSettings, List<PluginSettingDef> appSettings,
+                              Function<String, String> appValues, SitePluginConfigService config,
+                              SecretCipher cipher) {
         this.pluginId = Objects.requireNonNull(pluginId, "pluginId");
+        this.schema = byKey(siteSettings);
+        this.appSchema = byKey(appSettings);
+        this.appValues = Objects.requireNonNull(appValues, "appValues");
+        this.config = Objects.requireNonNull(config, "config");
+        this.cipher = cipher;
+    }
+
+    private static Map<String, PluginSettingDef> byKey(List<PluginSettingDef> defs) {
         Map<String, PluginSettingDef> byKey = new LinkedHashMap<>();
-        for (PluginSettingDef def : siteSettings) {
+        for (PluginSettingDef def : defs == null ? List.<PluginSettingDef>of() : defs) {
             if (def != null && def.key() != null && !def.key().isBlank()) {
                 byKey.putIfAbsent(def.key(), def);
             }
         }
-        this.schema = Map.copyOf(byKey);
-        this.config = Objects.requireNonNull(config, "config");
-        this.cipher = cipher;
+        return Map.copyOf(byKey);
     }
 
     /** The plugin this instance is bound to. */
@@ -118,7 +146,28 @@ public final class PluginSettingsImpl implements PluginSettings {
             return Optional.empty(); // only a key the plugin declared `type: secret` is ever handed out in clear
         }
         Object raw = config.config(siteId, pluginId).get(key);
-        String value = raw == null ? null : String.valueOf(raw);
+        return reveal(raw == null ? null : String.valueOf(raw), "site '" + siteId + "'",
+                siteId + PathSafety.KEY_SEPARATOR + key, key);
+    }
+
+    /**
+     * Only a key this plugin declared {@code type: secret} in its own app-level {@code settings:} is handed out; the
+     * value is the running environment's ({@code runway.plugin.<id>.<key>}), so a saved change answers after the
+     * restart that applies it — the same moment the plugin's {@code @ConfigurationProperties} see it.
+     */
+    @Override
+    public Optional<String> appSecret(String key) {
+        PluginSettingDef def = key == null ? null : appSchema.get(key);
+        if (def == null || !isSecret(def)) {
+            return Optional.empty();
+        }
+        // The separator cannot occur in a site id, so the app-level warn-once key never collides with a site's.
+        return reveal(appValues.apply("runway.plugin." + pluginId + "." + key), "the application",
+                PathSafety.KEY_SEPARATOR + "app" + PathSafety.KEY_SEPARATOR + key, key);
+    }
+
+    /** A stored secret in clear: empty when blank or undecryptable, a non-{@code ENC(...)} value unchanged. */
+    private Optional<String> reveal(String value, String scope, String warnKey, String key) {
         if (value == null || value.isBlank()) {
             return Optional.empty();
         }
@@ -126,23 +175,23 @@ public final class PluginSettingsImpl implements PluginSettings {
             return Optional.of(value); // a hand-written plaintext secret still works, as it always has
         }
         if (!cipher.isAvailable()) {
-            warnOnce(siteId, key, "it is encrypted but the platform secret key (runway.security.secret-key) is "
-                    + "not usable (unset, or itself in the ENC(...) form)");
+            warnOnce(warnKey, key, scope, "it is encrypted but the platform secret key (runway.security.secret-key) "
+                    + "is not usable (unset, or itself in the ENC(...) form)");
             return Optional.empty();
         }
         try {
             return Optional.of(cipher.decrypt(value));
         } catch (RuntimeException failure) {
             // Never log the value or the cause's message (it may echo ciphertext); the type is enough to act on.
-            warnOnce(siteId, key, "it could not be decrypted (" + failure.getClass().getSimpleName()
+            warnOnce(warnKey, key, scope, "it could not be decrypted (" + failure.getClass().getSimpleName()
                     + ") — wrong platform secret key, or a corrupted value");
             return Optional.empty();
         }
     }
 
-    private void warnOnce(String siteId, String key, String why) {
-        if (warned.add(siteId + PathSafety.KEY_SEPARATOR + key)) {
-            log.warn("plugin '{}' secret setting '{}' for site '{}' is unavailable: {}", pluginId, key, siteId, why);
+    private void warnOnce(String warnKey, String key, String scope, String why) {
+        if (warned.add(warnKey)) {
+            log.warn("plugin '{}' secret setting '{}' for {} is unavailable: {}", pluginId, key, scope, why);
         }
     }
 

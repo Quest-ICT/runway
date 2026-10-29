@@ -1,8 +1,8 @@
 # Writing a Runway plugin — the authoring guide
 
 > **Audience:** a developer starting a **new Runway plugin from scratch**.
-> **Scope:** the complete plugin contract of the Runway kernel at **SPI `1.0.0`** (Runway `1.0.0`; frozen —
-> within `1.x` it changes only additively, see the kernel's `docs/SPI-STABILITY.md`) — the descriptor, every extension
+> **Scope:** the complete plugin contract of the Runway kernel at **SPI `1.1.0`** (Runway `1.1.0`; within `1.x` it
+> changes only additively — `1.1.0` added `PluginSettings.appSecret` — see the kernel's `docs/SPI-STABILITY.md`) — the descriptor, every extension
 > axis, the **service tier** through which a plugin reaches the kernel, the `POST`/CSRF rules, the build, the
 > install, how to verify, and the traps. Everything here is grounded in the kernel as built and verified against the
 > packaged host jar; a gap is called a gap.
@@ -141,8 +141,8 @@ mainClass: com.acme.myplugin.MyPluginConfig   # the @Configuration; omit for a c
 # The LOWEST SPI level whose types you use (the newest type decides): ">=0.4.0" PluginSettings/PluginInfo/
 # PluginLifecycle; ">=0.5.0" PluginSiteFiles, Sites, RequestContext, AccessCheck, Messages, SitePages, anonymous
 # routes, siteData; ">=0.6.0" ContentCatalogView, ContentChanges, SiteEventListener, @ConsoleScreen; ">=1.0.0"
-# HeadContext.origin(). All four are 1.x floors: a plugin declaring any of them loads on every 1.x kernel. A kernel
-# below it BLOCKS the plugin with a reason. A plugin with a mainClass MUST declare a floor >= 0.4.0: without one it is
+# HeadContext.origin(); ">=1.1.0" PluginSettings.appSecret. A plugin loads on every 1.x kernel at or above the floor
+# it declares; a kernel below it BLOCKS the plugin with a reason. A plugin with a mainClass MUST declare a floor >= 0.4.0: without one it is
 # blocked as "built for the pre-1.0 plugin contract" (a code-less library plugin is exempt).
 requiresSpi: ">=0.6.0"
 
@@ -438,7 +438,9 @@ them equal). Accessors never throw: a value that does not parse yields the fallb
 on every node. Nested structures: parse `values()` yourself. **Three settings surfaces:**
 
 - **App-level (`settings:`)** — platform concerns, `runway.plugin.<id>.*`, applied on **restart**, read through your
-  own `@ConfigurationProperties` bean (§5). A `secret` there is ciphertext.
+  own `@ConfigurationProperties` bean (§5). A `secret` there binds as ciphertext: read it in clear with
+  `settings.appSecret(key)` (SPI `1.1.0`; declare `requiresSpi: ">=1.1.0"`). It answers only for a key your own
+  `settings:` declares `type: secret`, with the value the running application started with.
 - **Per-site (`siteSettings:`)** — `PluginSettings`; react to a save with `SiteEventListener.onSettingsChanged`.
 - **Per-placement (`widgetSettings:`)** — nothing to read: they arrive as `WidgetView.config()`.
 
@@ -568,7 +570,7 @@ In-memory fakes with the kernel's input rules, so plugin tests need no kernel an
 
 | Fake | For |
 |---|---|
-| `FakePluginSettings` | `.defaults(…)`, `.site(id, values)`, `.secret(id, key, clear)` |
+| `FakePluginSettings` | `.defaults(…)`, `.site(id, values)`, `.secret(id, key, clear)`, `.appSecret(key, clear)` (testkit `1.1.0`) |
 | `TempDirSiteFiles(sitesRoot, pluginId)` | `PluginSiteFiles` over a temp folder, with the kernel's three confinement layers, the caps and the missing-site rule |
 | `FakeSiteServices` | `Sites`, `RequestContext` (`.current(id)`), `AccessCheck` (`.grant(key)`), `Messages` (`.message(…)`), `SitePages` (`.page(…)`, `.nextInstall(outcome)`, `.installs()`) |
 | `FakeContentCatalog` | `ContentCatalogView`: `.entry(…)`, `.page(…)`, `.route(…)`, `.refreshed()` |
@@ -577,6 +579,125 @@ In-memory fakes with the kernel's input rules, so plugin tests need no kernel an
 Wire your `mainClass` in a plain `AnnotationConfigApplicationContext` with these beans registered to prove the wiring
 uses services only; drive a `@ConsoleScreen` controller with a standalone `MockMvc`. Add a test that scans your
 compiled classes for `mx/quest/runway/` outside `spi/` (see `demo`'s `DemoPluginConfigTest`).
+
+### 7.14 Using the database (the `database` plugin)
+
+A plugin can keep its data in PostgreSQL or MariaDB through the **`database`** plugin (`../database/`; operators set
+it up per the kernel's ADMINISTRATION §11.1). Runway's own data stays on files; the database is for plugins. The
+worked example is **`runway-demo-database`** (`../runway-demo-database/`): a per-site guestbook that uses everything
+below once.
+
+**Wiring.** Declare the dependency and the floors, compile the database SPI as `provided` (the shared plugin class
+loader supplies it at runtime; never bundle it), and register one `DatabaseConsumer` bean:
+
+```yaml
+requires: [ "database >= 1.0.0" ]     # the lowest database version whose SPI types you use
+requiresSpi: ">=1.1.0"
+```
+
+```java
+@Bean public MyConsumer myPluginConsumer() { return new MyConsumer(); }      // implements DatabaseConsumer
+@Bean public MyStore myPluginStore(Databases databases, MyConsumer myPluginConsumer) {
+    return new MyStore(databases, myPluginConsumer);                         // calls databases.of(consumer) lazily
+}
+```
+
+**Compiling against it.** The database SPI (`mx.quest.database.spi`) is in the database plugin's own jar: Maven
+coordinates `mx.quest:runway-plugin-database:<version>`, scope `provided` (the guestbook's `pom.xml` shows it). No
+public Maven repository serves it, so install it in your local repository once, like `runway-spi` (§2): from source,
+`mvn install` in the `database/` plugin folder; or from a release, unzip the plugin and run
+`mvn install:install-file -Dfile=database/runway-plugin-database.jar` (the jar carries its own pom, which names the
+coordinates).
+
+`DatabaseConsumer` names your plugin id and the scopes you use (`SITE`, `APP`). The database plugin checks the claim
+against the jar the bean's class was loaded from, and refuses a second bean for the same id: pass **that bean** to
+`Databases.of(…)`. Ask for the handle on first use — never in a constructor, a `@Bean` method or
+`PluginLifecycle.started()`: Runway starts without the database and connects afterwards.
+
+**Scopes.** Everything goes through a `Scope`, one per site plus one Runway-wide:
+
+| Call | Use it for |
+|---|---|
+| `db.currentSite()` | the site of the request you are serving (throws in the application console or a background thread) |
+| `db.site(siteRef)` | a site Runway named to you (a backup, a site event) |
+| `db.siteInBackground(id)` | background or application-console code that got the id **from Runway** |
+| `db.app()` | data that belongs to no site — it is in **no** site backup and does not move with a change of database |
+
+**Never take a site id from request input** (a field, a query parameter, a path segment): a site's administrator
+could name another site. Isolation between sites is enforced by this API, because one database account reaches every
+schema.
+
+`scope.transaction(c -> …)` runs your work on one connection in one transaction (commit on return, roll back on a
+throw); `scope.read(c -> …)` runs it read-only on a consistent snapshot (a write fails on both products). A call on
+the **same** scope from inside the work joins it — same connection, no commit of its own — so `lastValue` after an
+insert is reliable without `@Transactional`; `transaction()` inside `read()` throws, and so does a call on **another**
+scope (finish one before starting the next). The connection is lent: do not close it, change its auto-commit, its
+schema or session settings. On MariaDB, drop temporary tables in `finally`; PostgreSQL clears them for you.
+
+**Failures** are unchecked: `DatabaseUnavailableException` (not configured, down, or too many calls in flight for
+the site), `ScopeNotReadyException` with a `reason()` (`PREPARING`: retry shortly; `MIGRATION_FAILED`,
+`CHECKSUM_MISMATCH`, `NEWER_THAN_INSTALLED`, `PLUGIN_REFUSED`: an operator acts on the **Database** screen), and
+`DatabaseException` for a failed statement. `db.available()` tells you up front; degrade quietly (the guestbook says
+"This example needs the database").
+
+**Migrations.** Ship your scripts **in your jar** (`src/main/resources/`), for both products, per scope:
+
+```
+db/<your-plugin-id>/postgresql/site/index           V1__init.sql
+db/<your-plugin-id>/postgresql/site/V1__init.sql
+db/<your-plugin-id>/mariadb/site/index
+db/<your-plugin-id>/mariadb/site/V1__init.sql
+db/<your-plugin-id>/<product>/app/…                 only if you declared the APP scope
+```
+
+- The `index` lists the scripts in order, `V1__…` first, versions rising by one. The database plugin reads them only
+  from your jar and runs them the first time a schema is used (and warms them up at startup).
+- Statements are separated by a line holding only `-- runway:next`. A statement that moves the connection (`USE`,
+  `SET search_path`, `SET SESSION`) is refused.
+- **Every object you create starts with your prefix**: your id lower-cased, other characters as `_`, then `__`
+  (`runway-demo-database` → `runway_demo_database__`; `db.prefix()` says it). A prefix is at most 24 characters:
+  past that, a longer id keeps its first 15 characters, then `_`, 6 hex digits of a hash and `__`
+  (`acme-visitor-guestbook-pro` → `acme_visitor_gu_` + hash + `__`), so for an id longer than 22 characters read
+  the real prefix from `db.prefix()` before you write your scripts. That covers tables, indexes, sequences,
+  views, functions, procedures, types and constraints that create an index on PostgreSQL; tables, views, sequences,
+  triggers, routines, events and foreign keys on MariaDB. A script that creates or drops anything else fails, and
+  what it created is removed. MariaDB tables must be `ENGINE=InnoDB`.
+- **Never change a released script**: its checksum is recorded, and a changed one stops your plugin in every schema
+  until an operator accepts it. Add `V<n+1>` instead.
+- PostgreSQL runs all your pending scripts in one transaction, so `CREATE INDEX CONCURRENTLY`, `VACUUM` and using an
+  enum value added in the same script are not supported. MariaDB commits each DDL statement: keep one statement per
+  chunk, so a failed script resumes cleanly from the failing statement.
+- Both trees must produce the **same tables, columns and nullability** at every version: a site's backup moves
+  between the products.
+
+**Conventions** (the guestbook follows them): lower-case unquoted identifiers; `BIGINT` ids from a sequence
+(`db.dialect().nextValue("<prefix>x_seq")` in the insert, `dialect.lastValue(c, …)` after it), never
+`AUTO_INCREMENT` or identity columns; entity columns `id, version, created_at, updated_at, updater`, with `updater`
+set by your code (every write uses one account); instants as `TIMESTAMPTZ` on PostgreSQL and `TIMESTAMP(6)` on
+MariaDB (both sessions are pinned to UTC; in Java read and bind them as `Timestamp` with a UTC `Calendar`, or on
+MariaDB as a UTC `LocalDateTime`: a bare `getTimestamp`/`setTimestamp` goes through the JVM's zone); paging with `dialect.limitOffset(…)`. Backups carry these types:
+`BIGINT, INTEGER, SMALLINT, DECIMAL(p,s), DOUBLE, BOOLEAN, VARCHAR(n), TEXT, DATE, TIME, TIMESTAMP, TIMESTAMPTZ,
+BYTES (bytea / BLOB), JSON`; a table with another type cannot be backed up.
+
+**What travels.** A site's **full backup** carries its schema; a **transfer copy** carries none (the copy starts
+empty). So keep in the database only data a transfer may leave behind — visitors' entries, caches, derived data — and
+keep content that must travel with the site in its folder (`PluginSiteFiles`, §7.3).
+
+**Public writes.** A form any visitor can submit (an anonymous `POST`, §8.1) must bound what it writes: a honeypot,
+length caps, the site's CAPTCHA through `CaptchaService` when the site has one (render `widgetForSite(siteId).html()`
+in the form, `verify` it in the route), a per-address limit on `RouteRequest.clientIp()`, and a **row cap per site**
+applied in the same transaction as the insert (the guestbook deletes the oldest entries beyond `maxEntries`).
+Refuse control characters other than line breaks and tabs before you write: PostgreSQL rejects U+0000 in text, so a
+NUL byte would otherwise reach the visitor as a database error. Compute a page offset in `long`, or bound the page
+number: `page * size` in `int` overflows into a negative offset on a crafted `?page=`.
+
+**Caching.** A `ContentWidget`'s output must depend only on what the page is rendered from; the kernel caches pages
+and answers `304` while their ETag holds. Do not read the database inside a widget: render a static shell and load
+the rows from your own endpoint with `Cache-Control: no-store` (the guestbook's `/guestbook/entries.json`).
+
+**Testing.** Unit-test your guards with a stub `Databases`; test your SQL against real servers on both products (the
+guestbook's `GuestbookStoreRealServerTest` wires the database plugin's classes to throwaway PostgreSQL and MariaDB
+containers), and run the whole plugin in a real Runway (`runway-demo-database/scripts/verify-against-host.sh`).
 
 ---
 

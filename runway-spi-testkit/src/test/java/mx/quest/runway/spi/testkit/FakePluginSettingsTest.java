@@ -47,4 +47,13 @@ class FakePluginSettingsTest {
             assertThrows(IllegalArgumentException.class, () -> settings.secret(bad, "k"));
         }
     }
+
+    @Test
+    void appLevelSecretsAreReturnedInClearAndBlankOnesAreAbsent() {
+        FakePluginSettings settings = new FakePluginSettings().appSecret("password", "s3cret").appSecret("blank", " ");
+        assertEquals(Optional.of("s3cret"), settings.appSecret("password"));
+        assertEquals(Optional.empty(), settings.appSecret("blank"));
+        assertEquals(Optional.empty(), settings.appSecret("other"));
+        assertEquals(Optional.empty(), settings.appSecret(null));
+    }
 }

@@ -22,7 +22,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.junit.jupiter.api.AfterEach;
 
-/** The audit listener records tenant login outcomes, and skips app-realm logins (no bound site). */
+/** The audit listener records tenant login outcomes with the client address, and skips app-realm logins. */
 class AuditEventListenerTest {
 
     private static Site site() {
@@ -88,7 +88,26 @@ class AuditEventListenerTest {
         new AuditEventListener(resolver, logs)
                 .onLogout(new LogoutSuccessEvent(new UsernamePasswordAuthenticationToken("bob", "x")));
 
-        verify(logs).audit("acme", "bob", "logout", "");
+        verify(logs).audit("acme", "bob", "logout", "ip=127.0.0.1");
+    }
+
+    @Test
+    void aLoginRecordsTheResolvedClientAddressNotTheProxy() {
+        SiteResolver resolver = mock(SiteResolver.class);
+        when(resolver.current()).thenReturn(Optional.of(site()));
+        SiteLogService logs = mock(SiteLogService.class);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/login");
+        request.setRemoteAddr("198.51.100.7"); // what TrustedForwardedHeaderFilter left after reading the proxy's XFF
+        request.addHeader("X-Forwarded-For", "203.0.113.66"); // never read here
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        AuditEventListener listener = new AuditEventListener(resolver, logs);
+
+        listener.onSuccess(new AuthenticationSuccessEvent(new UsernamePasswordAuthenticationToken("bob", "x")));
+        listener.onFailure(new AuthenticationFailureBadCredentialsEvent(
+                new UsernamePasswordAuthenticationToken("mallory", "x"), new BadCredentialsException("bad")));
+
+        verify(logs).audit("acme", "bob", "login.success", "ip=198.51.100.7");
+        verify(logs).audit("acme", "mallory", "login.failure", "ip=198.51.100.7");
     }
 
     @Test
