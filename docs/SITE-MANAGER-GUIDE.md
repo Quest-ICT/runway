@@ -1326,7 +1326,8 @@ Restore is safe by design: the platform first checks the file is a genuine, comp
 backup and only then swaps it in, in one step. **A corrupt, empty, or wrong file is rejected
 and your live site is left exactly as it was** — a failed or interrupted restore never leaves
 you with a half-restored or missing site. After a successful restore the site reflects the
-backup immediately (no restart).
+backup immediately (no restart), and the Backups screen shows the site's host names and base URL for you to check: a restore made here keeps them as
+they were (how the site is reached is set by the platform operator), so if they look wrong, ask the operator.
 
 A backup made on a **newer** version of the platform than the one your site runs on is refused
 the same way, with the message *"This backup was made by a newer version of Runway … Ask the

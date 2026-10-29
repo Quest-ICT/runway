@@ -320,10 +320,11 @@ runway:
     trusted-cidrs:
       - "127.0.0.1/32"
       - "::1/128"
-  # How slowly a client may send a request body, in bytes per second, before Jetty answers 408 and frees the
-  # request thread (SlowClientConfig). Measured from the body's first byte on what has arrived, so a server that is
-  # slow to read is never blamed. 4096 is below any real connection; 0 turns the check off. Also on Settings ->
-  # Server settings -> Request limits.
+  # How slowly a client may send a request body (any: forms, uploads, raw), in bytes per second, before Runway
+  # answers 408 and frees the request thread (SlowClientConfig, RequestBodyRateHandler). Only time spent waiting for
+  # the client counts, so a server that is slow to read is never blamed, and a body that has arrived complete is never
+  # refused. 4096 is below any real connection; 0 turns the check off. Also on Settings -> Server settings -> Request
+  # limits.
   http:
     min-request-data-rate: 4096
   # Stored-backup retention (app-level, not tenant-editable). After a site backup is written, its own

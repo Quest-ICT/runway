@@ -284,6 +284,31 @@ class TenantBackupsScreenTest {
         assertEquals("ORIGINAL_CONTENT", Files.readString(home, StandardCharsets.UTF_8), "the page was restored");
     }
 
+    /** After a restore the screen shows how the site is reached, read-only: a restore here keeps the hosts. */
+    @Test
+    void aRestoreIsFollowedByTheSitesHostsForReview() throws Exception {
+        MockHttpSession admin = sessionFor("admin");
+        mvc.perform(post("/__admin/backups/create").session(admin).with(csrf())).andExpect(status().is3xxRedirection());
+        mvc.perform(get("/__admin/backups").session(admin)).andExpect(status().isOk()); // the create's redirect
+        String name = backups.list("acme").get(0).name();
+        mvc.perform(post("/__admin/backups/" + name + "/restore").session(admin).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute(AppBackupsController.REVIEW_HOSTS, Boolean.TRUE));
+
+        MvcResult shown = mvc.perform(get("/__admin/backups").session(admin)).andExpect(status().isOk()).andReturn();
+        String page = shown.getResponse().getContentAsString();
+        assertTrue(page.contains("id=\"bk-review\""), "the review card is shown");
+        assertTrue(page.contains("How the site is reached"));
+        assertTrue(page.contains("only a platform administrator can change them"));
+        assertTrue(page.contains(">localhost<"), "the site's host");
+        assertTrue(page.contains("not set, so https://localhost (https:// and the first host)"), "the derived base URL");
+        assertTrue(!page.contains("/__app/sites/acme/hosts"), "no editor on the site console");
+
+        String plain = mvc.perform(get("/__admin/backups").session(admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(!plain.contains("id=\"bk-review\""), "no review card without a restore");
+    }
+
     /** An archive from a newer Runway is refused on both restore paths, with the upgrade message. */
     @Test
     void aNewerFormatBackupIsRefusedWithTheUpgradeMessage() throws Exception {

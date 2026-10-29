@@ -61,10 +61,13 @@ public class TenantBackupsController {
     private final TenantAuthority tenantAuthority;
     private final MessageSource messages;
     private final mx.quest.runway.backup.BackupProperties policy;
+    private final mx.quest.runway.platform.PlatformSettingsStore platform;
 
     public TenantBackupsController(SiteResolver siteResolver, BackupService backups, TenantAuthority tenantAuthority,
                                    @Qualifier("operatorAwareMessageSource") MessageSource messages,
-                                   mx.quest.runway.backup.BackupProperties policy) {
+                                   mx.quest.runway.backup.BackupProperties policy,
+                                   mx.quest.runway.platform.PlatformSettingsStore platform) {
+        this.platform = platform;
         this.policy = policy;
         this.siteResolver = siteResolver;
         this.backups = backups;
@@ -84,6 +87,12 @@ public class TenantBackupsController {
         model.addAttribute("backupPolicyKeepKey", "op.backups.policy.keep."
                 + (count > 0 ? "count" : "all") + (days > 0 ? "Days" : ""));
         model.addAttribute("transferOmissions", transferOmissions(site.id()));
+        // After a restore: how the site is reached, for review. A restore from this console keeps the hosts and base URL
+        // (only the application console changes them), so they are shown as they stand, without an editor.
+        if (Boolean.TRUE.equals(model.getAttribute(AppBackupsController.REVIEW_HOSTS))) {
+            model.addAttribute("reviewSite", site);
+            model.addAttribute("reviewIsDefault", platform.get().defaultSite().filter(site.id()::equals).isPresent());
+        }
         // Restore is destructive + master-only; hide its affordances from a non-master (the controller still enforces).
         boolean admin = tenantAuthority.isTenantAdmin(authentication, site.id());
         model.addAttribute("canRestore", admin);
@@ -196,6 +205,7 @@ public class TenantBackupsController {
         try {
             backups.restoreStored(site.id(), name, true); // a site manager never changes how the site is reached
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
+            redirect.addFlashAttribute(AppBackupsController.REVIEW_HOSTS, Boolean.TRUE);
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
         } catch (IOException | RuntimeException e) {
@@ -218,6 +228,7 @@ public class TenantBackupsController {
         try (InputStream in = file.getInputStream()) {
             backups.restore(site.id(), in, true); // a site manager never changes how the site is reached
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
+            redirect.addFlashAttribute(AppBackupsController.REVIEW_HOSTS, Boolean.TRUE);
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
         } catch (IOException | RuntimeException e) {

@@ -16,15 +16,22 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Keeps slow clients from holding request threads: a minimum rate for request bodies ({@code
  * runway.http.min-request-data-rate}, bytes per second; Settings → Server settings → Request limits), applied to every
- * connector Jetty has when the server is built.
+ * read of a request body by {@link RequestBodyRateHandler}, installed when the server is built.
  *
  * <p><b>Why.</b> A servlet reads a request body on a request thread and blocks while it waits. Jetty's idle timeout
  * limits one stalled read, not the whole body, so a client that sends a byte inside every idle interval kept a thread
  * for as long as it liked, and a few of them (with uploads allowed up to 256 MB) could take the pool. With a minimum
- * rate Jetty answers {@code 408 Request Timeout} as soon as the body has arrived more slowly than the rate since its
- * first byte; time the application spends before reading does not count, because the rate is measured on what has
- * arrived. Measured on Jetty 12.1.8: a client sending one byte a second against 1 KiB/s was cut after about two
- * seconds, and a server pausing three seconds before reading a body that arrived at once still answered {@code 200}.
+ * rate the request is answered {@code 408 Request Timeout} once the body arrives more slowly than the rate; time the
+ * application spends before reading does not count. Measured on Jetty 12.1.8 with Runway 1.1.1: form, multipart and
+ * stream bodies dripped at 20 bytes a second against 4 KiB/s were answered {@code 408} after two seconds, on both
+ * login pages and a plugin's form route, and a server pausing three seconds before reading a body that arrived at
+ * once still answered {@code 200}.
+ *
+ * <p><b>One check, under every read.</b> Jetty's own minimum rate is checked only where the body is read through
+ * {@code getInputStream()}; form parameters and multipart parts are parsed through Jetty's core request and escaped
+ * it (1.1.0 shipped with that gap: a dripped login form was held until the idle timeout). {@link
+ * RequestBodyRateHandler} wraps the core request under the server, so every read passes it, and Jetty's own check
+ * is turned off so that the two cannot race ({@link #apply}).
  *
  * <p><b>What it does not cover.</b> Slow header senders cost a connection, not a thread (Jetty parses headers without
  * one); a proxy's connection cap is the limit there. A client that reads a response slowly is bounded by the
@@ -45,20 +52,33 @@ public class SlowClientConfig {
     }
 
     /**
-     * Sets the minimum request data rate on every HTTP configuration of {@code server}'s connectors.
+     * Installs the body-rate check on {@code server}: a {@link RequestBodyRateHandler} directly under the server, and
+     * Jetty's own minimum request data rate set to {@code 0} on every HTTP configuration of its connectors.
+     *
+     * <p>Jetty's own check covers {@code getInputStream()} only, and fires above this handler, so the two raced on
+     * the stream path: when Jetty's won, the failure escaped as an {@code IOException} that the application chain
+     * turned into an empty {@code 200} (measured on a plugin route that reads its form from the stream). One check,
+     * under every read, answers {@code 408} on every path. Boot has set the server's handler before its customizers
+     * run, and wraps the result in its own statistics handler afterwards.
      *
      * @param bytesPerSecond the rate; 0 turns the check off
-     * @return how many HTTP configurations were changed
+     * @return how many HTTP configurations had Jetty's own check set to 0
      */
     static int apply(Server server, long bytesPerSecond) {
         int changed = 0;
         for (Connector connector : server.getConnectors()) {
             for (ConnectionFactory factory : connector.getConnectionFactories()) {
                 if (factory instanceof HttpConfiguration.ConnectionFactory http) {
-                    http.getHttpConfiguration().setMinRequestDataRate(bytesPerSecond);
+                    http.getHttpConfiguration().setMinRequestDataRate(0);
                     changed++;
                 }
             }
+        }
+        if (bytesPerSecond > 0 && server.getHandler() != null
+                && !(server.getHandler() instanceof RequestBodyRateHandler)) {
+            RequestBodyRateHandler rate = new RequestBodyRateHandler(bytesPerSecond);
+            rate.setHandler(server.getHandler());
+            server.setHandler(rate);
         }
         if (bytesPerSecond > 0) {
             log.info("request bodies slower than {} bytes/s are refused (runway.http.min-request-data-rate)",

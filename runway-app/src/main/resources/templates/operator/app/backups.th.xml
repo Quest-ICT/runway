@@ -5,6 +5,27 @@
     <attr sel="#ab-pretitle" th:text="#{op.realm.application}"/>
     <attr sel="#ab-heading" th:text="#{op.appbackups.heading}"/>
 
+    <!-- After a restore or a site created from a backup (${reviewSite}): the site's hosts and base URL as they stand,
+         with the same editor as Sites -> Edit hosts (it posts there, so that route's checks and activity line apply).
+         Restoring here already required a platform administrator, who may edit any site's hosts. -->
+    <attr sel="#ab-review" th:if="${reviewSite != null}"/>
+    <attr sel="#ab-review-title" th:text="#{op.restore.review.title(${reviewSite?.id()})}"/>
+    <attr sel="#ab-review-hint" th:text="#{op.restore.review.hint}"/>
+    <attr sel="#ab-review-l-hosts" th:text="#{op.sites.hosts.short}"/>
+    <attr sel="#ab-review-hosts" th:text="${reviewSite == null or reviewSite.hosts().isEmpty()} ? (${reviewIsDefault} ? #{op.restore.review.noHosts} : #{op.restore.review.unreachable}) : ${#strings.listJoin(reviewSite.hosts(), ', ')}"/>
+    <attr sel="#ab-review-l-base" th:text="#{op.sites.base}"/>
+    <attr sel="#ab-review-base" th:text="${reviewSite?.baseUrl() != null} ? ${reviewSite.baseUrl()} : (${reviewSite == null or reviewSite.hosts().isEmpty()} ? #{op.restore.review.noBase} : #{op.restore.review.derived('https://' + ${reviewSite.hosts().get(0)})})"/>
+    <attr sel="#ab-review-form" th:attr="action='/__app/sites/' + ${reviewSite?.id()} + '/hosts'"/>
+    <attr sel="#ab-review-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#ab-review-l-hosts-input" th:text="#{op.sites.hosts}"/>
+    <attr sel="#ab-review-hosts-input" th:attr="value=${reviewSite == null ? '' : #strings.listJoin(reviewSite.hosts(), ', ')}"/>
+    <attr sel="#ab-review-hosts-hint" th:text="#{op.sites.hosts.hint}"/>
+    <attr sel="#ab-review-l-base-input" th:text="#{op.sites.base}"/>
+    <attr sel="#ab-review-base-input" th:attr="value=${reviewSite?.baseUrl()},placeholder=${reviewSite == null or reviewSite.hosts().isEmpty() ? '' : 'https://' + reviewSite.hosts().get(0)}"/>
+    <attr sel="#ab-review-base-hint" th:text="#{op.sites.base.hint}"/>
+    <attr sel="#ab-review-save" th:text="#{op.sites.hosts.save}"/>
+
     <attr sel="#cs-l" th:text="#{op.appbackups.create}"/>
     <attr sel="#cs-hint" th:text="#{op.appbackups.create.hint}"/>
     <attr sel="#cs-csrf"

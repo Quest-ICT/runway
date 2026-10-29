@@ -2,6 +2,77 @@
 
 All notable changes are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-10-29
+
+_A patch release: the slow-request-body limit 1.1.0 introduced now covers form posts and multipart uploads too, and
+after a restore the Backups screen shows how the site is reached, for review._
+
+### Upgrading — read this first
+
+**From `1.1.0`: a kernel upgrade, no flag.** From `1.0.1` or `1.0.0`, read `1.1.0`'s *Upgrading* first (behind a
+reverse proxy its step 1 matters), then install this release directly: `1.1.0` itself is not needed in between. Paths
+are the installer defaults (`/opt/runway`, `/opt/runway-data`).
+
+**1. Back up.** Take each site's backup (**Backups**) and copy `/opt/runway-data/external/` somewhere **outside**
+`external/plugins/`.
+
+**2. Upgrade the kernel:**
+
+```bash
+chmod +x runway-1.1.1.bin
+sudo ./runway-1.1.1.bin -y
+```
+
+The essential plugin moves with the kernel to `1.1.1` (its descriptor changes in version only, and its jar is
+rebuilt), so the installer refreshes it; expect these lines, once:
+
+```
+refreshing bundled plugin 'protection' from this release (it moves with the kernel; files you edited are backed up)
+plugin 'protection': plugin.yml replaced (the previous one kept as plugin.yml.bak, for a rollback)
+plugin 'protection': runway-plugin-protection.jar replaced (the previous one kept as runway-plugin-protection.jar.bak, for a rollback)
+keeping the bundled plugins in the release: /opt/runway-1.1.1/seed/ (the repair copy — Administration §12)
+```
+
+**3. Check.**
+- **About Runway** shows `1.1.1`.
+- On **Plugins**, every row is *Loaded* and none *Blocked*; protection shows `1.1.1`.
+- The start log says `request bodies slower than 4096 bytes/s are refused (runway.http.min-request-data-rate)`, with
+  your value if you changed it.
+
+**4. Rollback**, if needed: `sudo bash runway-1.1.0.bin -y` puts 1.1.0 back, its protection files included; slow form
+posts are then held until the idle timeout again. Nothing this release saves is read differently by 1.1.0.
+
+### Fixed
+
+- **Slow request bodies are refused on every path, as 1.1.0 said they would be.** In 1.1.0
+  `runway.http.min-request-data-rate` was enforced only where a body was read as a stream. Form posts — every login
+  form, the console's forms, a plugin's form — and multipart uploads were read past it, so a client trickling one in
+  still held a request thread until the 30-second idle timeout, as in 1.0.1. Runway now checks the rate on every read
+  of a request body and answers `408 Request Timeout`: within about two seconds for a steady drip (measured: form and
+  multipart posts at 20 bytes a second, on both login pages and a plugin's form route), and for a client that pauses
+  between packets when its next packet arrives, within one idle timeout. Only time spent waiting for the client
+  counts, and a body that has arrived complete is never refused, however late its last packet came. A proxy that
+  buffers the whole request body before forwarding it kept such clients off Runway already, in 1.1.0 too.
+- **Sending part of a body fast no longer buys a long drip.** 1.1.0 averaged over the whole body, so a client that
+  sent most of a large one at full speed could then drip the rest for the body's size divided by the rate (16 MiB at
+  4 KiB/s: over an hour). Bytes sent early now earn at most 30 seconds of waiting.
+- **A request refused for a slow body is answered `408`.** Depending on how the code above handled the failed read,
+  1.1.0 could answer it `400` (a form parser's "unable to parse") or an empty `200`.
+
+### Changed
+
+- **After a restore, the Backups screen shows how the site is reached.** On the application console, after a restore
+  or after creating a site from a backup, the screen shows the site's hosts and base URL as they now are, with the
+  same editor as **Sites → Edit hosts**: a restore made there brings back the hosts and base URL saved in the backup,
+  which may not be how this installation reaches the site. On a site's own console the hosts are shown read-only: a
+  restore made there keeps them. See `docs/ADMINISTRATION.md` §10.
+
+### Documentation
+
+- **Exempting a same-host proxy's health check from the rate limit** (`docs/ADMINISTRATION.md` §12.4): the proxy sends
+  its check with a fixed `X-Forwarded-For` that no visitor can produce, and that one address is listed in protection's
+  allowlist, so the check never shares a rate-limit bucket with a local crawl and loopback stays limited.
+
 ## [1.1.0] — 2026-10-29
 
 _A minor release: plugins can keep their data in PostgreSQL or MariaDB through the new database plugins, platform

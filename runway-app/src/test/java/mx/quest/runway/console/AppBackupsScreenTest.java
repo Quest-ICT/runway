@@ -131,6 +131,64 @@ class AppBackupsScreenTest {
         assertTrue(sites.exists("acme"), "the source site is untouched");
     }
 
+    /**
+     * A restore applies the hosts and base URL saved in the backup, so the screen then shows them for review with the
+     * hosts editor; saving it goes through Sites -> Edit hosts and changes the site.
+     */
+    @Test
+    void aRestoreIsFollowedByTheRestoredHostsWithTheirEditor() throws Exception {
+        Site original = sites.find("acme").orElseThrow();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        backups.backup("acme", baos); // carries acme.test and https://acme.test
+        try {
+            sites.save(new Site("acme", "Acme", List.of("acme.live"), Locale.ENGLISH, List.of(Locale.ENGLISH), null,
+                    SiteStatus.ACTIVE));
+            MockHttpSession admin = sessionFor("admin");
+            MockMultipartFile file = new MockMultipartFile("file", "acme.zip", "application/zip", baos.toByteArray());
+            mvc.perform(multipart("/__app/backups/acme/restore").file(file).session(admin)
+                            .with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attribute(AppBackupsController.REVIEW_HOSTS, "acme"));
+
+            String page = mvc.perform(get("/__app/backups").session(admin))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertTrue(page.contains("Review how site acme is reached"), "the review card is shown");
+            assertTrue(page.contains(">acme.test<"), "the hosts as restored from the backup, not acme.live");
+            assertTrue(page.contains(">https://acme.test<"), "the restored base URL");
+            assertTrue(page.contains("action=\"/__app/sites/acme/hosts\""), "the editor posts to Sites -> Edit hosts");
+            assertTrue(page.contains("value=\"acme.test\""), "the editor starts from the hosts as they stand");
+
+            String plain = mvc.perform(get("/__app/backups").session(admin))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertFalse(plain.contains("Review how site"), "no review card without a restore");
+
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/__app/sites/acme/hosts")
+                            .session(admin).with(csrf()).param("hosts", "acme.fixed").param("baseUrl", ""))
+                    .andExpect(status().is3xxRedirection());
+            assertEquals(List.of("acme.fixed"), sites.find("acme").orElseThrow().hosts(), "corrected from the review");
+        } finally {
+            sites.save(original);
+        }
+    }
+
+    /** A site created from a backup without hosts is not the default site: the review says nothing reaches it. */
+    @Test
+    void aSiteCreatedWithoutHostsIsReportedUnreachableNotAsTheDefault() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        backups.backup("acme", baos);
+        MockHttpSession admin = sessionFor("admin");
+        MockMultipartFile file = new MockMultipartFile("file", "acme.zip", "application/zip", baos.toByteArray());
+        mvc.perform(multipart("/__app/backups/create-site").file(file).session(admin).with(csrf())
+                        .param("newId", "hostless").param("name", "Hostless").param("hosts", ""))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute(AppBackupsController.REVIEW_HOSTS, "hostless"));
+        String page = mvc.perform(get("/__app/backups").session(admin))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(page.contains("Review how site hostless is reached"));
+        assertTrue(page.contains("none: no address reaches this site until you give it a host"), "not the default");
+        assertFalse(page.contains("catch-all default site"), "it is not the default site");
+    }
+
     /** An archive from a newer Runway: the operator is told to upgrade, and nothing is replaced or created. */
     @Test
     void aNewerFormatBackupIsRefusedWithTheUpgradeMessage() throws Exception {

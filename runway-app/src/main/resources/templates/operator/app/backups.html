@@ -16,6 +16,38 @@
         </div>
     </div>
 
+    <div class="card mb-3 border-primary" id="ab-review">
+        <div class="card-header"><h3 class="card-title" id="ab-review-title">Review how the site is reached</h3></div>
+        <div class="card-body">
+            <p class="text-secondary" id="ab-review-hint">The restore applied the hosts and base URL saved in the
+                backup. Check them, and correct them here if this installation reaches the site differently.</p>
+            <dl class="row mb-3">
+                <dt class="col-sm-2" id="ab-review-l-hosts">Hosts</dt>
+                <dd class="col-sm-10 font-monospace" id="ab-review-hosts">example.com</dd>
+                <dt class="col-sm-2" id="ab-review-l-base">Base URL</dt>
+                <dd class="col-sm-10 font-monospace" id="ab-review-base">https://example.com</dd>
+            </dl>
+            <form id="ab-review-form" method="post" action="#">
+                <input id="ab-review-csrf" type="hidden" name="_csrf" value="">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" id="ab-review-l-hosts-input" for="ab-review-hosts-input">Hosts</label>
+                        <input class="form-control" id="ab-review-hosts-input" name="hosts" autocomplete="off"
+                               placeholder="example.com, www.example.com">
+                        <small class="form-hint" id="ab-review-hosts-hint">Comma-separated.</small>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" id="ab-review-l-base-input" for="ab-review-base-input">Base URL</label>
+                        <input class="form-control" id="ab-review-base-input" name="baseUrl" type="url" maxlength="300"
+                               autocomplete="off" spellcheck="false">
+                        <small class="form-hint" id="ab-review-base-hint">The origin of the site's absolute links.</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="ab-review-save">Save hosts</button>
+            </form>
+        </div>
+    </div>
+
     <div class="card mb-3">
         <div class="card-header"><h3 class="card-title" id="cs-l">Create a site from a backup</h3></div>
         <div class="card-body">

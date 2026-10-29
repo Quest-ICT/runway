@@ -7,6 +7,15 @@
     <attr sel="#bk-pretitle" th:text="#{op.realm.tenant}"/>
     <attr sel="#bk-heading" th:text="#{op.backups.heading}"/>
 
+    <!-- After a restore (${reviewSite}): how the site is reached, read-only — a restore here keeps them. -->
+    <attr sel="#bk-review" th:if="${reviewSite != null}"/>
+    <attr sel="#bk-review-title" th:text="#{op.restore.review.kept.title}"/>
+    <attr sel="#bk-review-hint" th:text="#{op.restore.review.kept.hint}"/>
+    <attr sel="#bk-review-l-hosts" th:text="#{op.sites.hosts.short}"/>
+    <attr sel="#bk-review-hosts" th:text="${reviewSite == null or reviewSite.hosts().isEmpty()} ? (${reviewIsDefault} ? #{op.restore.review.noHosts} : #{op.restore.review.unreachable}) : ${#strings.listJoin(reviewSite.hosts(), ', ')}"/>
+    <attr sel="#bk-review-l-base" th:text="#{op.sites.base}"/>
+    <attr sel="#bk-review-base" th:text="${reviewSite?.baseUrl() != null} ? ${reviewSite.baseUrl()} : (${reviewSite == null or reviewSite.hosts().isEmpty()} ? #{op.restore.review.noBase} : #{op.restore.review.derived('https://' + ${reviewSite.hosts().get(0)})})"/>
+
     <attr sel="#bk-l-make" th:text="#{op.backups.make}"/>
     <attr sel="#bk-make-hint" th:text="#{op.backups.make.hint}"/>
     <attr sel="#bk-download-now" th:if="${canDownloadFull}" th:text="#{op.backups.downloadNow}"/>

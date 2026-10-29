@@ -6,7 +6,7 @@ name: Essential Protection
 # The essential plugin ships with the kernel, in the same release, on the kernel's version line (docs/SPI-STABILITY.md,
 # "The essential-plugin exception"): its version is the kernel's plain MAJOR.MINOR.PATCH. Seeding compares SHA-256
 # hashes, not versions, and no plugin may `requires:` an essential plugin, so nothing keys on it.
-version: 1.1.0
+version: 1.1.1
 essential: true
 # The mandatory floor (SPI 1.0.0): every plugin with a mainClass declares one; the kernel's own plugin declares the
 # SPI major's floor (>=1.0.0, met by every 1.x kernel; raised only when it uses a newer SPI member), so the floor rule

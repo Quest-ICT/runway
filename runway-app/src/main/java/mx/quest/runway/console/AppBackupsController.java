@@ -49,10 +49,13 @@ public class AppBackupsController {
     private final AppActivityLog activity;
 
     private final mx.quest.runway.backup.BackupProperties policy;
+    private final mx.quest.runway.platform.PlatformSettingsStore platform;
 
     public AppBackupsController(SiteStore sites, BackupService backups, PlatformAuthority platformAuthority,
                                @Qualifier("operatorAwareMessageSource") MessageSource messages,
-                               AppActivityLog activity, mx.quest.runway.backup.BackupProperties policy) {
+                               AppActivityLog activity, mx.quest.runway.backup.BackupProperties policy,
+                               mx.quest.runway.platform.PlatformSettingsStore platform) {
+        this.platform = platform;
         this.policy = policy;
         this.sites = sites;
         this.backups = backups;
@@ -60,6 +63,9 @@ public class AppBackupsController {
         this.messages = messages;
         this.activity = activity;
     }
+
+    /** Flash attribute naming the site whose hosts the Backups screen shows for review after a restore. */
+    static final String REVIEW_HOSTS = "reviewHostsOf";
 
     /** One site row: its id and the backups stored for it on the server. */
     public record SiteBackups(String siteId, List<StoredBackup> stored) {
@@ -73,6 +79,15 @@ public class AppBackupsController {
             rows.add(new SiteBackups(site.id(), backups.list(site.id())));
         }
         model.addAttribute("rows", rows);
+        // After a restore (or a site created from a backup), how the site is reached now: the hosts and base URL may
+        // have come from the backup, so they are shown for review with the editor, read from the store as they stand.
+        if (model.getAttribute(REVIEW_HOSTS) instanceof String reviewed) {
+            sites.find(reviewed).ifPresent(site -> {
+                model.addAttribute("reviewSite", site);
+                // A site with no host is reached only if it is the default (catch-all) site; otherwise not at all.
+                model.addAttribute("reviewIsDefault", platform.get().defaultSite().filter(reviewed::equals).isPresent());
+            });
+        }
         // Shown, not edited: a server folder that receives every site's archives is the host's (settings-homes.yml).
         String offsite = policy.getOffsiteDir();
         model.addAttribute("offsiteDir", offsite == null || offsite.isBlank() ? null : offsite.trim());
@@ -136,6 +151,7 @@ public class AppBackupsController {
             backups.restore(siteId, in);
             activity.record(authentication.getName(), "site.restored", siteId + " (upload)");
             redirect.addFlashAttribute("flash", message("op.appbackups.restored", "Site restored."));
+            redirect.addFlashAttribute(REVIEW_HOSTS, siteId);
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
         } catch (IOException | RuntimeException e) {
@@ -154,6 +170,7 @@ public class AppBackupsController {
             backups.restoreStored(siteId, name);
             activity.record(authentication.getName(), "site.restored", siteId + "/" + name);
             redirect.addFlashAttribute("flash", message("op.appbackups.restored", "Site restored."));
+            redirect.addFlashAttribute(REVIEW_HOSTS, siteId);
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
         } catch (IOException | RuntimeException e) {
@@ -196,6 +213,7 @@ public class AppBackupsController {
             backups.createFromBackup(newId.strip(), name, splitHosts(hosts), in);
             activity.record(authentication.getName(), "site.created-from-backup", newId.strip());
             redirect.addFlashAttribute("flash", message("op.appbackups.created", "Site created from backup."));
+            redirect.addFlashAttribute(REVIEW_HOSTS, newId.strip());
         } catch (UnsupportedBackupFormatException e) {
             redirect.addFlashAttribute("error", newerFormat(e));
         } catch (IllegalStateException e) {

@@ -710,7 +710,7 @@ from the configuration metadata shipped in the jar.
 | `runway.security.secret-key` | _(installer-set)_ | Master key for AES-256-GCM encryption of every stored secret (platform SMTP password or OAuth2 client secret, per-site CAPTCHA secrets, `secret`-typed plugin settings). The installer generates one on first install and stores it in a root-only systemd drop-in as `RUNWAY_SECURITY_SECRET_KEY` (see `--secret-key`, §3); Spring's relaxed binding maps that env var to this property. **While blank the secret cipher is unavailable and no secret can be saved** — the app console shows a persistent warning on every page until it is set. Holds a real secret — never in the classpath default. |
 | `runway.proxy.forwarded-headers` | `true` | Whether to honor `X-Forwarded-*` at all (still only from trusted peers; the standard `Forwarded` header is never read) — see **§7**. |
 | `runway.proxy.trusted-cidrs` | `127.0.0.1/32`, `::1/128` | Proxy peers whose forwarded headers are trusted. The **bound default is empty** (trust nothing); the shipped file seeds loopback. **§7**. |
-| `runway.http.min-request-data-rate` | `4096` | The slowest a request body may arrive, in **bytes per second**, before Runway answers `408 Request Timeout` and frees the request thread. Without it a client sending a byte now and then kept a thread for as long as it liked (the idle timeout only limits one stalled read). Measured from the body's first byte on what has arrived, so a server slow to start reading is never blamed. 4096 (4 KiB/s) is below any real connection; `0` turns the check off. Set on **Settings → Server settings → Request limits**; applies after a restart. |
+| `runway.http.min-request-data-rate` | `4096` | The slowest a request body may arrive, in **bytes per second**, before Runway answers `408 Request Timeout` and frees the request thread. It applies to every body — login and other forms, multipart uploads, raw bodies alike. Without it a client sending a byte now and then kept a thread for as long as it liked (the idle timeout only limits one stalled read). Only the time spent waiting for the client counts, from the first second of waiting on, so a server slow to start reading is never blamed, and a body that has arrived complete is never refused, however late its last packet came. Sending part of a body fast earns at most 30 seconds of waiting, so a large body cannot buy a long drip; a client pausing between packets is cut when its next packet arrives, within one idle timeout. 4096 (4 KiB/s) is below any real connection; `0` turns the check off. Set on **Settings → Server settings → Request limits**; applies after a restart. |
 | `runway.i18n.cache-seconds` | `5` | How often a message lookup **outside** a public page (an error page, a plugin's background text) and the operator console's own bundle re-check their files on disk (`0` = on every lookup). Public pages re-check on every request, so a bundle edited on disk shows on the next page view, under a new ETag. |
 | `runway.csp.mode` | `report` | Content-Security-Policy delivery: `report` (report-only — violations are logged, nothing is blocked), `enforce`, or `off`. Upper or lower case; blank means `report`. Any other value (`enforced`, say) stops startup with a message naming it. See **§8.4**. |
 | `runway.csp.strict-dynamic` | `true` | `'strict-dynamic'` on the nonced pages. `false` rolls the whole estate (console **and** public pages) back to the host allowlist. **§8.4**. |
@@ -1588,7 +1588,10 @@ wherever a site gets hosts: creating a site, installing a demo, and creating a s
 malformed host or one another site answers on, before anything is created. Restoring a backup brings back the
 hosts and base URL the site had when the backup was taken when it is made from the application console (a host
 given to another site since then is left off, the log says which: `restored site '…' without host(s) […]`, and you
-can add it back with **Edit hosts** once it is free). A restore made from the site's own console keeps the hosts and
+can add it back with **Edit hosts** once it is free). After such a restore, and after creating a site from a backup,
+the Backups screen shows the site's hosts and base URL **as they now are**, with the same editor as **Edit hosts**:
+check them before anything else, because a backup taken on another installation, or before the site moved, brings
+back how it was reached then. A restore made from the site's own console keeps the hosts and
 base URL the site has: how a site is reached is yours to set, never the site manager's, and a backup file is
 theirs to write. A host is a plain DNS name: no scheme, path,
 port (`example.com:8080`), wildcard (`*.example.com`) or underscore, and an international name is written in its
@@ -2430,6 +2433,24 @@ runway:
         - "203.0.113.0/24"     # the office
         - "198.51.100.7"       # the audit runner
 ```
+
+**A health check from a proxy on the same host.** Behind a same-host reverse proxy, the proxy's own health check
+(`GET /actuator/health` or a site's `/__health`) usually reaches Runway from loopback with no `X-Forwarded-For`, so it
+shares one rate-limit bucket with everything else run on that host — a local crawl or audit can then earn the check
+`429`s and push the proxy towards marking the server down. Exempt the check alone, not loopback: have the proxy send
+it with a fixed `X-Forwarded-For` from a documentation range, and list that address here. No visitor can pose as
+it: on real traffic the proxy adds the visitor's own address to the right of anything the visitor sent (or replaces
+the header), and Runway reads the header from the right. With HAProxy 2.2 or later:
+
+```
+backend runway
+    option httpchk
+    http-check send meth GET uri /actuator/health ver HTTP/1.1 hdr Host www.example.com hdr X-Forwarded-For 192.0.2.53
+```
+
+and `192.0.2.53` in `allowlist`. Loopback must be in `runway.proxy.trusted-cidrs` (it is, for a same-host proxy);
+leave the probe's address out of it, which is for real proxies only. Checking
+`/actuator/health` from outside the proxy (a monitoring service) needs no header: list that service's own address.
 
 > **If you are blocked, stop — do not keep probing.** Once an address is auto-blocked, requests no longer
 > reach the rate limiter at all; they hit the blocklist. So the `rate-limit` counter freezes while
