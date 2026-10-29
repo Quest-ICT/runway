@@ -161,4 +161,22 @@ class SiteLogServiceTest {
         assertEquals(3, lines.size());
         assertTrue(lines.get(2).endsWith("/page-19999\t200"), lines.get(2)); // the newest line survives
     }
+
+    @Test
+    void underAFloodAccessLinesAreDroppedBeforeAuditLines() {
+        props.setQueueCapacity(16); // reserve: 16 / 8 = 2 slots for audit only
+        SiteLogService svc = new SiteLogService(layout, configs, props);
+        svc.acceptWithoutWriting();
+        for (int i = 0; i < 20; i++) {
+            svc.access("acme", "203.0.113.9", "POST", "/login", 302);
+        }
+        assertEquals(14, svc.queued(), "access lines stop short of the audit reserve");
+        assertEquals(6, svc.droppedCount());
+        svc.audit("acme", "-", "login.failure", "user=a");
+        svc.audit("acme", "-", "login.failure", "user=b");
+        assertEquals(16, svc.queued(), "the reserve takes the audit lines the flood would have crowded out");
+        assertEquals(6, svc.droppedCount());
+        svc.audit("acme", "-", "login.failure", "user=c");
+        assertEquals(7, svc.droppedCount(), "a full queue drops an audit line too: the reserve is not unbounded");
+    }
 }

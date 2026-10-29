@@ -2,6 +2,82 @@
 
 All notable changes are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] — 2026-10-29
+
+_A patch release: the access log now records every public request that gets past the protection edge, including the
+ones a filter answers on its own: login attempts, refused form posts, a suspended or maintenance site, a slow body's
+`408`, an oversized form's `413`, plugin routes such as `robots.txt` and the sitemap._
+
+### Upgrading — read this first
+
+**From `1.1.1`: a kernel upgrade, no flag.** From `1.1.0`, `1.0.1` or `1.0.0`, read `1.1.1`'s and `1.1.0`'s
+*Upgrading* first, then install this release directly. Paths are the installer defaults (`/opt/runway`,
+`/opt/runway-data`).
+
+**Your access log will carry more lines.** Nothing is removed and the line format is unchanged, but requests that
+used to leave no line now leave one: in the `runway.access` stream and in each site's own access log (its **Logs**
+screen). Expect, among others, `POST /login -> 302` for a login attempt, `POST /login -> 403` for a form post refused
+for its missing token, `-> 503` while a site is suspended, in maintenance or over its quota, `-> 408` for a refused
+slow body, `-> 413` for a `PUT`/`PATCH`/`DELETE` form over `runway.endpoints.max-form-bytes`, and `GET /robots.txt`,
+`GET /sitemap.xml` and other plugin routes. A tool that reads `runway.access` (a
+log shipper, an alert on `4xx`/`5xx` counts, a ban list fed by failed logins) sees these from now on; check any
+threshold that assumed they were absent; under a flood of login attempts that gets past the protection edge, the
+`runway.access` stream now grows by one line per attempt, which a journal rate limit may also count. Each site's
+**Insights** does not count the refusals (it counts only `GET` page views and `404`s), but it now sees plugin routes:
+a page a plugin serves counts as a page view, and a plugin route answering `404` (a missing blog post, an icon the
+site has not set) appears among the top 404s. Requests the protection edge turns away (`403`/`429`) still go to
+`runway.protect` only, throttled, as before.
+
+**1. Back up.** Take each site's backup (**Backups**) and copy `/opt/runway-data/external/` somewhere **outside**
+`external/plugins/`.
+
+**2. Upgrade the kernel:**
+
+```bash
+chmod +x runway-1.1.2.bin
+sudo ./runway-1.1.2.bin -y
+```
+
+The essential plugin moves with the kernel to `1.1.2` (its descriptor changes in version only, and its jar is
+rebuilt), so the installer refreshes it; expect these lines, once:
+
+```
+refreshing bundled plugin 'protection' from this release (it moves with the kernel; files you edited are backed up)
+plugin 'protection': plugin.yml replaced (the previous one kept as plugin.yml.bak, for a rollback)
+plugin 'protection': runway-plugin-protection.jar replaced (the previous one kept as runway-plugin-protection.jar.bak, for a rollback)
+keeping the bundled plugins in the release: /opt/runway-1.1.2/seed/ (the repair copy — Administration §12)
+```
+
+**3. Check.**
+- **About Runway** shows `1.1.2`.
+- On **Plugins**, every row is *Loaded* and none *Blocked*; protection shows `1.1.2`.
+- A login form posted without its token appears in the access log:
+  `curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: <a site host>' -d 'username=x&password=y' http://127.0.0.1:8080/login`
+  answers `403`, and `journalctl -u runway --since '-5min' | grep 'runway.access' | grep -c 'POST /login -> 403'` is
+  at least `1`.
+
+**4. Rollback**, if needed: `sudo bash runway-1.1.1.bin -y` puts 1.1.1 back, its protection files included; those
+requests then leave no access-log line again. Nothing this release saves is read differently by 1.1.1.
+
+### Fixed
+
+- **The access log records every public request past the protection edge.** It used to be written by the innermost
+  filter, so any request answered by a filter further out left no line in either the platform log or the site's
+  own: every attempt at a site's login page, successful or not (Spring Security answers it itself), a form post
+  refused for its missing token, the `503` of a suspended, maintenance or over-quota site, a request body refused for
+  arriving too slowly, a `PUT`/`PATCH`/`DELETE` form refused unread for its size, and every plugin route
+  (`robots.txt`, the sitemap, `llms.txt`, a plugin's form). A password-guessing run against a site's login was
+  invisible in its access log. The log is now written just inside the protection edge, from where it sees how each
+  request was answered. A plugin page served by a route now also counts in **Insights** like any other page.
+- **Audit lines are kept ahead of access lines when a site's log queue is full.** Both share one queue
+  (`runway.logs.queue-capacity`); an eighth of it is now held for audit lines, so a flood that fills it drops access
+  lines first and keeps the `login.failure` records of the very attack that filled it.
+
+### Documentation
+
+- OPERATIONS §3 (what the access log records, and since when), PLUGIN-DEVELOPMENT (which plugin filters' answers are
+  logged), SITE-MANAGER-GUIDE §3 and §10 (login attempts and refusals on **Logs**; not counted by **Insights**).
+
 ## [1.1.1] — 2026-10-29
 
 _A patch release: the slow-request-body limit 1.1.0 introduced now covers form posts and multipart uploads too, and

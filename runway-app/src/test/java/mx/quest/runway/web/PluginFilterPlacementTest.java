@@ -36,7 +36,23 @@ class PluginFilterPlacementTest {
         for (int offset : new int[] {Integer.MIN_VALUE, -1000, 0, 5, 999_000, Integer.MAX_VALUE}) {
             int order = PluginFilterPlacement.resolve(FilterBand.APPLICATION, offset);
             assertTrue(order > FilterOrder.CORE_SECURITY, "APPLICATION offset " + offset + " escaped inner-of-security");
-            assertTrue(order < FilterOrder.CORE_ACCESS_LOG, "APPLICATION offset " + offset + " escaped outer-of-access-log");
+            assertTrue(order > FilterOrder.CORE_ACCESS_LOG, "APPLICATION offset " + offset + " escaped the access log");
+        }
+    }
+
+    @Test
+    void onlyAnIngressPluginFilterSitsOuterOfTheAccessLog() {
+        // Ingress filters turn abuse away like the floor and stay out of the access log with it; whatever any other
+        // plugin filter answers is logged.
+        for (FilterBand band : FilterBand.values()) {
+            if (!band.contributable()) {
+                continue;
+            }
+            for (int offset : new int[] {Integer.MIN_VALUE, -1000, 0, 5, 999_000, Integer.MAX_VALUE}) {
+                int order = PluginFilterPlacement.resolve(band, offset);
+                assertTrue(band == FilterBand.EDGE_INGRESS ? order < FilterOrder.CORE_ACCESS_LOG
+                        : order > FilterOrder.CORE_ACCESS_LOG, band + " offset " + offset + " -> " + order);
+            }
         }
     }
 

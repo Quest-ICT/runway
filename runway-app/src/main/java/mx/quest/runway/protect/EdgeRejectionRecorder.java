@@ -15,9 +15,9 @@ import org.slf4j.LoggerFactory;
  * <h2>The blind spot this closes</h2>
  * {@link EdgeRejectFilter} sits at {@code FilterOrder.CORE_PROTECTION}, the outermost slot after the forwarded
  * header gate, and a reject <b>does not call the chain</b>. {@code AccessLogFilter} sits at
- * {@code CORE_ACCESS_LOG}, the innermost. So every edge {@code 403}/{@code 429} short-circuits <i>before</i>
- * anything logs it: the request appears in no log anywhere in the product, and the access log never carried a
- * {@code User-Agent} to begin with. The practical result was that nobody could answer either half of the
+ * {@code CORE_ACCESS_LOG}, inside the floor (on purpose: see the throttling below). So every edge
+ * {@code 403}/{@code 429} short-circuits <i>before</i> anything logs it: without this recorder the request
+ * appears in no log anywhere in the product, and the access log carries a {@code User-Agent} only when asked to. The practical result was that nobody could answer either half of the
  * obvious question — <i>was a crawler throttled</i>, and <i>why was this request rejected</i>.
  *
  * <p>A rejection is also emitted <b>before</b> {@code CORE_SITE_CONTEXT}, so there is no resolved site and it

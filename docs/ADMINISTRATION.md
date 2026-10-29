@@ -2775,7 +2775,8 @@ Each site keeps its own access log (its public traffic) and audit log (its manag
 - `runway.logs.queue-capacity` (default `8192`, at least `16`) — log lines wait in a queue between the request and
   the disk, so a slow disk never slows a page. When the queue is full, new lines are **dropped**, not waited for:
   the count is the `runway_logs_dropped` metric (and the Logs screen), and a `WARN` *"site log queue saturated"* is
-  logged at most once a minute. Raise it if that count grows; each queued line takes a little memory.
+  logged at most once a minute. An eighth of the queue is held for audit lines (sign-ins, changes), so a flood of
+  public requests drops access lines first. Raise it if that count grows; each queued line takes a little memory.
 
 ### Bandwidth metering (`runway.bandwidth.*`)
 

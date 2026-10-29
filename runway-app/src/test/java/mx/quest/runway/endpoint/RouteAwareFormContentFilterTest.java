@@ -85,8 +85,7 @@ class RouteAwareFormContentFilterTest {
     }
 
     @Test
-    void itKeepsBootsOrder() {
-        assertEquals(org.springframework.boot.servlet.filter.OrderedFormContentFilter.DEFAULT_ORDER,
-                filter(registry()).getOrder());
+    void itSitsInsideTheAccessLogAndTheSiteBindingSoItsRefusalsAreLogged() {
+        assertEquals(mx.quest.runway.web.FilterOrder.CORE_FORM_CONTENT, filter(registry()).getOrder());
     }
 }

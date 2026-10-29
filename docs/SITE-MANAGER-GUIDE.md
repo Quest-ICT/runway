@@ -230,7 +230,8 @@ name or the default language. While no field is set and no manifest icon (192, 5
 `/manifest.webmanifest` answers 404 and pages do not link to it.
 
 The **Logs** screen (`/__admin/logs`) shows your site's own **access log** (public traffic — the most recent
-lines) and its **audit journal**: who did what on your site, and when. The journal records sign-ins
+lines; every sign-in attempt on your site's login page is there too, as a `POST /login`, and so is a request your
+site refused, such as a `503` while it is in maintenance) and its **audit journal**: who did what on your site, and when. The journal records sign-ins
 (`login.success`, `login.failure`) and sign-outs (`logout`), each with the address it came from (`ip=…`, in full:
 the anonymizing setting below applies to the access log only); password recovery through an emailed link
 (`recovery.requested`, `recovery.completed`); page changes (`page.saved`, `page.deleted`, `page.published`,
@@ -1184,10 +1185,10 @@ two lists, for the **last 7 or 30 days** (never longer than your log retention �
   with a corrected link, the missing page or file, or a redirect from the old address.
 - **Most-visited pages** — your pages by how often they were successfully viewed, with when last.
 
-**What it counts.** Only `GET` requests (a form post or a crawler's `HEAD` is not a visit). A **page view** is a
+**What it counts.** Only `GET` requests (a form post, a sign-in attempt or a crawler's `HEAD` is not a visit). A **page view** is a
 successful (2xx) answer for an address that looks like a page — no file extension in the last part, or `.html`
 — so stylesheets, images, downloads, `robots.txt` and the sitemap are left out; a browser re-checking a page it
-already has (a `304`) is not a new view. A **404** counts for any address, images included, because a missing
+already has (a `304`) is not a new view, and neither is a refusal (a `403`, or a `503` during maintenance). A **404** counts for any address, images included, because a missing
 image is a broken link too. Addresses are shown **without their query string** (`/search?q=…` counts as
 `/search`), and very long ones are shortened on screen (hover to see the whole stored address).
 

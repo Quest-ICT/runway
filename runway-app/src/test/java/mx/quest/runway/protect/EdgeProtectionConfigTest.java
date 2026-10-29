@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
-/** The protection floor and access log sit at their pinned slots, and the kernel default guard passes. */
+/** The protection floor and the access log just inside it sit at their pinned slots; the default guard passes. */
 @SpringBootTest
 class EdgeProtectionConfigTest {
 
@@ -30,9 +30,10 @@ class EdgeProtectionConfigTest {
     }
 
     @Test
-    void theAccessLogSitsInnermost() {
+    void theAccessLogSitsJustInsideTheFloor() {
         assertEquals(FilterOrder.CORE_ACCESS_LOG, accessLog.getOrder());
-        assertEquals(Integer.MAX_VALUE, accessLog.getOrder());
+        assertTrue(accessLog.getOrder() > edgeReject.getOrder(), "floor rejections stay out of the access log");
+        assertTrue(accessLog.getOrder() < FilterOrder.CORE_SITE_CONTEXT, "outer of every gate that answers alone");
     }
 
     @Test

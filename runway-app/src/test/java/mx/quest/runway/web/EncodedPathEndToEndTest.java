@@ -410,7 +410,9 @@ class EncodedPathEndToEndTest {
         get("main.test", control);
         awaitLine("main", LogKind.ACCESS, control);
         List<String> lines = siteLogs.tail("main", LogKind.ACCESS, 1000);
-        assertFalse(lines.stream().anyMatch(l -> l.contains("%6Cogin") || l.contains("%5F%5Fapp")), lines.toString());
+        // The console's paths only: a site's own login spelled /%6Cogin is public traffic, and logged since 1.1.2.
+        assertFalse(lines.stream().anyMatch(l -> l.contains("/app/%6Cogin") || l.contains("%5F%5Fapp")),
+                lines.toString());
     }
 
     // --- Health, reload, Prometheus, console assets, the error page -------------------------------------------------

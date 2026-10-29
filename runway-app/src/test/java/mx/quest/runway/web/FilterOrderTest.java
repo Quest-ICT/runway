@@ -13,6 +13,9 @@ class FilterOrderTest {
         int[] ladder = {
                 FilterOrder.CORE_FORWARDED,
                 FilterOrder.CORE_PROTECTION,
+                FilterOrder.CORE_ACCESS_LOG,
+                FilterOrder.CORE_BANDWIDTH,
+                FilterOrder.CORE_SITE_METRICS,
                 FilterOrder.CORE_COMPRESSION,
                 FilterOrder.CORE_CSP_FINALIZE,
                 FilterOrder.CORE_HEAD_INJECTION,
@@ -21,13 +24,13 @@ class FilterOrderTest {
                 FilterOrder.CORE_SITE_RELOAD,
                 FilterOrder.CORE_CONSOLE_HOST,
                 FilterOrder.CORE_ROUTE_FORM_CAPTURE,
+                FilterOrder.CORE_FORM_CONTENT,
                 FilterOrder.CORE_SUSPENDED_SITE,
                 FilterOrder.CORE_QUARANTINED_SITE,
                 FilterOrder.CORE_ESSENTIAL_FLOOR,
                 FilterOrder.CORE_EDGE_MODE,
                 FilterOrder.CORE_SECURITY,
                 FilterOrder.CORE_ENDPOINT_DISPATCH,
-                FilterOrder.CORE_ACCESS_LOG,
         };
         for (int i = 1; i < ladder.length; i++) {
             assertTrue(ladder[i - 1] < ladder[i],
@@ -97,9 +100,13 @@ class FilterOrderTest {
         // TENANT: after the kernel tenant gates, before security.
         assertTrue(tenant.outer() > FilterOrder.CORE_EDGE_MODE);
         assertTrue(tenant.inner() < FilterOrder.CORE_SECURITY);
-        // APPLICATION: inner of security (never preempts it), outer of the access log.
+        // APPLICATION: inner of security (never preempts it).
         assertTrue(application.outer() > FilterOrder.CORE_SECURITY);
-        assertTrue(application.inner() < FilterOrder.CORE_ACCESS_LOG);
+        // The access log: inner of every EDGE_INGRESS filter (floor rejections stay out of it), outer of every
+        // other band, so whatever a plugin filter answers is logged.
+        assertTrue(ingress.inner() < FilterOrder.CORE_ACCESS_LOG);
+        assertTrue(FilterOrder.CORE_ACCESS_LOG < FilterOrder.CORE_BANDWIDTH);
+        assertTrue(FilterOrder.CORE_ACCESS_LOG < egress.outer());
         // The windows are disjoint and nested outer→inner.
         assertTrue(ingress.inner() < egress.outer());
         assertTrue(egress.inner() < tenant.outer());

@@ -20,6 +20,7 @@ import org.springframework.core.Ordered;
  * <pre>
  *   CORE_FORWARDED        Integer.MIN_VALUE   EDGE_INGRESS  TrustedForwardedHeaderFilter (gates X-Forwarded-*)
  *   CORE_PROTECTION       MIN_VALUE + 1       EDGE_INGRESS  EdgeRejectFilter (the O(1) reject seam)
+ *   CORE_ACCESS_LOG       -500                (own slot)    AccessLogFilter (one line per request past the floor)
  *   CORE_BANDWIDTH        -300                EDGE_EGRESS   BandwidthFilter (meters the on-the-wire bytes)
  *   CORE_SITE_METRICS     -290                EDGE_EGRESS   SiteRequestMetricsFilter (per-site request timing)
  *   CORE_COMPRESSION      -200                EDGE_EGRESS   CompressionFilter (brotli / gzip, one decision)
@@ -30,13 +31,13 @@ import org.springframework.core.Ordered;
  *   CORE_SITE_RELOAD       56                 TENANT        SiteReloadFilter (loopback /__reload/**)
  *   CORE_CONSOLE_HOST      57                 TENANT        ConsoleHostFilter (operator console off site hosts)
  *   CORE_ROUTE_FORM_CAPTURE 58                TENANT        RouteFormCaptureFilter (reads a plugin route's form body)
+ *   CORE_FORM_CONTENT      59                 TENANT        RouteAwareFormContentFilter (PUT/PATCH/DELETE forms)
  *   CORE_SUSPENDED_SITE    60                 TENANT        SuspendedSiteFilter (503s a suspended tenant)
  *   CORE_QUARANTINED_SITE  65                 TENANT        QuarantinedSiteFilter (503s a quarantined admin)
  *   CORE_MAINTENANCE       68                 TENANT        MaintenanceSiteFilter (503s a self-maintenance tenant)
  *   CORE_BANDWIDTH_LIMIT   69                 TENANT        BandwidthLimitFilter (503s a tenant over its quota)
  *   CORE_EDGE_MODE         70                 TENANT        (reserved — read-only edge/replica topology, later)
  *   CORE_SECURITY         100                 SECURITY      the Spring Security FilterChainProxy
- *   CORE_ACCESS_LOG       Integer.MAX_VALUE   innermost     AccessLogFilter (final status, post-chain)
  * </pre>
  *
  * <h2>Why these values</h2>
@@ -197,13 +198,33 @@ public final class FilterOrder {
     /**
      * The kernel route dispatcher for {@code EndpointContributor} routes (robots.txt, sitemap, …) — a terminal
      * application handler, inner of the plugin APPLICATION window so a plugin filter can still wrap it. It
-     * short-circuits a matched route, so such responses are not seen by the (inner) access log — endpoint/bot
-     * traffic is a separate category from the public page access log.
+     * short-circuits a matched route; the access log, far outside it, still records the answer.
      */
     public static final int CORE_ENDPOINT_DISPATCH = Integer.MAX_VALUE - 100;
 
-    /** {@code AccessLogFilter} — innermost, so its post observes the final status after every inner filter. */
-    public static final int CORE_ACCESS_LOG = Ordered.LOWEST_PRECEDENCE;
+    /**
+     * {@code AccessLogFilter} — inner of the whole EDGE_INGRESS band (the kernel's reject floor and any plugin
+     * ingress filter) and outer of everything else, so every request that gets past the abuse floor is logged,
+     * whoever answers it: a tenant gate's {@code 503}, Spring Security (a login attempt, a CSRF {@code 403}), a
+     * slow body's {@code 408}, an endpoint route, a page. Its {@code post} runs after every inner filter has
+     * returned, so the status it reads is final.
+     *
+     * <p>Until 1.1.2 it sat innermost ({@code Integer.MAX_VALUE}), and every filter that answered without calling
+     * the chain answered unseen: a password-guessing run against a site's {@code /login} left no line at all.
+     * Floor rejections stay out on purpose: a flood the floor turns away in O(1) must not become a flood of log
+     * writes; {@code EdgeRejectionRecorder} reports them, throttled, under {@code runway.protect}.
+     */
+    public static final int CORE_ACCESS_LOG = -500;
+
+    /**
+     * {@code RouteAwareFormContentFilter} (Boot's {@code FormContentFilter}, which parses a {@code PUT}/{@code PATCH}/
+     * {@code DELETE} form body into parameters, bounded). Boot's own order is {@code -9900}, outer of the access log,
+     * where its {@code 413} for an oversized body went unlogged. Here it is inner of the site binding, so the refusal
+     * is in that site's log too, and inner of {@link #CORE_ROUTE_FORM_CAPTURE}, which must read a route's body
+     * first; and outer of the tenant gates, every plugin TENANT filter and the security chain, which read
+     * parameters (the CSRF check above all).
+     */
+    public static final int CORE_FORM_CONTENT = 59;
 
     private FilterOrder() {
     }

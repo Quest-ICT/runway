@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The recorder that closes the edge-rejection blind spot: a reject short-circuits at
- * {@code FilterOrder.CORE_PROTECTION} without calling the chain, so it never reaches the innermost access log
- * and appeared in <b>no</b> log anywhere in the product.
+ * {@code FilterOrder.CORE_PROTECTION} without calling the chain, so it never reaches the access log (inside the
+ * floor) and appeared in <b>no</b> log anywhere in the product.
  *
  * <p>The behaviour under test is mostly about what must remain true <em>under abuse</em>, since that is exactly
  * when this code runs: the count must stay exact, the log must not become an amplifier, and the memory used to

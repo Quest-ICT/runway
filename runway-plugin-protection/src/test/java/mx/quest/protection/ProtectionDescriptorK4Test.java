@@ -35,7 +35,7 @@ class ProtectionDescriptorK4Test {
         PluginDescriptor descriptor = shipped();
         assertEquals("protection", descriptor.id());
         assertTrue(descriptor.isEssential());
-        assertEquals("1.1.1", descriptor.version(), "versioned on the kernel's line");
+        assertEquals("1.1.2", descriptor.version(), "versioned on the kernel's line");
         assertEquals(PluginVersion.parse("1.0.0"), descriptor.spiFloor());
         assertEquals(PluginVersion.parse(RunwaySpi.VERSION).major(), descriptor.spiFloor().major(),
                 "the floor names the kernel's own SPI major line");

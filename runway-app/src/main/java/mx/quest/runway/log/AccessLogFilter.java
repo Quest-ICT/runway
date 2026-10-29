@@ -5,8 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import mx.quest.runway.site.Site;
-import mx.quest.runway.site.SiteResolver;
+import mx.quest.runway.site.SiteContextFilter;
 import mx.quest.runway.web.ClientIp;
 import mx.quest.runway.web.LogSafe;
 import mx.quest.runway.web.RequestPaths;
@@ -15,9 +14,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * The innermost filter ({@code FilterOrder.CORE_ACCESS_LOG}): it logs one event per <b>public</b> request from
- * its {@code post} phase, so it observes the <b>final</b> status set by every inner filter and the handler.
- * Being innermost is the whole point — an outer position would log a not-yet-decided status.
+ * The access log: one event per <b>public</b> request, written from its {@code post} phase, once every inner filter
+ * and the handler have finished, so the status it records is the one the request was answered with. (The exception:
+ * an exception escaping the chain, which only a plugin's own MVC controller can let through, is logged with the
+ * status set before it, while the container answers {@code 500}.) It sits at {@code FilterOrder.CORE_ACCESS_LOG}, just inside the abuse floor and outside every
+ * other filter, so it sees every request the floor lets through however it is answered: by a page, an endpoint
+ * route, Spring Security (a login attempt, a CSRF {@code 403}), a tenant gate (a suspended or over-quota site's
+ * {@code 503}), a refused slow body ({@code 408}) or an oversized form refused unread ({@code 413}). A filter that answers without calling the chain is invisible
+ * to every filter inside it, which is why this one is not innermost: there, until 1.1.2, a password-guessing run
+ * against a site's login left no line at all. Rejections by the floor itself are reported, throttled, by
+ * {@code EdgeRejectionRecorder} instead.
  *
  * <p>It is a <b>public-traffic</b> log, not an audit trail: it skips the internal surfaces (anything under
  * {@code /__…} — the app/admin/preview/assets/CSP-report consoles — plus {@code /app/…} and {@code /actuator}),
@@ -25,27 +31,22 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * {@link ClientIp#of} (never a raw forwarded header).
  *
  * <p>It emits to two sinks: the operator's {@code runway.access} SLF4J logger (the whole-platform stream), and —
- * when a site is bound (a public tenant request) — that site's own {@link SiteLogService#access per-site access
- * log}. This filter runs <em>inside</em> the site-context filter, so the tenant binding is still live in the
- * post phase.
+ * when a site answered (a public tenant request) — that site's own {@link SiteLogService#access per-site access
+ * log}. The site is read from the {@link SiteContextFilter#SITE_ID_ATTRIBUTE request attribute} the site-context
+ * filter leaves, not from {@code SiteResolver.current()}: that filter is inner of this one and has cleared its
+ * thread binding by the time this {@code post} runs. A request refused before the site is resolved has no site and
+ * goes to the platform log only.
  */
 public class AccessLogFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger("runway.access");
 
-    private final SiteResolver siteResolver;
     private final SiteLogService siteLog;
     private final boolean logUserAgent;
 
-    public AccessLogFilter(SiteResolver siteResolver, SiteLogService siteLog, boolean logUserAgent) {
-        this.siteResolver = siteResolver;
+    public AccessLogFilter(SiteLogService siteLog, boolean logUserAgent) {
         this.siteLog = siteLog;
         this.logUserAgent = logUserAgent;
-    }
-
-    /** Pre-{@code logUserAgent} form, kept so existing call sites (and tests) compile unchanged: agent off. */
-    public AccessLogFilter(SiteResolver siteResolver, SiteLogService siteLog) {
-        this(siteResolver, siteLog, false);
     }
 
     @Override
@@ -69,9 +70,8 @@ public class AccessLogFilter extends OncePerRequestFilter {
                 log.info("{} {} {} -> {} ({}ms)", ip, request.getMethod(),
                         request.getRequestURI(), response.getStatus(), millis);
             }
-            Site site = siteResolver.current().orElse(null);
-            if (site != null) {
-                siteLog.access(site.id(), ip, request.getMethod(), request.getRequestURI(), response.getStatus());
+            if (request.getAttribute(SiteContextFilter.SITE_ID_ATTRIBUTE) instanceof String siteId) {
+                siteLog.access(siteId, ip, request.getMethod(), request.getRequestURI(), response.getStatus());
             }
         }
     }

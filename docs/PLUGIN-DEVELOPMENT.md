@@ -738,7 +738,9 @@ You declare a **`FilterBand` + a small offset** — never a raw order. The kerne
 escape its band to preempt the protection floor or run before security. The bands (outermost →
 innermost) are `EDGE_INGRESS` (raw request, pre-security), `EDGE_EGRESS` (response rewriting),
 `TENANT` (after the site is resolved, before security), `APPLICATION` (feature filters, inner of
-security; the default). **`SECURITY` is not contributable** — it belongs to the kernel's realm
+security; the default). The kernel's access log sits between `EDGE_INGRESS` and the rest: whatever an
+`EDGE_EGRESS`, `TENANT` or `APPLICATION` filter answers is logged with its status, while a request an
+`EDGE_INGRESS` filter turns away is not (log it yourself, throttled, if you need to). **`SECURITY` is not contributable** — it belongs to the kernel's realm
 security chains, and (as above) a non-essential plugin may not declare a `SecurityFilterChain` bean either.
 
 **Verify:** the boot log prints one line per plugin filter —

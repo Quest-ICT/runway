@@ -223,7 +223,9 @@ is written **only in detached launcher mode** — the supervisor appends the JVM
 usually empty; do not go looking for application logs there when running as a service.
 
 **The public access log.** One line is emitted per **public** request under the logger
-`runway.access`, from the innermost filter (so the status is final):
+`runway.access`, written once every filter and handler has finished with it, so with the status it was answered
+with (the one exception: an error escaping a plugin's own controller is logged with the status set before it,
+while the client receives `500`):
 
 ```
 203.0.113.7 GET /about -> 200 (12ms)
@@ -236,6 +238,13 @@ preview, CSP-report), plus `/app/…` and `/actuator`. So an operator signing in
 fetch will **not** appear here; that is by design (this is a traffic log, not an audit trail). The
 client IP is the gated one (from a trusted forwarded header only — see Administration §7), never a
 raw spoofable header.
+
+It records **every** public request that gets past the protection edge (§3.1), whoever answers it: a page, a
+plugin's route (`robots.txt`, the sitemap, a form), the sign-in form (every login attempt, successful or not, and
+a form post refused for its missing token, `403`), an oversized form refused unread (`413`), a suspended, maintenance or over-quota site (`503`), and a
+request body refused for arriving too slowly (`408`). Before 1.1.2 every one of these except the page was missing,
+because the log was written by the innermost filter and each of them is answered by a filter outside it. Only the
+edge's own `403`/`429` stay out: those go to `runway.protect` (§3.1).
 
 **What to grep for** (systemd, hence `journalctl`):
 
@@ -302,7 +311,7 @@ rejections, §3.1); everything else logs under its package, `mx.quest.runway.*`.
 ### 3.1 Seeing what the edge rejected
 
 A request the protection edge turns away is rejected at `FilterOrder.CORE_PROTECTION` — the outermost slot —
-and the chain is never called. The access log lives at the innermost slot. So a `403`/`429` from the edge
+and the chain is never called. The access log sits just inside that slot, so a `403`/`429` from the edge
 **appears in no other log**, and without a log of its own a site manager would have no way to tell that a
 crawler was being throttled.
 

@@ -6,14 +6,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
+import mx.quest.runway.web.FilterOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.servlet.filter.OrderedFormContentFilter;
 
 /**
- * Spring Boot's {@code FormContentFilter}, minus plugin routes. Boot registers that filter outermost (order
- * {@code -9900}) so a {@code PUT}/{@code PATCH}/{@code DELETE} form body becomes request parameters for
+ * Spring Boot's {@code FormContentFilter}, minus plugin routes. Boot registers that filter early (order
+ * {@code -9900}; Runway places it at {@link FilterOrder#CORE_FORM_CONTENT}, inside the access log and the site
+ * binding, so its {@code 413} is logged for the site) so a {@code PUT}/{@code PATCH}/{@code DELETE} form body becomes request parameters for
  * {@code @RequestParam}; it does that by <b>reading the body</b>, so a plugin route used to receive an empty
  * {@code RouteRequest.form()} and {@code body()} for those methods — and a {@code _csrf} field in such a body was not
  * found either ({@code RouteBodyMethodsE2ETest}). A request whose method and path match a registered route
@@ -51,6 +53,7 @@ public class RouteAwareFormContentFilter extends OrderedFormContentFilter {
     public RouteAwareFormContentFilter(ObjectProvider<EndpointContributorRegistry> registry, long cap) {
         this.registry = registry;
         this.cap = Math.max(0, cap);
+        setOrder(FilterOrder.CORE_FORM_CONTENT);
     }
 
     @Override

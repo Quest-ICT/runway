@@ -103,7 +103,14 @@ class SiteInsightsServiceTest {
                 line(TODAY, "11:29:00", "GET", "/.well-known/security.txt", 404),
                 line(TODAY, "11:30:00", "GET", "/actuator/health", 200),
                 line(TODAY, "11:31:00", "GET", "/app/x", 404),
-                line(TODAY, "11:32:00", "GET", "/broken", 500));           // neither 2xx nor 404
+                line(TODAY, "11:32:00", "GET", "/broken", 500),            // neither 2xx nor 404
+                // Answers the access log has carried since 1.1.2 (refusals and login traffic): none is a view.
+                line(TODAY, "11:40:00", "POST", "/login", 403),            // a bot's post without a form token
+                line(TODAY, "11:41:00", "POST", "/login", 302),            // a login attempt
+                line(TODAY, "11:42:00", "POST", "/login", 408),            // a refused slow body
+                line(TODAY, "11:43:00", "GET", "/members", 302),           // sent to the login page
+                line(TODAY, "11:44:00", "GET", "/members", 403),           // signed in, not allowed
+                line(TODAY, "11:45:00", "GET", "/", 503));                 // suspended, maintenance, quota
 
         Report r = service().report("acme", 7);
 
@@ -117,7 +124,7 @@ class SiteInsightsServiceTest {
         assertEquals(TODAY + " 11:10:00", row(r.topNotFound(), "/missing").lastSeen());
         assertEquals(1, row(r.topNotFound(), "/img/logo.png").count());
         assertEquals(2, r.topNotFound().size());
-        assertEquals(20, r.linesScanned());
+        assertEquals(26, r.linesScanned());
         assertEquals(1, r.filesScanned());
         assertFalse(r.lineCapReached());
         assertFalse(r.approximate());

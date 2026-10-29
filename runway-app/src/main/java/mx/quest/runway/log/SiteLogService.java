@@ -62,6 +62,14 @@ public class SiteLogService {
     private final SiteLogConfigService configs;
     private final LogProperties props;
     private final BlockingQueue<LogEvent> queue;
+    /**
+     * Queue slots only audit events may take. Access and audit lines share the queue, and a flood that gets past the
+     * protection edge (a credential-stuffing run, two events per attempt) would otherwise drop audit lines, the
+     * {@code login.failure} records that are the evidence of that very attack, as often as access lines. With an
+     * eighth of the queue held back, access lines are dropped first.
+     */
+    private final int auditReserve;
+    static final int AUDIT_RESERVE_DIVISOR = 8;
     private final AtomicLong dropped = new AtomicLong();
     private static final long DROP_WARN_INTERVAL_MS = 60_000L;
     private volatile long lastDropWarnAt;
@@ -73,7 +81,9 @@ public class SiteLogService {
         this.layout = layout;
         this.configs = configs;
         this.props = props;
-        this.queue = new ArrayBlockingQueue<>(Math.max(16, props.getQueueCapacity()));
+        int capacity = Math.max(16, props.getQueueCapacity());
+        this.queue = new ArrayBlockingQueue<>(capacity);
+        this.auditReserve = capacity / AUDIT_RESERVE_DIVISOR;
     }
 
     @PostConstruct
@@ -111,6 +121,16 @@ public class SiteLogService {
     public void audit(String siteId, String actor, String action, String detail) {
         offer(new LogEvent(siteId, LogKind.AUDIT, System.currentTimeMillis(),
                 List.of(clean(actor), clean(action), clean(detail))));
+    }
+
+    /** Accepts events without starting the writer, so a test can fill the queue. */
+    void acceptWithoutWriting() {
+        running = true;
+    }
+
+    /** Events waiting to be written (tests). */
+    int queued() {
+        return queue.size();
     }
 
     /** The number of events dropped because the queue was full (best-effort observability). */
@@ -219,7 +239,9 @@ public class SiteLogService {
         if (!running) {
             return;
         }
-        if (!queue.offer(event)) {
+        boolean accepted = event.kind() == LogKind.ACCESS && queue.remainingCapacity() <= auditReserve
+                ? false : queue.offer(event);
+        if (!accepted) {
             long total = dropped.incrementAndGet();
             // A saturated queue silently losing events (audit lines included) is exactly what an operator needs
             // told — but the drop path must stay non-blocking and un-spammy, so warn at most once a minute.
