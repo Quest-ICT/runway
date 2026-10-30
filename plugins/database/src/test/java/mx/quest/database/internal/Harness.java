@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -26,6 +27,7 @@ import javax.sql.DataSource;
 import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.DatabaseConsumer;
 import mx.quest.database.spi.DatabaseProvider;
+import mx.quest.database.spi.ProviderSettings;
 import mx.quest.database.spi.PluginDatabase;
 import mx.quest.database.spi.Scope;
 import mx.quest.runway.spi.model.BackupReader;
@@ -69,7 +71,23 @@ final class Harness implements AutoCloseable {
 
     /** The provider the provider plugins will be: their own DataSource, pinned properties, no DriverManager. */
     static DatabaseProvider provider(String engine) {
+        return provider(engine, () -> null, () -> null);
+    }
+
+    /** A provider whose running and saved settings come from the suppliers ({@code null}: none, as before 2.0.0). */
+    static DatabaseProvider provider(String engine, Supplier<ProviderSettings> running,
+                                     Supplier<ProviderSettings> saved) {
         return new DatabaseProvider() {
+            @Override
+            public Optional<ProviderSettings> runningSettings() {
+                return Optional.ofNullable(running.get());
+            }
+
+            @Override
+            public Optional<ProviderSettings> savedSettings() {
+                return Optional.ofNullable(saved.get());
+            }
+
             @Override
             public String id() {
                 return engine;
@@ -179,7 +197,13 @@ final class Harness implements AutoCloseable {
     final DatabaseCore core;
     final DatabasesImpl databases;
     final DatabaseBackup backup;
+    // The provider's running server settings, as its settings page would hold them; tests change them freely.
+    volatile String host;
+    volatile String port;
+    volatile String username;
     volatile String password;
+    /** What the provider's settings page has saved now (the connection test's input); the running ones if null. */
+    volatile ProviderSettings saved;
 
     Harness(String engine, String namespace, Endpoint endpoint, Path work) throws IOException {
         this(engine, namespace, endpoint, work, new FakeSites(work.resolve("sites")));
@@ -196,15 +220,13 @@ final class Harness implements AutoCloseable {
         this.files = new TempDirSiteFiles(sites.root, "database");
         props.setProvider(engine);
         props.setNamespace(namespace);
-        props.setHost(endpoint.host());
-        props.setPort(endpoint.port());
-        props.setDatabase(DATABASE);
-        props.setUsername(USER);
-        props.setTls("disable");
+        host = endpoint.host();
+        port = String.valueOf(endpoint.port());
+        username = USER;
         password = endpoint.password();
-        providers.add(provider(engine));
-        runtime = new DatabaseRuntime(() -> DatabaseConfig.from(props, Optional.ofNullable(password)),
-                () -> List.copyOf(providers), work.resolve("run-" + System.nanoTime()), executor);
+        providers.add(provider(engine, this::running, () -> saved != null ? saved : running()));
+        runtime = new DatabaseRuntime(() -> ProviderChoice.running(props, List.copyOf(providers)),
+                work.resolve("run-" + System.nanoTime()), executor);
         schemas = new SiteSchemas(runtime, files, sites);
         migrator = new Migrator(runtime);
         core = new DatabaseCore(runtime, schemas, migrator, sites, sites);
@@ -217,6 +239,11 @@ final class Harness implements AutoCloseable {
         });
         backup = new DatabaseBackup(core, databases, files);
         migrator.parked(backup);
+    }
+
+    /** The running server settings from the fields above, TLS off as the test servers run. */
+    ProviderSettings running() {
+        return new ProviderSettings(host, port, DATABASE, username, password, "disable", null, null);
     }
 
     Harness start() throws InterruptedException {
@@ -252,8 +279,10 @@ final class Harness implements AutoCloseable {
 
     /** A raw connection as the test account, outside every pool. */
     Connection raw() throws SQLException {
-        return provider(engine).dataSource(DatabaseRuntime.settings(DatabaseConfig.from(props,
-                Optional.of(endpoint.password())), null, Duration.ofSeconds(30))).getConnection();
+        ProviderSettings test = new ProviderSettings(endpoint.host(), String.valueOf(endpoint.port()), DATABASE, USER,
+                endpoint.password(), "disable", null, null);
+        return provider(engine).dataSource(DatabaseRuntime.settings(DatabaseConfig.from(props, engine, test), null,
+                Duration.ofSeconds(30))).getConnection();
     }
 
     List<String> schemasInNamespace() throws SQLException {

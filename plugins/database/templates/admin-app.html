@@ -1,0 +1,37 @@
+<!-- The connection tests, rendered BELOW the generic settings form on /__app/plugins/database/settings (the kernel
+     renders an app-realm plugin's templates/admin-app.html there). Bare fragment; bindings in admin-app.th.xml read
+     the plugin's own beans. The tests take no typed values: a username box followed by a password box is a form the
+     browser fills in with the operator's own console login, which a test would then send to the server it names. -->
+<div class="card mt-3" id="db-tests">
+    <div class="card-header"><h3 class="card-title" id="db-tests-title">Connection tests</h3></div>
+    <div class="card-body">
+        <p class="text-secondary" id="db-tests-intro">Settings saved here and on a provider's page apply at the next
+            restart. Test them first: the test connects once with the saved values and changes nothing.</p>
+
+        <div class="alert alert-success" id="db-test-ok" role="status"><span id="db-test-ok-text">ok</span></div>
+        <div class="alert alert-danger" id="db-test-error" role="alert"><span id="db-test-error-text">error</span></div>
+
+        <div class="mb-3">
+            <span class="text-secondary" id="db-now-label">Running now:</span>
+            <span class="fw-bold" id="db-now-status">Available</span>
+            <span class="text-secondary" id="db-now-detail">detail</span>
+        </div>
+
+        <form method="post" action="/__app/database/test-running" class="mb-3">
+            <input class="db-csrf" type="hidden" name="_csrf" value="">
+            <button type="submit" class="btn btn-outline-primary" id="db-test-running">Test the running
+                connection</button>
+        </form>
+
+        <p class="text-secondary mb-2" id="db-none">No provider plugin is installed: install database-postgresql or
+            database-mariadb.</p>
+        <div class="db-provider mb-2">
+            <form method="post" action="/__app/database/test-saved" class="d-inline">
+                <input class="db-csrf" type="hidden" name="_csrf" value="">
+                <input class="db-provider-in" type="hidden" name="provider" value="">
+                <button type="submit" class="btn btn-primary db-test-saved">Test the saved settings</button>
+            </form>
+            <a class="ms-2 db-provider-link" href="#">Edit them</a>
+        </div>
+    </div>
+</div>

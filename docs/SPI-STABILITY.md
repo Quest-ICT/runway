@@ -50,7 +50,7 @@ contribution, a host-coupled seam that is not part of the 1.0 contract (see "Wha
 
 | Type | Since | Scope | What it gives a plugin |
 |---|---|---|---|
-| `service.PluginSettings` (+ `model.SettingsView`) | 0.4.0 | plugin-scoped | its per-site settings, defaults applied, and its declared secrets decrypted (app-level settings bind through `@ConfigurationProperties("runway.plugin.<id>")`; an app-level `secret` setting in clear through `appSecret(key)`, since 1.1.0) |
+| `service.PluginSettings` (+ `model.SettingsView`) | 0.4.0 | plugin-scoped | its per-site settings, defaults applied, and its declared secrets decrypted (app-level settings bind through `@ConfigurationProperties("runway.plugin.<id>")`; an app-level `secret` setting in clear through `appSecret(key)`, since 1.1.0; an app-level setting as saved but not yet applied through `savedApp(key)`, since 1.2.0) |
 | `model.PluginInfo` | 0.4.0 | plugin-scoped | its own id, version and install facts |
 | `service.PluginLifecycle` | 0.4.0 | callback | `started(PluginInfo)` / `stopping()`, in load order and reverse |
 | `service.PluginSiteFiles` (+ `model.FileEntry`) | 0.5.0 | plugin-scoped | its own per-site subtree `sites/<id>/plugins/<pluginId>/`: atomic text writes, capped reads, listing, deletes; confined against crafted paths **and** symbolic links |
@@ -100,6 +100,16 @@ additive rules below apply to them unchanged.
   was started with, so a change saved on the console applies after the restart, as every app-level setting does.
   It is a `default` method answering empty, so an implementation written against `1.0.0` still compiles. A plugin
   that calls it declares `requiresSpi: ">=1.1.0"`.
+
+### What `1.2.0` added
+
+- **`PluginSettings.savedApp(key)`**: the calling plugin's own **app-level** setting as it is **saved now**, which
+  may differ from the running value until the restart that applies it. It answers the saved value when not blank (a
+  `secret` in clear, as `appSecret` decrypts it), otherwise the declared default of a non-secret setting, otherwise
+  empty; only keys the plugin declared in its own `settings:` are read, from its own settings file, on each call. It
+  lets a plugin check settings before that restart: the database plugin's connection test uses it. It is a `default`
+  method answering empty, so an implementation written against `1.1.0` still compiles. A plugin that calls it
+  declares `requiresSpi: ">=1.2.0"`.
 
 ## The compatibility rules (in force from `1.0.0`)
 

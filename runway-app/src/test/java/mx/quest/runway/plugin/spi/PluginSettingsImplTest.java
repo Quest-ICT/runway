@@ -273,4 +273,90 @@ class PluginSettingsImplTest {
         assertEquals(Optional.empty(), bare.appSecret("password"),
                 "an implementation written against SPI 1.0 still compiles and answers empty");
     }
+
+    // ---- saved app-level settings (SPI 1.2.0) -------------------------------------------------------
+
+    private void saveAppFile(String plugin, String yaml) throws IOException {
+        Path file = layout.pluginSettingsFile(plugin);
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, yaml);
+    }
+
+    /** As the kernel wires it: the saved values come from the plugin's own settings file. */
+    private PluginSettingsImpl withSavedApp(String plugin) {
+        return new PluginSettingsImpl(plugin, SCHEMA, APP_SCHEMA, environment::get,
+                key -> mx.quest.runway.plugin.PluginSettingsService.saved(layout, plugin).get(key), config, cipher);
+    }
+
+    @Test
+    void aSavedAppSettingIsReadFromTheFileNotFromTheRunningEnvironment() throws IOException {
+        environment.put("runway.plugin.database.host", "running.example");
+        environment.put("runway.plugin.database.password", "running-secret");
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      host: saved.example\n      password: "
+                + cipher.encrypt("saved-secret") + "\n");
+        PluginSettingsImpl settings = withSavedApp("database");
+        assertEquals(Optional.of("saved.example"), settings.savedApp("host"));
+        assertEquals(Optional.of("saved-secret"), settings.savedApp("password"), "a saved secret, decrypted");
+        assertEquals(Optional.of("running-secret"), settings.appSecret("password"), "appSecret keeps the running one");
+    }
+
+    @Test
+    void aSaveAfterStartupIsSeenOnTheNextCall() throws IOException {
+        PluginSettingsImpl settings = withSavedApp("database");
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      host: first.example\n");
+        assertEquals(Optional.of("first.example"), settings.savedApp("host"));
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      host: second.example\n");
+        assertEquals(Optional.of("second.example"), settings.savedApp("host"), "read from the file each time");
+    }
+
+    @Test
+    void anUnsavedOrBlankSettingFallsBackToTheDeclaredDefaultExceptASecret() throws IOException {
+        PluginSettingsImpl settings = withSavedApp("database");
+        assertEquals(Optional.of("localhost"), settings.savedApp("host"), "no file: the declared default");
+        assertEquals(Optional.empty(), settings.savedApp("password"), "a secret has no default");
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      host: '  '\n      password: ''\n");
+        assertEquals(Optional.of("localhost"), settings.savedApp("host"));
+        assertEquals(Optional.empty(), settings.savedApp("password"));
+    }
+
+    @Test
+    void onlyTheCallersOwnDeclaredAppKeysAreRead() throws IOException {
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      undeclared: x\n      smtpPassword: y\n");
+        saveAppFile("other", "runway:\n  plugin:\n    other:\n      host: not-mine\n");
+        PluginSettingsImpl settings = withSavedApp("database");
+        assertEquals(Optional.empty(), settings.savedApp("undeclared"));
+        assertEquals(Optional.empty(), settings.savedApp("smtpPassword"), "declared only in siteSettings:");
+        assertEquals(Optional.empty(), settings.savedApp(null));
+        assertEquals(Optional.of("localhost"), settings.savedApp("host"), "another plugin's file is never read");
+    }
+
+    @Test
+    void aSavedSecretThatCannotBeDecryptedIsEmptyAndAPlaintextOneIsReturned() throws IOException {
+        PluginSettingsImpl settings = withSavedApp("database");
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      password: hand-written\n");
+        assertEquals(Optional.of("hand-written"), settings.savedApp("password"));
+        saveAppFile("database", "runway:\n  plugin:\n    database:\n      password: " + cipher.encrypt("s")
+                + "\n");
+        cipherBroken = true;
+        assertEquals(Optional.empty(), settings.savedApp("password"));
+    }
+
+    @Test
+    void theOlderConstructorsAndTheSpiDefaultHaveNoSavedValues() {
+        environment.put("runway.plugin.database.host", "running.example");
+        assertEquals(Optional.of("localhost"), withApp("database").savedApp("host"),
+                "no saved-values lookup: only the declared default");
+        mx.quest.runway.spi.service.PluginSettings bare = new mx.quest.runway.spi.service.PluginSettings() {
+            @Override
+            public SettingsView site(String siteId) {
+                return new SettingsView(java.util.Map.of());
+            }
+
+            @Override
+            public Optional<String> secret(String siteId, String key) {
+                return Optional.empty();
+            }
+        };
+        assertEquals(Optional.empty(), bare.savedApp("host"), "an implementation written before SPI 1.2.0");
+    }
 }

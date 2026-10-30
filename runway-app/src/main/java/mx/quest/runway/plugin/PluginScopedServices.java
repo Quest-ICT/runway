@@ -13,6 +13,8 @@ import mx.quest.runway.spi.service.ContentChanges;
 import mx.quest.runway.spi.service.PluginSettings;
 import mx.quest.runway.spi.service.PluginSiteFiles;
 import mx.quest.runway.storage.StorageLayout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InjectionPoint;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,8 @@ import org.springframework.core.env.Environment;
  */
 @Configuration(proxyBeanMethods = false)
 public class PluginScopedServices {
+
+    private static final Logger log = LoggerFactory.getLogger(PluginScopedServices.class);
 
     private final PluginOwnership ownership;
     private final SitePluginConfigService siteConfig;
@@ -99,7 +103,26 @@ public class PluginScopedServices {
                 "kernel code reads per-site plugin settings through SitePluginConfigService");
         return settings.computeIfAbsent(plugin.id(), id -> new PluginSettingsImpl(id,
                 plugin.descriptor().siteSettings(), plugin.descriptor().settings(),
-                key -> environment == null ? null : environment.getProperty(key), siteConfig, cipher));
+                key -> environment == null ? null : environment.getProperty(key), key -> savedApp(id, key),
+                siteConfig, cipher));
+    }
+
+    /**
+     * One saved app-level value in its stored form; {@code null} when unset, without a layout, or when the file cannot
+     * be read or parsed. A hand-edited file with a syntax error must not turn the plugin's check into an error page,
+     * and the parser's message is not logged: it can quote the offending line, which may hold a password.
+     */
+    private String savedApp(String pluginId, String key) {
+        if (layout == null) {
+            return null;
+        }
+        try {
+            return PluginSettingsService.saved(layout, pluginId).get(key);
+        } catch (RuntimeException e) {
+            log.warn("plugin '{}': its saved settings file could not be read ({})", pluginId,
+                    e.getClass().getSimpleName());
+            return null;
+        }
     }
 
     /** {@link PluginSiteFiles} bound to the injecting plugin's subtree {@code sites/<id>/plugins/<pluginId>/}. */

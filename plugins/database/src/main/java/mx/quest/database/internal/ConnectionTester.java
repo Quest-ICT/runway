@@ -5,8 +5,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 import mx.quest.database.spi.ConnectionSettings;
@@ -15,15 +13,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The console's two connection tests. Each answers with a fixed category (and, for success, the server version);
- * the driver's own message goes only to the server log, never with a credential.
+ * The connection tests on the database plugin's settings page. Each answers with a fixed category (and, for success,
+ * the server version); the driver's own message goes only to the server log, never with a credential.
  *
  * <ul>
  *   <li><b>Running</b>: borrows from the live pool and asks the server what it is.</li>
- *   <li><b>New settings</b>: opens one throwaway connection with short timeouts from typed values and saves nothing.
- *       A blank password reuses the running one only when every setting the password is bound to (provider, host,
- *       port, database, username, TLS, CA certificate) matches the running value, so the test cannot send the saved
- *       password to a server of the tester's choosing.</li>
+ *   <li><b>Saved</b>: opens one throwaway connection with short timeouts from the settings saved on one provider
+ *       plugin's page, which the next restart would apply, and changes nothing. The test takes no typed values: a
+ *       form with a username and a password box is one a browser fills in with the operator's own saved login,
+ *       which a test would then send to whatever server the form named (the 1.x test did exactly that).</li>
  * </ul>
  */
 public final class ConnectionTester {
@@ -44,13 +42,21 @@ public final class ConnectionTester {
     }
 
     private final DatabaseRuntime runtime;
+    private final DatabaseProps props;
     private final Supplier<List<DatabaseProvider>> providers;
     private final Path workDir;
 
-    public ConnectionTester(DatabaseRuntime runtime, Supplier<List<DatabaseProvider>> providers, Path workDir) {
+    public ConnectionTester(DatabaseRuntime runtime, DatabaseProps props, Supplier<List<DatabaseProvider>> providers,
+                            Path workDir) {
         this.runtime = runtime;
+        this.props = props;
         this.providers = providers;
         this.workDir = workDir;
+    }
+
+    /** The products whose provider plugin is installed, each once, in the order found: what "Saved" can test. */
+    public List<String> testable() {
+        return ProviderChoice.supported(providers.get()).stream().map(DatabaseProvider::id).distinct().toList();
     }
 
     /** Tests the live pool. */
@@ -68,35 +74,26 @@ public final class ConnectionTester {
     }
 
     /**
-     * Tests typed settings.
+     * Tests the settings saved on one provider plugin's page.
      *
-     * @param props    the typed values
-     * @param password the typed password; blank to reuse the running one where the rule allows
+     * @param product {@code postgresql} or {@code mariadb}
      */
-    public Result newSettings(DatabaseProps props, String password) {
-        DatabaseConfig typed;
-        try {
-            typed = DatabaseConfig.from(props, Optional.empty());
-        } catch (IllegalArgumentException e) {
-            return new Result(Category.INVALID_SETTINGS, e.getMessage());
-        }
-        String secret = password == null ? "" : password;
-        if (secret.isEmpty()) {
-            DatabaseConfig running = runtime.config();
-            if (running != null && sameTarget(running, typed)) {
-                secret = running.password();
-            }
+    public Result saved(String product) {
+        List<DatabaseProvider> matching = ProviderChoice.supported(providers.get()).stream()
+                .filter(p -> p.id().equals(product)).toList();
+        if (matching.size() != 1) {
+            return new Result(Category.NO_PROVIDER, ProviderChoice.plugin(String.valueOf(product)));
         }
         DatabaseConfig config;
         try {
-            config = DatabaseConfig.from(props, Optional.of(secret));
+            config = ProviderChoice.saved(props, matching.get(0)).config();
         } catch (IllegalArgumentException e) {
             return new Result(Category.INVALID_SETTINGS, e.getMessage());
-        }
-        List<DatabaseProvider> matching = providers.get().stream().filter(p -> config.provider().equals(p.id()))
-                .toList();
-        if (matching.size() != 1) {
-            return new Result(Category.NO_PROVIDER, "database-" + config.provider());
+        } catch (RuntimeException e) {
+            // A provider whose saved settings cannot be read; its message is not trusted to be free of a secret.
+            log.warn("database: the saved settings of {} could not be read ({})", ProviderChoice.plugin(product),
+                    e.getClass().getSimpleName());
+            return new Result(Category.OTHER, "");
         }
         Engine engine = DatabaseRuntime.engineFor(config.provider());
         try {
@@ -108,20 +105,13 @@ public final class ConnectionTester {
                 return new Result(Category.OK, engine.inspectServer(c));
             }
         } catch (SQLException e) {
-            log.warn("database: new-settings test against {} failed: {}", config, DatabaseRuntime.describe(e));
+            log.warn("database: saved-settings test against {} failed: {}", config, DatabaseRuntime.describe(e));
             return new Result(category(engine.classify(e)), e instanceof UnsupportedServerException ? e.getMessage()
                     : "");
         } catch (Exception e) {
-            log.warn("database: new-settings test against {} failed: {}", config, DatabaseRuntime.describe(e));
+            log.warn("database: saved-settings test against {} failed: {}", config, DatabaseRuntime.describe(e));
             return new Result(Category.OTHER, "");
         }
-    }
-
-    /** Whether two settings point the password at the same place as the same account. */
-    static boolean sameTarget(DatabaseConfig a, DatabaseConfig b) {
-        return a.provider().equals(b.provider()) && a.host().equals(b.host()) && a.port() == b.port()
-                && a.database().equals(b.database()) && a.username().equals(b.username()) && a.tls() == b.tls()
-                && Objects.equals(a.caCertificate(), b.caCertificate());
     }
 
     private static Category category(Engine.ConnectFailure failure) {

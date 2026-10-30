@@ -3,10 +3,14 @@
 #  Verify the database plugin and both providers inside a real Runway.
 #
 #  Boots a throwaway Runway (wizard, then ACTIVE) with database, database-postgresql and database-mariadb installed
-#  and the database plugin pointed at a server you name, then checks:
+#  and the chosen provider pointed at a server you name, then checks:
+#    - a 1.x database.yml (server keys in the database plugin's file) is reported as moved, and never used;
 #    - all three plugins load: none blocked or quarantined, no linkage or surface findings;
 #    - the runtime connects (on its own thread, after startup) and the password appears in no log line;
-#    - the application console's database screen answers only after login, and its running-connection test passes;
+#    - the application console's database screen answers only after login and points to the settings page;
+#    - the settings pages: the provider's holds the server, the database plugin's holds the connection tests, which
+#      take no typed values; the running test passes, and the saved test reads the provider's file as saved now
+#      (a wrong password saved after startup is refused while the running connection stays up);
 #    - a site's dashboard shows the database card.
 #
 #  Usage:
@@ -96,7 +100,7 @@ curl -s -o /dev/null -X POST "$BASE/setup" --data-urlencode "username=$APP_USER"
 for _ in $(seq 1 30); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
 stop_host
 
-# A hand-written plaintext password works like an encrypted one; this file is deleted with the scratch folder.
+# 1.x layout first: the server keys in the database plugin's own file. 2.0.0 must say they moved, and not connect.
 umask 077
 cat > "$EXT/plugin-settings/database.yml" <<EOF
 runway:
@@ -104,6 +108,38 @@ runway:
     database:
       provider: $PROVIDER
       namespace: $NS
+      host: "$DB_HOST"
+      port: $DB_PORT
+      database: "$DB_NAME"
+      username: "$DB_USER"
+      password: "$DB_PASSWORD"
+      tls: disable
+EOF
+umask 022
+echo "[verify] booting host (ACTIVE, 1.x settings) ..."
+boot "$SCRATCH/legacy.log"
+wait_for "$SCRATCH/legacy.log" "Started RunwayApplication" 90 || { echo "ACTIVE did not start"; tail -20 "$SCRATCH/legacy.log"; exit 1; }
+wait_for "$SCRATCH/legacy.log" "database: not configured" 30
+stop_host
+echo "== 1.x settings =="
+ck "reported as moved to the provider plugin" "grep -q 'not configured: the server settings moved to the database-$PROVIDER plugin' '$SCRATCH/legacy.log'"
+ck "never used to connect"                    "! grep -q 'database: connected to' '$SCRATCH/legacy.log'"
+
+# 2.0.0 layout. Both providers are installed, so the database plugin names one (auto would ask which). A hand-written
+# plaintext password works like an encrypted one; these files are deleted with the scratch folder.
+if [ "$PROVIDER" = postgresql ]; then PRODUCT=PostgreSQL; else PRODUCT=MariaDB; fi
+umask 077
+cat > "$EXT/plugin-settings/database.yml" <<EOF
+runway:
+  plugin:
+    database:
+      provider: $PROVIDER
+      namespace: $NS
+EOF
+cat > "$EXT/plugin-settings/database-$PROVIDER.yml" <<EOF
+runway:
+  plugin:
+    database-$PROVIDER:
       host: "$DB_HOST"
       port: $DB_PORT
       database: "$DB_NAME"
@@ -128,7 +164,7 @@ ck "HikariCP and the drivers are in lib/" "ls '$EXT/plugins/database/lib/'Hikari
 
 echo "== connection =="
 ck "connected after startup, on its own thread" "grep -E 'database: connected to' '$LOG' | grep -qv '\\[main\\]'"
-ck "the password appears in no log line"   "! grep -qF -- '$DB_PASSWORD' '$LOG' '$SCRATCH/wizard.log'"
+ck "the password appears in no log line"   "! grep -qF -- '$DB_PASSWORD' '$LOG' '$SCRATCH/wizard.log' '$SCRATCH/legacy.log'"
 
 echo "== application console =="
 ck "the screen needs a login"              "[ \"\$(code '$BASE/__app/database')\" = 302 ]"
@@ -138,10 +174,37 @@ ac -o /dev/null -X POST "$BASE/app/login" --data-urlencode "username=$APP_USER" 
 ac "$BASE/__app/database" > "$SCRATCH/screen.html"
 ck "the screen renders for the master"     "grep -q 'Connected.' '$SCRATCH/screen.html' && grep -q '$NS' '$SCRATCH/screen.html'"
 ck "the screen holds no password"          "! grep -qF -- '$DB_PASSWORD' '$SCRATCH/screen.html'"
-ac -L "$BASE/__app/database/test-running" --data-urlencode "_csrf=$(token < "$SCRATCH/screen.html")" \
-    > "$SCRATCH/tested.html"
-ck "Test running connection: connected"   "grep -qE 'Connected: (PostgreSQL|MariaDB)' '$SCRATCH/tested.html'"
-ck "a POST without the CSRF token is refused" "[ \"\$(code -b '$SCRATCH/app.jar' -X POST '$BASE/__app/database/test-running')\" = 403 ]"
+ck "the screen points to the settings page" "grep -q '/__app/plugins/database/settings#db-tests' '$SCRATCH/screen.html'"
+ck "the screen has no test form any more"  "! grep -qE 'test-new|type=\"password\"' '$SCRATCH/screen.html'"
+ck "the 1.x typed test is gone"            "[ \"\$(ac -o /dev/null -w '%{http_code}' -X POST '$BASE/__app/database/test-new' --data-urlencode '_csrf=$(token < "$SCRATCH/screen.html")')\" != 302 ]"
+
+echo "== settings pages =="
+ac "$BASE/__app/plugins/database/settings" > "$SCRATCH/settings.html"
+ck "the database page has the provider choice"   "grep -q 'name=\"provider\"' '$SCRATCH/settings.html'"
+ck "the database page has no server fields"      "! grep -qE 'name=\"(host|username|password)\"' '$SCRATCH/settings.html'"
+ck "the connection tests are below its form"     "grep -q 'id=\"db-tests\"' '$SCRATCH/settings.html' && grep -q 'Test the saved $PRODUCT settings' '$SCRATCH/settings.html'"
+ck "the panel shows the running status"          "grep -q 'Running now:' '$SCRATCH/settings.html' && grep -q 'Connected\\.' '$SCRATCH/settings.html'"
+ac "$BASE/__app/plugins/database-$PROVIDER/settings" > "$SCRATCH/provider.html"
+ck "the provider page holds the server"          "grep -q 'value=\"$DB_HOST\"' '$SCRATCH/provider.html' && grep -q 'name=\"username\"' '$SCRATCH/provider.html'"
+ck "its password box is never autofilled"        "grep -q 'autocomplete=\"new-password\"' '$SCRATCH/provider.html' && ! grep -q 'type=\"password\"[^>]*autocomplete=\"off\"' '$SCRATCH/provider.html'"
+ck "the pages hold no password"                  "! grep -qF -- '$DB_PASSWORD' '$SCRATCH/provider.html' '$SCRATCH/settings.html'"
+if [ "$PROVIDER" = mariadb ]; then
+ck "collation is on the MariaDB page only"       "grep -q 'name=\"collation\"' '$SCRATCH/provider.html' && ! grep -q 'name=\"collation\"' '$SCRATCH/settings.html'"
+fi
+CSRF="$(token < "$SCRATCH/settings.html")"
+ac -L "$BASE/__app/database/test-running" --data-urlencode "_csrf=$CSRF" > "$SCRATCH/tested.html"
+ck "Test the running connection: connected"      "grep -qE 'Connected: (PostgreSQL|MariaDB)' '$SCRATCH/tested.html' && grep -q 'id=\"db-tests\"' '$SCRATCH/tested.html'"
+ac -L "$BASE/__app/database/test-saved" --data-urlencode "_csrf=$CSRF" --data-urlencode "provider=$PROVIDER" > "$SCRATCH/saved.html"
+ck "Test the saved settings: connected"          "grep -qE 'Connected: $PRODUCT' '$SCRATCH/saved.html'"
+# Save a wrong password after startup, as the provider's form would (only a restart would apply it): the saved test
+# reads the file as it is now, and the running connection is untouched.
+sed -i 's/^      password: .*/      password: "not-the-password"/' "$EXT/plugin-settings/database-$PROVIDER.yml"
+ac -L "$BASE/__app/database/test-saved" --data-urlencode "_csrf=$CSRF" --data-urlencode "provider=$PROVIDER" > "$SCRATCH/saved2.html"
+ck "a wrong saved password is refused"           "grep -q 'The server refused the username or password.' '$SCRATCH/saved2.html'"
+ck "the running connection is untouched"         "grep -q 'Connected\\.' '$SCRATCH/saved2.html'"
+ac -L "$BASE/__app/database/test-saved" --data-urlencode "_csrf=$CSRF" --data-urlencode "provider=oracle" > "$SCRATCH/saved3.html"
+ck "an unknown provider is answered, not tested" "grep -q 'is not installed' '$SCRATCH/saved3.html'"
+ck "a POST without the CSRF token is refused"    "[ \"\$(code -b '$SCRATCH/app.jar' -X POST '$BASE/__app/database/test-saved')\" = 403 ]"
 
 echo "== site console =="
 sc() { curl -s -H 'Accept-Language: en' -c "$SCRATCH/site.jar" -b "$SCRATCH/site.jar" "$@"; }
@@ -149,6 +212,9 @@ sc -o /dev/null -X POST "$BASE/login" --data-urlencode "username=$SITE_USER" --d
     --data-urlencode "_csrf=$(sc "$BASE/login" | token)"
 ck "the site dashboard shows the database card" "sc '$BASE/__admin' | grep -q 'keeps no data in the database'"
 ck "a site admin cannot open the application screen" "[ \"\$(code -b '$SCRATCH/site.jar' '$BASE/__app/database')\" != 200 ]"
+# With the site session's own CSRF token, so a refusal comes from the permission gate, not from a missing token.
+SITE_CSRF="$(sc "$BASE/__admin" | token)"
+ck "nor test the saved settings"            "[ \"\$(code -b '$SCRATCH/site.jar' -X POST --data-urlencode '_csrf=$SITE_CSRF' --data-urlencode 'provider=$PROVIDER' '$BASE/__app/database/test-saved')\" != 302 ]"
 
 ck "no ERROR line names the database plugin" "! grep -E ' ERROR ' '$LOG' | grep -qiE 'mx\\.quest\\.database|database:'"
 

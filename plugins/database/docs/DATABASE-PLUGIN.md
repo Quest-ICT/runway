@@ -24,7 +24,7 @@ reaches every schema.
 
 | Part | Where | Job |
 |---|---|---|
-| Settings | `DatabaseProps` → `DatabaseConfig` | Bound from `runway.plugin.database.*`; checked before any use. The password comes from `PluginSettings.appSecret("password")` (SPI 1.1.0). |
+| Settings | `DatabaseProps`, `ProviderChoice` → `DatabaseConfig` | This plugin's own settings (provider choice, namespace, limits) bound from `runway.plugin.database.*`; `ProviderChoice` picks the provider (`auto`: the one installed) and takes the server's settings from it (`DatabaseProvider.runningSettings()`, since 2.0.0); `DatabaseConfig` checks every value before any use. 1.x server keys still in `database.yml` are bound only to report that they moved. |
 | Runtime | `DatabaseRuntime` | Connects after startup on the plugin's executor, with back-off; checks the server; owns the pools. |
 | Engines | `PostgresEngine`, `MariaDbEngine` | **All** the SQL Runway runs, per product. |
 | Registry | `Registry` | Runway's own `rw_` tables in `<ns>_app`. |
@@ -33,7 +33,7 @@ reaches every schema.
 | Migrations | `Migrator` | Brings a plugin's tables in a schema to the shipped version. |
 | Scopes | `ScopeImpl`, `PluginDatabaseImpl`, `DatabasesImpl` | What consumers call. |
 | Backups | `DatabaseBackup`, `Archive`, `Portable` | Export, staged restore, parked data. |
-| Console | `DatabaseConsoleController`, `DatabaseScreens`, `ConnectionTester` | The health screen and the dashboard line. |
+| Console | `DatabaseConsoleController`, `DatabaseScreens`, `ConnectionTester` | The health screen, the dashboard line, and the connection tests (panel `templates/admin-app.html`, below this plugin's settings form): the running connection, and each installed provider's **saved** settings (`DatabaseProvider.savedSettings()`, read by the provider through the kernel's `PluginSettings.savedApp`). |
 
 **Providers bring the driver, not the SQL.** A provider builds an unpooled `DataSource` from its own driver
 classes with the checked settings and pinned properties; nothing goes through `DriverManager`. Every statement —
@@ -217,8 +217,10 @@ restore counts as done; a staging generation is dropped only while no site maps 
   URL is built from them and nothing else; the account goes in as properties. MariaDB pins `allowLocalInfile=false`,
   `allowMultiQueries=false`, `permitRedirect=false`, `allowPublicKeyRetrieval=false`.
 - TLS defaults to `verify-full`. The CA certificate is written to an owner-only file in the plugin's folder.
-- The password is bound (`secretBoundTo`) to everything that decides where it goes, and the connection test reuses it
-  only for exactly the running target.
+- The password is bound (`secretBoundTo`, on the provider's page) to everything that decides where it goes. The
+  connection test takes no typed values, only what is saved: a form with a username and a password box is one a
+  browser fills with the operator's own console login, which a typed test (1.0.0's) would then send to whatever host
+  was typed.
 - No log line carries the password or a credentialed URL (checked by the tests and the verify script).
 - The health screen needs `CONFIGURE_PLATFORM`; its recovery actions are logged with the operator's name.
 

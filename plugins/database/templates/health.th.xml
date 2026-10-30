@@ -43,20 +43,10 @@
     <attr sel="#db-last-error-text" th:text="${db.runtime().lastError()}"/>
     <attr sel="#db-problem" th:if="${db.problem() != null}" th:text="${db.problem()}"/>
 
-    <!-- Connection tests -->
-    <attr sel="#db-test-title" th:text="#{database.console.tests}"/>
-    <attr sel="#db-test-running" th:text="#{database.console.testRunning}"/>
-    <attr sel="#db-test-new-help" th:text="#{database.console.testNew.help}"/>
-    <attr sel="#db-fl-provider" th:text="#{database.set.provider}"/>
-    <attr sel="#db-fl-host" th:text="#{database.set.host}"/>
-    <attr sel="#db-fl-port" th:text="#{database.set.port}"/>
-    <attr sel="#db-fl-database" th:text="#{database.set.database}"/>
-    <attr sel="#db-fl-username" th:text="#{database.set.username}"/>
-    <attr sel="#db-fl-password" th:text="#{database.set.password}"/>
-    <attr sel="#db-fl-tls" th:text="#{database.set.tls}"/>
-    <attr sel="#db-fl-ca" th:text="#{database.set.caCertificate}"/>
-    <attr sel="#db-test-password-note" th:text="#{database.console.testNew.password}"/>
-    <attr sel="#db-test-new" th:text="#{database.console.testNew}"/>
+    <!-- Where the settings and the connection tests are -->
+    <attr sel="#db-settings-title" th:text="#{database.console.settings}"/>
+    <attr sel="#db-settings-text" th:text="#{database.console.settings.text}"/>
+    <attr sel="#db-settings-link" th:text="#{database.console.settings.link}"/>
 
     <!-- Migration problems -->
     <attr sel="#db-issues-title" th:text="#{database.console.issues}"/>

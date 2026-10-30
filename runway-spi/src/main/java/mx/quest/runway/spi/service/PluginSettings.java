@@ -28,7 +28,9 @@ import mx.quest.runway.spi.model.SettingsView;
  * <p>App-level (platform-wide) plugin settings ({@code settings:} in {@code plugin.yml}) bind through Spring
  * {@code @ConfigurationProperties} under {@code runway.plugin.<id>.*}, which is descriptor contract. The one
  * exception is a {@code secret}-typed app-level setting: it binds there only in its stored {@code ENC(...)} form, so
- * {@link #appSecret(String)} hands it out in clear (since SPI 1.1.0).
+ * {@link #appSecret(String)} hands it out in clear (since SPI 1.1.0). Those bindings are the values the running
+ * application started with; {@link #savedApp(String)} reads what is saved now, which a restart will apply (since SPI
+ * 1.2.0).
  *
  * @since SPI 0.4.0
  */
@@ -74,6 +76,27 @@ public interface PluginSettings {
      * @since SPI 1.1.0
      */
     default Optional<String> appSecret(String key) {
+        return Optional.empty();
+    }
+
+    /**
+     * An <b>app-level</b> setting of the calling plugin as it is <b>saved now</b>, which may differ from the running
+     * value until the restart that applies it. It lets a plugin check settings before that restart, for example by
+     * testing a connection with them.
+     *
+     * <p>The answer is the value stored in the plugin's app-level settings file when it is not blank (a {@code secret}
+     * in clear, decrypted as {@link #appSecret(String)} does), otherwise the declared default of a non-secret
+     * setting, otherwise empty. It is read from the file on each call, so call it when needed rather than in a loop.
+     *
+     * <p>Empty when the key is not declared in the plugin's own {@code settings:} (a key declared only in
+     * {@code siteSettings:} does not count, and no plugin can name another's), and for an encrypted secret that
+     * cannot be decrypted (logged once per key, never with the value).
+     *
+     * @param key the setting key as declared in {@code settings:}
+     * @return the saved value, or empty
+     * @since SPI 1.2.0
+     */
+    default Optional<String> savedApp(String key) {
         return Optional.empty();
     }
 }

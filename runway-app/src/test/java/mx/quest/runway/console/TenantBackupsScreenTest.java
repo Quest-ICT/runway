@@ -2,10 +2,17 @@ package mx.quest.runway.console;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -23,6 +30,7 @@ import java.util.Set;
 import mx.quest.runway.authz.GrantFile;
 import mx.quest.runway.authz.GrantStore;
 import mx.quest.runway.backup.BackupService;
+import mx.quest.runway.log.SiteLogService;
 import mx.quest.runway.security.PasswordEncoders;
 import mx.quest.runway.security.PasswordStrength;
 import mx.quest.runway.security.Roles;
@@ -46,6 +54,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -104,6 +113,8 @@ class TenantBackupsScreenTest {
     private SiteResolver siteResolver;
     @Autowired
     private BackupService backups;
+    @MockitoSpyBean
+    private SiteLogService siteLog;
     private MockMvc mvc;
 
     @BeforeEach
@@ -187,6 +198,75 @@ class TenantBackupsScreenTest {
             mvc.perform(get("/__admin/backups/download-transfer").session(session))
                     .andExpect(status().isOk());
         }
+    }
+
+    // --- the site's audit log ----------------------------------------------------------------------
+
+    /** Each act that took effect is one line in the site's own audit log, with who did it and what. */
+    @Test
+    void everyBackupActIsRecordedInTheSitesAuditLog() throws Exception {
+        MockHttpSession admin = sessionFor("admin");
+        clearInvocations(siteLog);
+        mvc.perform(post("/__admin/backups/create").session(admin).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        String name = backups.list("acme").get(0).name();
+        verify(siteLog).audit("acme", "admin", "backup.saved", name);
+
+        mvc.perform(get("/__admin/backups/download").session(admin)).andExpect(status().isOk());
+        verify(siteLog).audit("acme", "admin", "backup.downloaded", "full");
+        mvc.perform(get("/__admin/backups/download-transfer").session(admin)).andExpect(status().isOk());
+        verify(siteLog).audit("acme", "admin", "backup.downloaded", "transfer");
+        mvc.perform(get("/__admin/backups/" + name + "/download").session(admin)).andExpect(status().isOk());
+        verify(siteLog).audit("acme", "admin", "backup.downloaded", "full " + name);
+
+        mvc.perform(post("/__admin/backups/" + name + "/restore").session(admin).with(csrf()))
+                .andExpect(flash().attributeExists("flash"));
+        verify(siteLog).audit("acme", "admin", "site.restored", name);
+        byte[] zip = mvc.perform(get("/__admin/backups/download").session(admin)).andReturn()
+                .getResponse().getContentAsByteArray();
+        mvc.perform(multipart("/__admin/backups/restore")
+                        .file(new MockMultipartFile("file", "acme.zip", "application/zip", zip))
+                        .session(admin).with(csrf()))
+                .andExpect(flash().attributeExists("flash"));
+        verify(siteLog).audit("acme", "admin", "site.restored", "(upload)");
+
+        mvc.perform(post("/__admin/backups/" + name + "/delete").session(admin).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        verify(siteLog).audit("acme", "admin", "backup.deleted", name);
+    }
+
+    /** A refused, failed or empty act writes nothing: the log says what happened, not what was tried. */
+    @Test
+    void aRefusedOrFailedBackupActIsNotRecorded() throws Exception {
+        String name = storedBackup();
+        MockHttpSession keeper = sessionFor("keeper");
+        MockHttpSession admin = sessionFor("admin");
+        clearInvocations(siteLog);
+        mvc.perform(get("/__admin/backups/download").session(keeper)).andExpect(status().isForbidden());
+        mvc.perform(get("/__admin/backups/" + name + "/download").session(keeper))
+                .andExpect(status().isForbidden());
+        // A HEAD request (a link checker, a preview) takes no copy: answered, not recorded.
+        for (String path : List.of("/__admin/backups/download", "/__admin/backups/download-transfer",
+                "/__admin/backups/" + name + "/download")) {
+            mvc.perform(head(path).session(admin))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Content-Disposition", Matchers.containsString("attachment")));
+        }
+        // A range that resumes a download is not a new one.
+        mvc.perform(get("/__admin/backups/" + name + "/download").session(admin).header("Range", "bytes=10-"))
+                .andExpect(status().isPartialContent());
+        mvc.perform(post("/__admin/backups/" + name + "/restore").session(keeper).with(csrf()))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/__admin/backups/no-such-backup.zip/delete").session(admin).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(post("/__admin/backups/no-such-backup.zip/restore").session(admin).with(csrf()))
+                .andExpect(flash().attributeExists("error"));
+        mvc.perform(multipart("/__admin/backups/restore")
+                        .file(new MockMultipartFile("file", "junk.zip", "application/zip", new byte[] {1, 2, 3}))
+                        .session(admin).with(csrf()))
+                .andExpect(flash().attributeExists("error"));
+        verify(siteLog, never()).audit(anyString(), anyString(), startsWith("backup."), anyString());
+        verify(siteLog, never()).audit(anyString(), anyString(), eq("site.restored"), anyString());
     }
 
     /** Without MANAGE_BACKUPS at all, nothing — not even a transfer copy. */

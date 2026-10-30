@@ -71,66 +71,16 @@
             </div>
         </div>
 
-        <!-- Connection tests -->
+        <!-- Where the settings and the connection tests are (since 2.0.0) -->
         <div class="col-lg-6">
             <div class="card">
-                <div class="card-header"><h3 class="card-title" id="db-test-title">Connection tests</h3></div>
+                <div class="card-header"><h3 class="card-title" id="db-settings-title">Settings and tests</h3></div>
                 <div class="card-body">
-                    <form method="post" action="/__app/database/test-running" class="mb-3">
-                        <input class="db-csrf" type="hidden" name="_csrf" value="">
-                        <button type="submit" class="btn btn-outline-primary" id="db-test-running">Test running
-                            connection</button>
-                    </form>
-                    <p class="text-secondary small" id="db-test-new-help">Try other settings without saving them.</p>
-                    <form method="post" action="/__app/database/test-new" autocomplete="off">
-                        <input class="db-csrf" type="hidden" name="_csrf" value="">
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <label class="form-label" for="db-f-provider" id="db-fl-provider">Provider</label>
-                                <select class="form-select" id="db-f-provider" name="provider">
-                                    <option value="postgresql">postgresql</option>
-                                    <option value="mariadb">mariadb</option>
-                                </select>
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label" for="db-f-host" id="db-fl-host">Host</label>
-                                <input class="form-control" id="db-f-host" name="host" type="text" value="">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" for="db-f-port" id="db-fl-port">Port</label>
-                                <input class="form-control" id="db-f-port" name="port" type="text" value="">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="db-f-database" id="db-fl-database">Database</label>
-                                <input class="form-control" id="db-f-database" name="database" type="text" value="">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="db-f-username" id="db-fl-username">Username</label>
-                                <input class="form-control" id="db-f-username" name="username" type="text" value="">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="db-f-password" id="db-fl-password">Password</label>
-                                <input class="form-control" id="db-f-password" name="password" type="password"
-                                       value="">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="db-f-tls" id="db-fl-tls">TLS</label>
-                                <select class="form-select" id="db-f-tls" name="tls">
-                                    <option value="verify-full">verify-full</option>
-                                    <option value="require">require</option>
-                                    <option value="disable">disable</option>
-                                </select>
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label" for="db-f-ca" id="db-fl-ca">CA certificate (PEM)</label>
-                                <textarea class="form-control font-monospace" id="db-f-ca" name="caCertificate"
-                                          rows="2"></textarea>
-                            </div>
-                        </div>
-                        <p class="text-secondary small mt-2" id="db-test-password-note">A blank password reuses the
-                            saved one only for the same server, database, account and TLS settings.</p>
-                        <button type="submit" class="btn btn-primary" id="db-test-new">Test these settings</button>
-                    </form>
+                    <p class="text-secondary" id="db-settings-text">The provider choice and the limits are on the
+                        Database plugin's settings page, together with the connection tests. The server, the account
+                        and TLS are on the provider plugin's settings page.</p>
+                    <a class="btn btn-outline-primary" href="/__app/plugins/database/settings#db-tests"
+                       id="db-settings-link">Settings and connection tests</a>
                 </div>
             </div>
         </div>

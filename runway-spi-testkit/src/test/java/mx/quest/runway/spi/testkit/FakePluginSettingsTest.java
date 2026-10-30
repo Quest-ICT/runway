@@ -56,4 +56,14 @@ class FakePluginSettingsTest {
         assertEquals(Optional.empty(), settings.appSecret("other"));
         assertEquals(Optional.empty(), settings.appSecret(null));
     }
+
+    @Test
+    void savedAppValuesAreReturnedAndBlankOrUnsetOnesAreAbsent() {
+        FakePluginSettings settings = new FakePluginSettings().savedApp("host", "db.example").savedApp("blank", " ")
+                .appSecret("password", "running");
+        assertEquals(Optional.of("db.example"), settings.savedApp("host"));
+        assertEquals(Optional.empty(), settings.savedApp("blank"));
+        assertEquals(Optional.empty(), settings.savedApp("password"), "independent of the running secrets");
+        assertEquals(Optional.empty(), settings.savedApp(null));
+    }
 }

@@ -41,6 +41,7 @@ public final class PluginSettingsImpl implements PluginSettings {
     private final Map<String, PluginSettingDef> schema;
     private final Map<String, PluginSettingDef> appSchema;
     private final Function<String, String> appValues;
+    private final Function<String, String> savedAppValues;
     private final SitePluginConfigService config;
     private final SecretCipher cipher;
     private final Map<String, Memo> memo = new ConcurrentHashMap<>();
@@ -74,6 +75,24 @@ public final class PluginSettingsImpl implements PluginSettings {
     public PluginSettingsImpl(String pluginId, List<PluginSettingDef> siteSettings, List<PluginSettingDef> appSettings,
                               Function<String, String> appValues, SitePluginConfigService config,
                               SecretCipher cipher) {
+        this(pluginId, siteSettings, appSettings, appValues, key -> null, config, cipher);
+    }
+
+    /**
+     * @param pluginId       the plugin this instance answers for
+     * @param siteSettings   that plugin's declared {@code siteSettings:} schema
+     * @param appSettings    that plugin's declared app-level {@code settings:} schema
+     * @param appValues      resolves a full property key ({@code runway.plugin.<id>.<key>}) to the value the
+     *                       running environment holds, or {@code null}
+     * @param savedAppValues resolves a setting key to the value saved in the plugin's app-level settings file now,
+     *                       in its stored form, or {@code null}
+     * @param config         the per-site settings store
+     * @param cipher         decrypts {@code ENC(...)} secrets
+     */
+    public PluginSettingsImpl(String pluginId, List<PluginSettingDef> siteSettings, List<PluginSettingDef> appSettings,
+                              Function<String, String> appValues, Function<String, String> savedAppValues,
+                              SitePluginConfigService config, SecretCipher cipher) {
+        this.savedAppValues = Objects.requireNonNull(savedAppValues, "savedAppValues");
         this.pluginId = Objects.requireNonNull(pluginId, "pluginId");
         this.schema = byKey(siteSettings);
         this.appSchema = byKey(appSettings);
@@ -164,6 +183,29 @@ public final class PluginSettingsImpl implements PluginSettings {
         // The separator cannot occur in a site id, so the app-level warn-once key never collides with a site's.
         return reveal(appValues.apply("runway.plugin." + pluginId + "." + key), "the application",
                 PathSafety.KEY_SEPARATOR + "app" + PathSafety.KEY_SEPARATOR + key, key);
+    }
+
+    /**
+     * A key this plugin declared in its own app-level {@code settings:}, as saved in its settings file now: the saved
+     * value when not blank (a secret decrypted), else a non-secret's declared default. The file is read on each call,
+     * which suits the one use, checking settings before the restart that applies them.
+     */
+    @Override
+    public Optional<String> savedApp(String key) {
+        PluginSettingDef def = key == null ? null : appSchema.get(key);
+        if (def == null) {
+            return Optional.empty();
+        }
+        String raw = savedAppValues.apply(key);
+        if (isSecret(def)) {
+            return reveal(raw, "the application (saved, not yet applied)",
+                    PathSafety.KEY_SEPARATOR + "saved" + PathSafety.KEY_SEPARATOR + key, key);
+        }
+        if (raw != null && !raw.isBlank()) {
+            return Optional.of(raw);
+        }
+        Object fallback = def.defaultValue();
+        return fallback == null ? Optional.empty() : Optional.of(String.valueOf(fallback));
     }
 
     /** A stored secret in clear: empty when blank or undecryptable, a non-{@code ENC(...)} value unchanged. */

@@ -11,7 +11,6 @@ import mx.quest.database.console.DatabaseConsoleController;
 import mx.quest.database.console.DatabaseScreens;
 import mx.quest.database.internal.ConnectionTester;
 import mx.quest.database.internal.DatabaseBackup;
-import mx.quest.database.internal.DatabaseConfig;
 import mx.quest.database.internal.DatabaseCore;
 import mx.quest.database.internal.DatabaseLifecycle;
 import mx.quest.database.internal.DatabaseProps;
@@ -19,12 +18,12 @@ import mx.quest.database.internal.DatabaseRuntime;
 import mx.quest.database.internal.DatabaseSiteEvents;
 import mx.quest.database.internal.DatabasesImpl;
 import mx.quest.database.internal.Migrator;
+import mx.quest.database.internal.ProviderChoice;
 import mx.quest.database.internal.SiteSchemas;
 import mx.quest.database.spi.DatabaseConsumer;
 import mx.quest.database.spi.DatabaseProvider;
 import mx.quest.runway.spi.model.PluginInfo;
 import mx.quest.runway.spi.service.Messages;
-import mx.quest.runway.spi.service.PluginSettings;
 import mx.quest.runway.spi.service.PluginSiteFiles;
 import mx.quest.runway.spi.service.RequestContext;
 import mx.quest.runway.spi.service.Sites;
@@ -64,12 +63,11 @@ public class DatabasePluginConfig {
     }
 
     @Bean
-    public DatabaseRuntime databaseRuntime(DatabaseProps databaseProps, PluginSettings settings,
-                                           ObjectProvider<DatabaseProvider> providers, PluginInfo self,
-                                           ScheduledExecutorService databaseExecutor) {
+    public DatabaseRuntime databaseRuntime(DatabaseProps databaseProps, ObjectProvider<DatabaseProvider> providers,
+                                           PluginInfo self, ScheduledExecutorService databaseExecutor) {
         Supplier<List<DatabaseProvider>> found = () -> providers.orderedStream().toList();
-        return new DatabaseRuntime(() -> DatabaseConfig.from(databaseProps, settings.appSecret("password")), found,
-                workDir(self), databaseExecutor);
+        return new DatabaseRuntime(() -> ProviderChoice.running(databaseProps, found.get()), workDir(self),
+                databaseExecutor);
     }
 
     @Bean
@@ -115,9 +113,10 @@ public class DatabasePluginConfig {
     }
 
     @Bean
-    public ConnectionTester databaseConnectionTester(DatabaseRuntime databaseRuntime,
+    public ConnectionTester databaseConnectionTester(DatabaseRuntime databaseRuntime, DatabaseProps databaseProps,
                                                      ObjectProvider<DatabaseProvider> providers, PluginInfo self) {
-        return new ConnectionTester(databaseRuntime, () -> providers.orderedStream().toList(), workDir(self));
+        return new ConnectionTester(databaseRuntime, databaseProps, () -> providers.orderedStream().toList(),
+                workDir(self));
     }
 
     @Bean

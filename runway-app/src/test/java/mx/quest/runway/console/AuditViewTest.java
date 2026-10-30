@@ -103,7 +103,9 @@ class AuditViewTest {
                 "permissions.role-inherit-removed", "page.saved", "page.deleted", "page.published",
                 "page.unpublished", "user.created", "user.password-reset", "user.deleted",
                 "plugin.settings-changed", "logs.settings-changed", "site-config.changed", "master.assigned",
-                "master.unassigned", "site.created", "site.hosts-updated", "backup.saved",
+                "master.unassigned", "site.created", "site.hosts-updated", "backup.saved", "backup.deleted",
+                "backup.downloaded", "site.restored", "user.updated", "user.suspended", "user.resumed",
+                "static.uploaded", "static.folder-created", "static.deleted",
                 "platform.kernel-settings-changed", "platform.kernel-setting-adopted")) {
             assertTrue(en.contains(recorded), "a label for " + recorded);
         }

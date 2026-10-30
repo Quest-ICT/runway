@@ -2,7 +2,7 @@
 
 > **Audience:** a developer starting a **new Runway plugin from scratch**.
 > **Scope:** the complete plugin contract of the Runway kernel at **SPI `1.1.0`** (Runway `1.1.0`; within `1.x` it
-> changes only additively — `1.1.0` added `PluginSettings.appSecret` — see the kernel's `docs/SPI-STABILITY.md`) — the descriptor, every extension
+> changes only additively — `1.1.0` added `PluginSettings.appSecret`, `1.2.0` `PluginSettings.savedApp` — see the kernel's `docs/SPI-STABILITY.md`) — the descriptor, every extension
 > axis, the **service tier** through which a plugin reaches the kernel, the `POST`/CSRF rules, the build, the
 > install, how to verify, and the traps. Everything here is grounded in the kernel as built and verified against the
 > packaged host jar; a gap is called a gap.
@@ -141,7 +141,7 @@ mainClass: com.acme.myplugin.MyPluginConfig   # the @Configuration; omit for a c
 # The LOWEST SPI level whose types you use (the newest type decides): ">=0.4.0" PluginSettings/PluginInfo/
 # PluginLifecycle; ">=0.5.0" PluginSiteFiles, Sites, RequestContext, AccessCheck, Messages, SitePages, anonymous
 # routes, siteData; ">=0.6.0" ContentCatalogView, ContentChanges, SiteEventListener, @ConsoleScreen; ">=1.0.0"
-# HeadContext.origin(); ">=1.1.0" PluginSettings.appSecret. A plugin loads on every 1.x kernel at or above the floor
+# HeadContext.origin(); ">=1.1.0" PluginSettings.appSecret; ">=1.2.0" PluginSettings.savedApp. A plugin loads on every 1.x kernel at or above the floor
 # it declares; a kernel below it BLOCKS the plugin with a reason. A plugin with a mainClass MUST declare a floor >= 0.4.0: without one it is
 # blocked as "built for the pre-1.0 plugin contract" (a code-less library plugin is exempt).
 requiresSpi: ">=0.6.0"
@@ -440,7 +440,9 @@ on every node. Nested structures: parse `values()` yourself. **Three settings su
 - **App-level (`settings:`)** — platform concerns, `runway.plugin.<id>.*`, applied on **restart**, read through your
   own `@ConfigurationProperties` bean (§5). A `secret` there binds as ciphertext: read it in clear with
   `settings.appSecret(key)` (SPI `1.1.0`; declare `requiresSpi: ">=1.1.0"`). It answers only for a key your own
-  `settings:` declares `type: secret`, with the value the running application started with.
+  `settings:` declares `type: secret`, with the value the running application started with. To check a saved change
+  before the restart applies it (a connection test, say), read `settings.savedApp(key)` (SPI `1.2.0`): any key your
+  `settings:` declares, as saved now, a secret in clear and a blank value as its declared default.
 - **Per-site (`siteSettings:`)** — `PluginSettings`; react to a save with `SiteEventListener.onSettingsChanged`.
 - **Per-placement (`widgetSettings:`)** — nothing to read: they arrive as `WidgetView.config()`.
 
@@ -570,7 +572,7 @@ In-memory fakes with the kernel's input rules, so plugin tests need no kernel an
 
 | Fake | For |
 |---|---|
-| `FakePluginSettings` | `.defaults(…)`, `.site(id, values)`, `.secret(id, key, clear)`, `.appSecret(key, clear)` (testkit `1.1.0`) |
+| `FakePluginSettings` | `.defaults(…)`, `.site(id, values)`, `.secret(id, key, clear)`, `.appSecret(key, clear)` (testkit `1.1.0`), `.savedApp(key, value)` (testkit `1.2.0`) |
 | `TempDirSiteFiles(sitesRoot, pluginId)` | `PluginSiteFiles` over a temp folder, with the kernel's three confinement layers, the caps and the missing-site rule |
 | `FakeSiteServices` | `Sites`, `RequestContext` (`.current(id)`), `AccessCheck` (`.grant(key)`), `Messages` (`.message(…)`), `SitePages` (`.page(…)`, `.nextInstall(outcome)`, `.installs()`) |
 | `FakeContentCatalog` | `ContentCatalogView`: `.entry(…)`, `.page(…)`, `.route(…)`, `.refreshed()` |

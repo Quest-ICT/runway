@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -21,6 +22,7 @@ import mx.quest.database.internal.DatabaseLifecycle;
 import mx.quest.database.internal.DatabaseRuntime;
 import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.DatabaseProvider;
+import mx.quest.database.spi.ProviderSettings;
 import mx.quest.database.spi.Databases;
 import mx.quest.runway.spi.BackupParticipant;
 import mx.quest.runway.spi.model.PluginInfo;
@@ -66,6 +68,11 @@ class DatabasePluginConfigTest {
                     touched.set(true);
                     throw new IllegalStateException("must not be asked while starting");
                 }
+
+                @Override
+                public Optional<ProviderSettings> runningSettings() {
+                    return Optional.of(ProviderSettings.read(key -> Optional.empty())); // installed, not set up
+                }
             });
             ctx.register(DatabasePluginConfig.class);
             ctx.refresh();
@@ -107,10 +114,8 @@ class DatabasePluginConfigTest {
         String startThread = Thread.currentThread().getName();
         try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
             ctx.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test", Map.of(
-                    "runway.plugin.database.provider", "postgresql", "runway.plugin.database.host", "127.0.0.1",
-                    "runway.plugin.database.port", "1", "runway.plugin.database.database", "runway",
-                    "runway.plugin.database.username", "runway", "runway.plugin.database.tls", "disable")));
-            ctx.registerBean(PluginSettings.class, () -> new FakePluginSettings().appSecret("password", "x"));
+                    "runway.plugin.database.provider", "postgresql")));
+            ctx.registerBean(PluginSettings.class, FakePluginSettings::new);
             ctx.registerBean(PluginSiteFiles.class, () -> new TempDirSiteFiles(dir.resolve("sites"), "database"));
             ctx.registerBean(PluginInfo.class, () -> new PluginInfo("database", "1.0.0", dir.resolve("plugin")));
             ctx.registerBean(FakeSiteServices.class, FakeSiteServices::new);
@@ -135,6 +140,12 @@ class DatabasePluginConfigTest {
                     }
                     throw new IllegalStateException("no server here");
                 }
+
+                @Override
+                public Optional<ProviderSettings> runningSettings() {
+                    return Optional.of(new ProviderSettings("127.0.0.1", "1", "runway", "runway", "x", "disable", null,
+                            null));
+                }
             });
             ctx.register(Binding.class, DatabasePluginConfig.class);
             long t0 = System.nanoTime();
@@ -154,6 +165,58 @@ class DatabasePluginConfigTest {
             assertThat(askedOn.get()).as("the settings were real: the background connect reached the provider")
                     .isNotNull().startsWith("runway-database-");
             assertThat(runtime.available()).isFalse();
+            ctx.getBean(DatabaseLifecycle.class).stopping();
+        }
+    }
+
+    @Test
+    void oneXServerKeysLeftInTheDatabaseSettingsAreReportedAsMovedAndNeverUsed() throws Exception {
+        AtomicBoolean touched = new AtomicBoolean();
+        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+            // A 1.x database.yml after the upgrade: the server keys are still there, the provider page is empty.
+            ctx.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test", Map.of(
+                    "runway.plugin.database.provider", "postgresql", "runway.plugin.database.host", "127.0.0.1",
+                    "runway.plugin.database.database", "runway", "runway.plugin.database.username", "runway",
+                    "runway.plugin.database.password", "ENC(c2VjcmV0)", "runway.plugin.database.tls", "disable")));
+            ctx.registerBean(PluginSettings.class, FakePluginSettings::new);
+            ctx.registerBean(PluginSiteFiles.class, () -> new TempDirSiteFiles(dir.resolve("sites"), "database"));
+            ctx.registerBean(PluginInfo.class, () -> new PluginInfo("database", "2.0.0", dir.resolve("plugin")));
+            ctx.registerBean(FakeSiteServices.class, FakeSiteServices::new);
+            ctx.registerBean("otherPluginProvider", DatabaseProvider.class, () -> new DatabaseProvider() {
+                @Override
+                public String id() {
+                    return "postgresql";
+                }
+
+                @Override
+                public String driverVersion() {
+                    return "none";
+                }
+
+                @Override
+                public DataSource dataSource(ConnectionSettings settings) {
+                    touched.set(true);
+                    throw new IllegalStateException("must not connect with 1.x keys");
+                }
+
+                @Override
+                public Optional<ProviderSettings> runningSettings() {
+                    return Optional.of(ProviderSettings.read(key -> Optional.empty()));
+                }
+            });
+            ctx.register(Binding.class, DatabasePluginConfig.class);
+            ctx.refresh();
+            ctx.getBean(DatabaseLifecycle.class).started(ctx.getBean(PluginInfo.class));
+            DatabaseRuntime runtime = ctx.getBean(DatabaseRuntime.class);
+            long deadline = System.nanoTime() + 5_000_000_000L;
+            while (runtime.status() == DatabaseRuntime.Status.CONNECTING && System.nanoTime() < deadline) {
+                Thread.sleep(20);
+            }
+            assertThat(runtime.status()).isEqualTo(DatabaseRuntime.Status.NOT_CONFIGURED);
+            assertThat(runtime.health().detail()).contains("moved to the database-postgresql plugin")
+                    .contains("host, database, username, password, tls")
+                    .contains("plugin-settings/database-postgresql.yml").doesNotContain("c2VjcmV0");
+            assertThat(touched).isFalse();
             ctx.getBean(DatabaseLifecycle.class).stopping();
         }
     }

@@ -77,6 +77,11 @@ public final class RunwaySpi {
      *       empty), the calling plugin's own {@code secret}-typed <b>app-level</b> setting in clear. Before, such a
      *       setting reached the plugin only in its stored {@code ENC(...)} form, which a plugin cannot decrypt. A
      *       plugin that calls it declares {@code requiresSpi: ">=1.1.0"}.</li>
+     *   <li><b>1.2.0</b> — one addition:
+     *       {@link mx.quest.runway.spi.service.PluginSettings#savedApp(String)} (a {@code default} method answering
+     *       empty), the calling plugin's own app-level setting as saved now rather than as the running application
+     *       started with it, so a plugin can check settings before the restart that applies them. A plugin that
+     *       calls it declares {@code requiresSpi: ">=1.2.0"}.</li>
      * </ul>
      *
      * <p>Before 0.4.0: 0.3.4 added {@link HeadContributor#headInputs(String)} (a {@code default} method returning an empty list:
@@ -104,7 +109,7 @@ public final class RunwaySpi {
      * {@link mx.quest.runway.spi.model.WidgetView} (with the old-arity constructor kept). All additive and
      * binary-compatible (no existing member changed).
      */
-    public static final String VERSION = "1.1.0";
+    public static final String VERSION = "1.2.0";
 
     /**
      * The SPI version of the <b>running</b> kernel — unlike {@link #VERSION}, which the compiler inlines into the

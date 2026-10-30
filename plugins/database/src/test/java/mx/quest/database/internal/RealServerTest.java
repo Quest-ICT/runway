@@ -27,6 +27,7 @@ import java.util.zip.GZIPOutputStream;
 import mx.quest.database.spi.DatabaseException;
 import mx.quest.database.spi.DatabaseUnavailableException;
 import mx.quest.database.spi.PluginDatabase;
+import mx.quest.database.spi.ProviderSettings;
 import mx.quest.database.spi.Scope;
 import mx.quest.database.spi.ScopeNotReadyException;
 import mx.quest.runway.spi.model.SiteLifecycleEvent;
@@ -187,28 +188,27 @@ class RealServerTest {
             }
             assertThat(h.runtime.available()).isFalse();
             assertThat(h.runtime.status()).isEqualTo(DatabaseRuntime.Status.CONNECTING);
-            DatabaseProps typed = new DatabaseProps();
-            typed.setProvider(engine);
-            typed.setHost(endpoint.host());
-            typed.setPort(endpoint.port());
-            typed.setDatabase(Harness.DATABASE);
-            typed.setUsername(Harness.USER);
-            typed.setTls("disable");
-            ConnectionTester tester = new ConnectionTester(h.runtime, () -> h.providers, work);
-            assertThat(tester.newSettings(typed, wrong).category()).isEqualTo(ConnectionTester.Category.AUTHENTICATION);
-            assertThat(tester.newSettings(typed, endpoint.password()).category())
-                    .isEqualTo(ConnectionTester.Category.OK);
-            typed.setDatabase("no_such_db_" + SEQ.incrementAndGet());
-            assertThat(tester.newSettings(typed, endpoint.password()).category())
-                    .isEqualTo(ConnectionTester.Category.DATABASE_MISSING);
-            typed.setDatabase(Harness.DATABASE);
-            typed.setPort(1);
-            assertThat(tester.newSettings(typed, endpoint.password()).category())
-                    .isEqualTo(ConnectionTester.Category.UNREACHABLE);
-            // A blank password is not sent to a different target.
-            typed.setPort(endpoint.port());
-            typed.setUsername("someone_else");
-            assertThat(tester.newSettings(typed, "").category()).isEqualTo(ConnectionTester.Category.AUTHENTICATION);
+            // The saved-settings test reads what the provider's page holds now, never the running settings.
+            ConnectionTester tester = new ConnectionTester(h.runtime, h.props, () -> h.providers, work);
+            assertThat(tester.testable()).containsExactly(engine);
+            h.saved = saved(endpoint, Harness.DATABASE, endpoint.port(), Harness.USER, wrong);
+            assertThat(tester.saved(engine).category()).isEqualTo(ConnectionTester.Category.AUTHENTICATION);
+            h.saved = saved(endpoint, Harness.DATABASE, endpoint.port(), Harness.USER, endpoint.password());
+            ConnectionTester.Result ok = tester.saved(engine);
+            assertThat(ok.category()).isEqualTo(ConnectionTester.Category.OK);
+            assertThat(ok.detail()).containsIgnoringCase(engine.equals("postgresql") ? "PostgreSQL" : "MariaDB");
+            h.saved = saved(endpoint, "no_such_db_" + SEQ.incrementAndGet(), endpoint.port(), Harness.USER,
+                    endpoint.password());
+            assertThat(tester.saved(engine).category()).isEqualTo(ConnectionTester.Category.DATABASE_MISSING);
+            h.saved = saved(endpoint, Harness.DATABASE, 1, Harness.USER, endpoint.password());
+            assertThat(tester.saved(engine).category()).isEqualTo(ConnectionTester.Category.UNREACHABLE);
+            h.saved = saved(endpoint, Harness.DATABASE, 99999, Harness.USER, endpoint.password());
+            assertThat(tester.saved(engine)).isEqualTo(new ConnectionTester.Result(
+                    ConnectionTester.Category.INVALID_SETTINGS, "database-" + engine + " settings: the port must be "
+                    + "between 1 and 65535, or blank for the default"));
+            String other = engine.equals("postgresql") ? "mariadb" : "postgresql";
+            assertThat(tester.saved(other).category()).isEqualTo(ConnectionTester.Category.NO_PROVIDER);
+            assertThat(h.runtime.status()).as("a test changes nothing").isEqualTo(DatabaseRuntime.Status.CONNECTING);
         } finally {
             root.detachAppender(logs);
         }
@@ -218,13 +218,20 @@ class RealServerTest {
         }
     }
 
+    private static ProviderSettings saved(Harness.Endpoint endpoint, String database, int port, String user,
+                                          String password) {
+        return new ProviderSettings(endpoint.host(), String.valueOf(port), database, user, password, "disable", null,
+                null);
+    }
+
     @Test
     void withoutSettingsOrProviderNothingConnects() throws Exception {
         Harness.Endpoint endpoint = Harness.endpoint("postgresql").or(() -> Harness.endpoint("mariadb")).orElse(null);
         assumeTrue(endpoint != null, "no database server configured (-Ddb.it.postgresql or -Ddb.it.mariadb)");
         Harness h = new Harness("postgresql", namespace("postgresql"), endpoint, work.resolve("nc"));
         open.add(h);
-        h.props.setHost(null);
+        h.host = null;
+        h.username = null;
         h.start();
         assertThat(h.runtime.status()).isEqualTo(DatabaseRuntime.Status.NOT_CONFIGURED);
         Harness p = new Harness("postgresql", namespace("postgresql"), endpoint, work.resolve("np"));

@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -296,7 +297,7 @@ public class BackupService {
 
     private void doRestore(String siteId, InputStream in, boolean keepRouting) throws IOException {
         Site live = keepRouting ? sites.find(siteId).orElseThrow(() -> new IOException("no site " + siteId)) : null;
-        Staged staged = stageAndSwap(siteId, in);
+        Staged staged = stageAndSwap(siteId, in, true);
         if (live != null) {
             keepRouting(siteId, live);
         } else {
@@ -307,7 +308,9 @@ public class BackupService {
         sites.evict(siteId);
         events.publishEvent(new SiteChangedEvent(siteId, SiteChangedEvent.Kind.RESTORED));
         importParticipants(siteId, staged.pluginData());
-        deleteRecursively(staged.work());
+        if (staged.settled()) {
+            deleteRecursively(staged.work());
+        } // else: the site's previous logs wait in it for the next restore or start (swapIntoPlace)
         log.info("restored site '{}' from backup", siteId);
     }
 
@@ -384,7 +387,7 @@ public class BackupService {
             if (sites.exists(newId)) {
                 throw new IllegalStateException("a site with id '" + newId + "' already exists");
             }
-            Staged staged = stageAndSwap(newId, in);
+            Staged staged = stageAndSwap(newId, in, false); // a new site starts its own logs
             try {
                 // The staged site.yml still carries the SOURCE identity — no event has fired, so rewrite it now.
                 Site source = sites.find(newId).orElseThrow(() -> new IOException("restored site.yml is unreadable"));
@@ -420,19 +423,30 @@ public class BackupService {
     }
 
     /** The result of staging a backup: the manifest, the plugin data to import, and the work dir to clean up. */
-    private record Staged(BackupManifest manifest, Map<String, Map<String, byte[]>> pluginData, Path work) {
+    private record Staged(BackupManifest manifest, Map<String, Map<String, byte[]>> pluginData, Path work,
+                          boolean settled) {
     }
 
     /**
      * Extracts + validates the archive into a staging dir and atomically swaps it into {@code siteId}'s folder.
      * Publishes no event and imports no participant data — the caller owns the lifecycle (restore vs create),
-     * so create can rewrite the identity before anything observes the swapped-in files.
+     * so create can rewrite the identity before anything observes the swapped-in files. {@code keepTransient}: the
+     * live site's logs and stats stay with it (a restore), or are dropped (a new site starts its own).
      */
-    private Staged stageAndSwap(String siteId, InputStream in) throws IOException {
+    private Staged stageAndSwap(String siteId, InputStream in, boolean keepTransient) throws IOException {
         Path siteDir = layout.siteDir(siteId);
         Path work = workDir(siteId);
         Path staging = work.resolve("staging");
         Path old = work.resolve("old");
+        if (Files.exists(work, LinkOption.NOFOLLOW_LINKS)) {
+            // A previous swap may have left the site's logs (or, after a crash, the site itself) here: finish it
+            // first, and refuse rather than delete it when that fails.
+            try {
+                settle(siteDir, work);
+            } catch (UncheckedIOException e) {
+                throw e.getCause();
+            }
+        }
         deleteRecursively(work);
         Files.createDirectories(staging);
         // TOCTOU guard: between the delete above and this create, a local attacker could plant a symlink at
@@ -492,8 +506,8 @@ public class BackupService {
             throw new IOException("not a valid Runway site backup (missing manifest.yml or site content)");
         }
         warnParticipantDrift(siteId, manifest, pluginData);
-        swapIntoPlace(siteDir, staging, old);
-        return new Staged(manifest, pluginData, work);
+        boolean settled = swapIntoPlace(siteDir, staging, old, keepTransient);
+        return new Staged(manifest, pluginData, work, settled);
     }
 
     /**
@@ -747,7 +761,7 @@ public class BackupService {
 
     /** Transient per-site data (access/audit logs, bandwidth stats) excluded from the content backup. */
     private static boolean isTransient(String rel) {
-        return rel.equals("logs") || rel.startsWith("logs/") || rel.equals("stats") || rel.startsWith("stats/");
+        return TRANSIENT_DIRS.stream().anyMatch(dir -> rel.equals(dir) || rel.startsWith(dir + "/"));
     }
 
     private static void collectPluginEntry(Map<String, Map<String, byte[]>> into, String rest, byte[] bytes) {
@@ -772,27 +786,191 @@ public class BackupService {
         }
     }
 
-    /** Atomic same-filesystem swap: current → old, staged → live, drop old; restore the original on failure. */
-    private static void swapIntoPlace(Path siteDir, Path staging, Path old) throws IOException {
+    /**
+     * Atomic same-filesystem swap: current → old, staged → live, drop old; restore the original on failure.
+     *
+     * <p><b>The site's logs and usage stats stay with the site</b> when {@code keepTransient} (a restore): a backup
+     * never carries them, so the swap alone would start the audit journal again from nothing — and a restore is
+     * exactly the act a journal must survive. They stay inside {@code old} until the new copy is in place, then
+     * {@link #settle} merges them in. Until that has succeeded the work folder is kept: the next restore of the
+     * site, or the next start ({@link BackupRestoreRecovery}), settles it again, so neither a crash nor a failed
+     * merge loses them. Whatever an archive carries under those names is discarded first: a backup never writes
+     * them, so a crafted one must not plant journal lines.
+     *
+     * <p>The log writer and the bandwidth flush create these folders on demand, so a write landing between the two
+     * renames recreates the site folder and the second rename fails. That folder (it holds no {@code site.yml}) is
+     * set aside as {@code late} and the rename retried once; its lines are merged like the others.
+     *
+     * @return whether the work folder holds nothing more of the site's and may be deleted
+     */
+    private static boolean swapIntoPlace(Path siteDir, Path staging, Path old, boolean keepTransient)
+            throws IOException {
+        for (String name : TRANSIENT_DIRS) {
+            deleteRecursively(staging.resolve(name));
+        }
+        Path work = old.getParent();
+        Path late = work.resolve(LATE_DIR);
         try {
             if (Files.exists(siteDir)) {
                 move(siteDir, old);
             }
-            move(staging, siteDir);
+            try {
+                move(staging, siteDir);
+            } catch (IOException recreated) {
+                if (!setAsideIfNotASite(siteDir, late)) {
+                    throw recreated;
+                }
+                move(staging, siteDir);
+            }
         } catch (IOException swapFailed) {
-            if (Files.exists(old) && !Files.exists(siteDir)) {
+            if (Files.exists(old)) {
                 try {
-                    move(old, siteDir); // roll back
-                } catch (IOException rollbackFailed) {
+                    settle(siteDir, work); // rolls the original back, with any lines written meanwhile
+                } catch (IOException | UncheckedIOException rollbackFailed) {
                     // Leave `old` in place as the recovery copy — the startup sweep rolls it forward. Do NOT
-                    // delete it (it now holds the ONLY copy of the original site).
+                    // delete it (it may hold the ONLY copy of the original site).
                     swapFailed.addSuppressed(rollbackFailed);
-                    throw swapFailed;
                 }
             }
             throw swapFailed;
         }
+        if (keepTransient) {
+            try {
+                settle(siteDir, work);
+            } catch (IOException | UncheckedIOException e) {
+                // The restore itself succeeded. The site's previous logs stay in the work folder for the next try.
+                log.warn("could not carry the logs of site folder {} over the restore yet; the next restore of "
+                        + "the site or the next start does", siteDir, e);
+                return false;
+            }
+        }
+        deleteRecursively(late);
         deleteRecursively(old);
+        return true;
+    }
+
+    /**
+     * Finishes what a swap left in its work folder: the site's previous copy ({@code old}) and the lines written
+     * while the site folder was away ({@code late}). Used after a swap, before the next restore of the same site,
+     * and by the startup sweep. A site folder holding no {@code site.yml} is never taken for the site.
+     * <ul>
+     *   <li>{@code old} and no site folder: the swap never completed — {@code old} goes back, followed by the
+     *       {@code late} lines;</li>
+     *   <li>{@code old} and the site: the swap completed — the {@code late} and then the {@code old} lines go
+     *       before the site's own;</li>
+     *   <li>no {@code old}: a rollback put the original back — the {@code late} lines go after its own.</li>
+     * </ul>
+     * Each merged file is removed from the work folder, so a run that fails half-way can simply be repeated.
+     *
+     * @return whether the previous copy was rolled back into place
+     * @throws IOException when a move or a merge fails; the work folder must then be kept
+     */
+    static boolean settle(Path siteDir, Path workDir) throws IOException {
+        Path old = workDir.resolve("old");
+        Path late = workDir.resolve(LATE_DIR);
+        if (!Files.exists(old, LinkOption.NOFOLLOW_LINKS)) {
+            mergeTransient(late, siteDir, false);
+            return false;
+        }
+        setAsideIfNotASite(siteDir, late);
+        if (!Files.exists(siteDir, LinkOption.NOFOLLOW_LINKS)) {
+            move(old, siteDir);
+            mergeTransient(late, siteDir, false);
+            return true;
+        }
+        mergeTransient(late, siteDir, true);
+        mergeTransient(old, siteDir, true);
+        return false;
+    }
+
+    /** The site folder's transient sub-folders, as {@link #isTransient(String)} names them. */
+    static final List<String> TRANSIENT_DIRS = List.of("logs", "stats");
+
+    /** Beside {@code old} in a restore's work folder: a site folder a late write recreated mid-swap. */
+    static final String LATE_DIR = "late";
+
+    /**
+     * Moves {@code siteDir} to {@code aside} when it exists but holds no {@code site.yml} — a folder a log or stats
+     * write recreated, not a site — merging it after whatever {@code aside} already holds.
+     *
+     * @return whether {@code siteDir} was set aside
+     */
+    static boolean setAsideIfNotASite(Path siteDir, Path aside) throws IOException {
+        if (!Files.isDirectory(siteDir, LinkOption.NOFOLLOW_LINKS) || Files.exists(siteDir.resolve("site.yml"))) {
+            return false;
+        }
+        if (Files.exists(aside, LinkOption.NOFOLLOW_LINKS)) {
+            mergeTransient(siteDir, aside, false);
+            deleteRecursively(siteDir);
+        } else {
+            move(siteDir, aside);
+        }
+        return true;
+    }
+
+    /**
+     * Moves the transient files under {@code from} ({@link #TRANSIENT_DIRS}) into the site folder {@code into}.
+     * A file {@code into} lacks is moved; a log both have is joined, {@code from}'s lines first when
+     * {@code fromIsOlder} (the journal is read in file order, so the order of the lines is the order of the events);
+     * a stats file both have keeps {@code into}'s, which the bandwidth service rewrites whole from memory. Symlinks
+     * and other non-regular files are left behind. Missing folders are a no-op. A line the log writer appends to a
+     * joined file during the copy is lost: a window of one file copy, during a restore.
+     */
+    static void mergeTransient(Path from, Path into, boolean fromIsOlder) throws IOException {
+        if (!Files.isDirectory(from, LinkOption.NOFOLLOW_LINKS) || !Files.isDirectory(into, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        for (String name : TRANSIENT_DIRS) {
+            Path root = from.resolve(name);
+            if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+                continue;
+            }
+            List<Path> files;
+            try (Stream<Path> walk = Files.walk(root)) {
+                files = walk.filter(f -> Files.isRegularFile(f, LinkOption.NOFOLLOW_LINKS)).toList();
+            }
+            for (Path file : files) {
+                Path target = into.resolve(name).resolve(root.relativize(file).toString());
+                Files.createDirectories(target.getParent());
+                if (moveIfAbsent(file, target)) {
+                    continue;
+                }
+                if (name.equals("logs") && Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS)) {
+                    // Streamed through a sibling file: today's access log of a busy site can be large.
+                    Path joined = target.resolveSibling(target.getFileName() + ".joining");
+                    try (OutputStream out = Files.newOutputStream(joined)) {
+                        Files.copy(fromIsOlder ? file : target, out);
+                        Files.copy(fromIsOlder ? target : file, out);
+                    }
+                    move(joined, target);
+                }
+                Files.delete(file); // merged (or superseded): a re-run must not join it twice
+            }
+        }
+    }
+
+    /**
+     * Moves {@code file} to {@code target} unless {@code target} exists, atomically: a hard link fails when the
+     * name is taken, where a rename would replace a log the writer has just created. Falls back to a checked move
+     * on a filesystem without hard links.
+     *
+     * @return whether the file was moved
+     */
+    private static boolean moveIfAbsent(Path file, Path target) throws IOException {
+        try {
+            Files.createLink(target, file);
+        } catch (FileAlreadyExistsException taken) {
+            return false;
+        } catch (UnsupportedOperationException noLinks) {
+            try {
+                Files.move(file, target); // no REPLACE_EXISTING: refuses an existing target
+                return true;
+            } catch (FileAlreadyExistsException taken) {
+                return false;
+            }
+        }
+        Files.delete(file);
+        return true;
     }
 
     /** A same-filesystem rename, atomic where the filesystem supports it. */

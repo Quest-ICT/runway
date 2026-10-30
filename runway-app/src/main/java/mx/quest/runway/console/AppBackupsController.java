@@ -1,5 +1,6 @@
 package mx.quest.runway.console;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,8 +99,8 @@ public class AppBackupsController {
 
     /** Stream a fresh backup of any site. */
     @GetMapping("/__app/backups/{siteId}/download")
-    public void download(@PathVariable String siteId, Authentication authentication, HttpServletResponse response)
-            throws IOException {
+    public void download(@PathVariable String siteId, Authentication authentication, HttpServletRequest request,
+                         HttpServletResponse response) throws IOException {
         platformAuthority.require(authentication);
         if (!sites.exists(siteId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no such site");
@@ -107,13 +108,17 @@ public class AppBackupsController {
         response.setContentType("application/zip");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + siteId + "-backup-" + LocalDate.now() + ".zip\"");
+        if (TenantBackupsController.isHead(request)) {
+            return; // the headers only: no archive is built, and nothing is downloaded
+        }
         backups.backup(siteId, response.getOutputStream());
+        activity.record(authentication.getName(), "backup.downloaded", siteId + " (full)");
     }
 
     /** Stream a <b>transfer</b> archive of any site — no credentials, accounts or origin hostnames. */
     @GetMapping("/__app/backups/{siteId}/download-transfer")
     public void downloadForTransfer(@PathVariable String siteId, Authentication authentication,
-                                    HttpServletResponse response) throws IOException {
+                                    HttpServletRequest request, HttpServletResponse response) throws IOException {
         platformAuthority.require(authentication);
         if (!sites.exists(siteId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no such site");
@@ -121,7 +126,11 @@ public class AppBackupsController {
         response.setContentType("application/zip");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + siteId + "-transfer-" + LocalDate.now() + ".zip\"");
+        if (TenantBackupsController.isHead(request)) {
+            return;
+        }
         backups.backup(siteId, response.getOutputStream(), BackupService.BackupPurpose.TRANSFER);
+        activity.record(authentication.getName(), "backup.downloaded", siteId + " (transfer)");
     }
 
     /** Save a stored backup of any site on the server. */

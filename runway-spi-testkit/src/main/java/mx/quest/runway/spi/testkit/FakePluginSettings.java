@@ -18,7 +18,8 @@ import mx.quest.runway.spi.service.PluginSettings;
  *         .defaults(Map.of("enabled", true, "limit", 20))
  *         .site("acme", Map.of("limit", 50))
  *         .secret("acme", "smtpPassword", "s3cret")
- *         .appSecret("password", "app-s3cret");
+ *         .appSecret("password", "app-s3cret")
+ *         .savedApp("host", "db.example.com");
  * MyWidget widget = new MyWidget(settings);
  * }</pre>
  *
@@ -34,6 +35,7 @@ public final class FakePluginSettings implements PluginSettings {
     private final Map<String, Map<String, Object>> sites = new ConcurrentHashMap<>();
     private final Map<String, String> secrets = new ConcurrentHashMap<>();
     private final Map<String, String> appSecrets = new ConcurrentHashMap<>();
+    private final Map<String, String> savedApp = new ConcurrentHashMap<>();
 
     /** The declared {@code siteSettings:} defaults (replaces any set before). */
     public FakePluginSettings defaults(Map<String, ?> declaredDefaults) {
@@ -59,6 +61,15 @@ public final class FakePluginSettings implements PluginSettings {
         return this;
     }
 
+    /**
+     * An app-level value as {@link #savedApp(String)} answers it: what the operator saved and a restart would apply
+     * (a secret in clear). Pass the declared default yourself if the test needs one.
+     */
+    public FakePluginSettings savedApp(String key, String value) {
+        savedApp.put(key, value);
+        return this;
+    }
+
     @Override
     public SettingsView site(String siteId) {
         Map<String, Object> values = new LinkedHashMap<>(defaults);
@@ -80,6 +91,12 @@ public final class FakePluginSettings implements PluginSettings {
     @Override
     public Optional<String> appSecret(String key) {
         String value = key == null ? null : appSecrets.get(key);
+        return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
+    }
+
+    @Override
+    public Optional<String> savedApp(String key) {
+        String value = key == null ? null : savedApp.get(key);
         return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
     }
 

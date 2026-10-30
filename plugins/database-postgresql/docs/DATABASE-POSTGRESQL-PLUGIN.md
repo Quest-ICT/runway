@@ -21,3 +21,17 @@ The provider is one bean, `databasePostgresqlProvider`, collected by type. Tests
 properties for each TLS policy, a real connection when `-Ddb.it.postgresql=host:port` and
 `-Ddb.it.password-file=…` are set, the bean name, and the linkage scan). End to end:
 `../database/scripts/verify-against-host.sh` with `PROVIDER=postgresql`.
+
+## Its settings (since 2.0.0)
+
+The server's settings are this plugin's own app-level settings (`runway.plugin.database-postgresql.*`, the console's **Plugins →
+Database — PostgreSQL → Settings**): `host`, `port`, `database`, `username`, `password` (a `secret`, bound to the
+others), `tls`, `caCertificate`. The provider hands them to the database plugin raw; the database
+plugin checks every one before use, as before:
+
+- **running** (`runningSettings()`): bound at startup into a `ProviderSettingsProps` bean
+  (`databasePostgresqlSettings`), the password read in clear with `PluginSettings.appSecret("password")`;
+- **saved** (`savedSettings()`): read with `PluginSettings.savedApp(key)` (SPI 1.2.0) from the settings file as it is
+  now, for the database plugin's connection test before a restart applies them.
+
+A `collation` written into this plugin's file by hand is never handed over: it is a MariaDB setting.

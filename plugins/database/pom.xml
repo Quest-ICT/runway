@@ -19,7 +19,7 @@
 
     <groupId>mx.quest</groupId>
     <artifactId>runway-plugin-database</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <packaging>jar</packaging>
     <name>Runway Database</name>
     <licenses>
@@ -42,8 +42,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Reproducible builds: pins every archive entry's timestamp. Bump at each release. -->
         <project.build.outputTimestamp>2026-10-29T00:00:00Z</project.build.outputTimestamp>
-        <!-- The runway-spi this plugin compiles against: SPI 1.1.0 adds PluginSettings.appSecret. -->
-        <runway.version>1.1.0</runway.version>
+        <!-- The runway-spi this plugin compiles against: SPI 1.2.0 adds PluginSettings.savedApp. -->
+        <runway.version>1.2.0</runway.version>
         <!-- Bundled in lib/ (Apache-2.0). Managed by Boot 4.0.6; pinned here so the bundle never drifts. -->
         <hikaricp.version>7.0.2</hikaricp.version>
         <!-- Test only: the drivers the provider plugins bundle, for the tests against real servers. -->

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -490,6 +491,113 @@ class BackupServiceTest {
             }
         }
         assertTrue(sawContent, "real site content is still archived");
+    }
+
+    /** A restore replaces the content, not the site's history: its audit log and stats stay as they were. */
+    @Test
+    void aRestoreKeepsTheLiveSitesLogsAndStats() throws IOException {
+        ByteArrayOutputStream archive = new ByteArrayOutputStream();
+        svc.backup("demo", archive);
+        write(siteDir.resolve("logs/audit-2026-10-30.log"), "LIVE-AUDIT");
+        write(siteDir.resolve("stats/bandwidth.csv"), "LIVE-STATS");
+        write(siteDir.resolve("templates/_master.html"), "MASTER_BROKEN");
+
+        svc.restore("demo", new ByteArrayInputStream(archive.toByteArray()));
+
+        assertEquals("MASTER_V1", read(siteDir.resolve("templates/_master.html")), "the content is restored");
+        assertEquals("LIVE-AUDIT", read(siteDir.resolve("logs/audit-2026-10-30.log")), "the audit log survives");
+        assertEquals("LIVE-STATS", read(siteDir.resolve("stats/bandwidth.csv")), "the stats survive");
+    }
+
+    /** A backup never writes logs or stats, so whatever an archive carries under those names is discarded. */
+    @Test
+    void aRestoreDiscardsLogsAndStatsCarriedByTheArchive() throws IOException {
+        ByteArrayOutputStream original = new ByteArrayOutputStream();
+        svc.backup("demo", original);
+        ByteArrayOutputStream crafted = new ByteArrayOutputStream();
+        try (ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(original.toByteArray()));
+             ZipOutputStream out = new ZipOutputStream(crafted)) {
+            ZipEntry e;
+            while ((e = in.getNextEntry()) != null) {
+                out.putNextEntry(new ZipEntry(e.getName()));
+                in.transferTo(out);
+                out.closeEntry();
+            }
+            for (String planted : List.of("site/logs/audit-2026-10-30.log", "site/logs/audit-2026-10-29.log",
+                    "site/stats/bandwidth.csv")) {
+                out.putNextEntry(new ZipEntry(planted));
+                out.write("PLANTED".getBytes(StandardCharsets.UTF_8));
+                out.closeEntry();
+            }
+        }
+        // The live site has an audit log of its own, and no stats yet.
+        write(siteDir.resolve("logs/audit-2026-10-30.log"), "LIVE-AUDIT");
+
+        svc.restore("demo", new ByteArrayInputStream(crafted.toByteArray()));
+
+        assertEquals("LIVE-AUDIT", read(siteDir.resolve("logs/audit-2026-10-30.log")), "the live log is kept");
+        assertFalse(Files.exists(siteDir.resolve("logs/audit-2026-10-29.log")), "no planted day is added");
+        assertFalse(Files.exists(siteDir.resolve("stats")), "no planted stats appear");
+    }
+
+    private Path work(String siteId) {
+        return layout.sites().resolve(BackupService.WORK_DIR).resolve(siteId);
+    }
+
+    /** A merge that fails is kept, never deleted, and a repeated run finishes it without joining anything twice. */
+    @Test
+    void aFailedLogMergeIsKeptAndFinishedByTheNextRun() throws IOException {
+        write(siteDir.resolve("logs/audit-2026-10-30.log"), "NEW\n");
+        Path old = work("demo").resolve("old");
+        write(old.resolve("site.yml"), "id: demo\n");
+        write(old.resolve("logs/audit-2026-10-29.log"), "YESTERDAY\n");
+        Path unreadable = old.resolve("logs/audit-2026-10-30.log");
+        write(unreadable, "OLD\n");
+        unreadable.toFile().setReadable(false);
+        // As root (some CI containers) a file stays readable whatever its mode: the failure cannot be staged there.
+        assumeFalse(Files.isReadable(unreadable), "the file can be made unreadable");
+        try {
+            assertThrows(IOException.class, () -> BackupService.settle(siteDir, work("demo")));
+        } finally {
+            assertTrue(unreadable.toFile().setReadable(true));
+        }
+        assertTrue(Files.exists(unreadable), "the unmerged log is kept");
+
+        BackupService.settle(siteDir, work("demo"));
+
+        assertEquals("OLD\nNEW\n", read(siteDir.resolve("logs/audit-2026-10-30.log")), "joined once, in order");
+        assertEquals("YESTERDAY\n", read(siteDir.resolve("logs/audit-2026-10-29.log")), "moved once");
+    }
+
+    /** Logs a previous restore could not carry over are merged by the next restore of the site, not deleted. */
+    @Test
+    void theNextRestoreFinishesLogsAPreviousOneLeftBehind() throws IOException {
+        ByteArrayOutputStream archive = new ByteArrayOutputStream();
+        svc.backup("demo", archive);
+        write(work("demo").resolve("old/site.yml"), "id: demo\n");
+        write(work("demo").resolve("old/logs/audit-2026-10-29.log"), "LEFT-BEHIND\n");
+
+        svc.restore("demo", new ByteArrayInputStream(archive.toByteArray()));
+
+        assertEquals("LEFT-BEHIND\n", read(siteDir.resolve("logs/audit-2026-10-29.log")));
+        assertFalse(Files.exists(work("demo")), "the work folder is cleared once settled");
+    }
+
+    /** A new site starts its own logs: a leftover folder under its id (no site.yml) is not adopted. */
+    @Test
+    void aSiteCreatedFromABackupDoesNotAdoptLeftoverLogs() throws IOException {
+        new SiteStore(layout, new YamlStore()).save(new Site("src", "Source", List.of("src.test"), Locale.ENGLISH,
+                List.of(Locale.ENGLISH), "https://src.test", SiteStatus.ACTIVE));
+        write(layout.siteDir("src").resolve("templates/home.html"), "SRC_CONTENT");
+        ByteArrayOutputStream archive = new ByteArrayOutputStream();
+        svc.backup("src", archive);
+        Path stray = layout.siteDir("clone");
+        write(stray.resolve("logs/audit-2026-10-30.log"), "STRAY");
+
+        svc.createFromBackup("clone", "Cloned", List.of("clone.test"), new ByteArrayInputStream(archive.toByteArray()));
+
+        assertTrue(Files.exists(stray.resolve("site.yml")), "the site is created");
+        assertFalse(Files.exists(stray.resolve("logs")), "no leftover log becomes the new site's journal");
     }
 
     // ---- a restore must not make every page look edited today ------------------------------------

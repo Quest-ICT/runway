@@ -1,5 +1,6 @@
 package mx.quest.runway.console;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,6 +8,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import mx.quest.runway.backup.BackupService;
 import mx.quest.runway.backup.UnsupportedBackupFormatException;
+import mx.quest.runway.log.SiteLogService;
 import mx.quest.runway.site.Site;
 import mx.quest.runway.site.SiteResolver;
 import org.slf4j.Logger;
@@ -50,6 +52,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * A stored backup a delegated holder created stays on the server for an administrator (or the platform operator, on
  * {@code /__app/backups}) to download or restore. Bound-tenancy only — a tenant can only ever back up or restore its
  * own site.
+ *
+ * <p>Every act that took effect is recorded in the site's audit log, under the actions the application console
+ * records for the same acts in the platform's activity log: {@code backup.saved} and {@code backup.deleted} naming
+ * the backup, {@code backup.downloaded} ({@code full}, {@code transfer}, or {@code full} and the stored backup's
+ * name, when it is handed over; a HEAD request, or a range resuming one, is not a new download) and
+ * {@code site.restored} (the backup's name, or {@code (upload)}). Who
+ * took a copy of the site, or replaced it, is what an administrator reviewing the site needs to know. A refused
+ * act, or one that failed before changing anything, writes nothing.
  */
 @Controller
 public class TenantBackupsController {
@@ -62,11 +72,13 @@ public class TenantBackupsController {
     private final MessageSource messages;
     private final mx.quest.runway.backup.BackupProperties policy;
     private final mx.quest.runway.platform.PlatformSettingsStore platform;
+    private final SiteLogService siteLog;
 
     public TenantBackupsController(SiteResolver siteResolver, BackupService backups, TenantAuthority tenantAuthority,
                                    @Qualifier("operatorAwareMessageSource") MessageSource messages,
                                    mx.quest.runway.backup.BackupProperties policy,
-                                   mx.quest.runway.platform.PlatformSettingsStore platform) {
+                                   mx.quest.runway.platform.PlatformSettingsStore platform, SiteLogService siteLog) {
+        this.siteLog = siteLog;
         this.platform = platform;
         this.policy = policy;
         this.siteResolver = siteResolver;
@@ -120,10 +132,11 @@ public class TenantBackupsController {
     /** Save a new backup on the server. */
     @PostMapping("/__admin/backups/create")
     @PreAuthorize("@authz.may('MANAGE_BACKUPS')")
-    public String create(RedirectAttributes redirect) {
+    public String create(Authentication authentication, RedirectAttributes redirect) {
         Site site = boundTenancy();
         try {
             String name = backups.create(site.id());
+            siteLog.audit(site.id(), actor(authentication), "backup.saved", name);
             redirect.addFlashAttribute("flash", message("op.backups.created", "Backup created.") + " " + name);
         } catch (IOException e) {
             log.warn("backup create failed for {}", site.id(), e);
@@ -138,13 +151,18 @@ public class TenantBackupsController {
      */
     @GetMapping("/__admin/backups/download")
     @PreAuthorize("@authz.may('MANAGE_BACKUPS')")
-    public void download(Authentication authentication, HttpServletResponse response) throws IOException {
+    public void download(Authentication authentication, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         Site site = boundTenancy();
         tenantAuthority.require(authentication, site.id());
         response.setContentType("application/zip");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + site.id() + "-backup-" + LocalDate.now() + ".zip\"");
+        if (isHead(request)) {
+            return; // the headers only: no archive is built, and nothing is downloaded
+        }
         backups.backup(site.id(), response.getOutputStream());
+        siteLog.audit(site.id(), actor(authentication), "backup.downloaded", "full");
     }
 
 
@@ -158,12 +176,17 @@ public class TenantBackupsController {
      */
     @GetMapping("/__admin/backups/download-transfer")
     @PreAuthorize("@authz.may('MANAGE_BACKUPS')")
-    public void downloadForTransfer(HttpServletResponse response) throws IOException {
+    public void downloadForTransfer(Authentication authentication, HttpServletRequest request,
+                                    HttpServletResponse response) throws IOException {
         Site site = boundTenancy();
         response.setContentType("application/zip");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + site.id() + "-transfer-" + LocalDate.now() + ".zip\"");
+        if (isHead(request)) {
+            return;
+        }
         backups.backup(site.id(), response.getOutputStream(), BackupService.BackupPurpose.TRANSFER);
+        siteLog.audit(site.id(), actor(authentication), "backup.downloaded", "transfer");
     }
 
     /**
@@ -173,7 +196,8 @@ public class TenantBackupsController {
      */
     @GetMapping("/__admin/backups/{name}/download")
     @PreAuthorize("@authz.may('MANAGE_BACKUPS')")
-    public ResponseEntity<Resource> downloadStored(@PathVariable String name, Authentication authentication) {
+    public ResponseEntity<Resource> downloadStored(@PathVariable String name, Authentication authentication,
+                                                   HttpServletRequest request) {
         Site site = boundTenancy();
         tenantAuthority.require(authentication, site.id());
         Path file = backups.file(site.id(), name)
@@ -181,6 +205,12 @@ public class TenantBackupsController {
         // Name the download from the RESOLVED file, never the raw path variable — the header must not echo
         // attacker-controlled input (CRLF / quotes) even though the store already rejects it as an unsafe id.
         String filename = file.getFileName().toString();
+        // Recorded when the file is handed over, before it streams (after this method returns, with HEAD and
+        // resumable ranges handled by the framework). A HEAD request takes no copy, and a range that does not start
+        // at the beginning continues a download already recorded, so neither writes a line.
+        if (!isHead(request) && startsAtTheBeginning(request.getHeader(HttpHeaders.RANGE))) {
+            siteLog.audit(site.id(), actor(authentication), "backup.downloaded", "full " + filename);
+        }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("application/zip"))
@@ -190,9 +220,11 @@ public class TenantBackupsController {
     /** Delete a stored backup. */
     @PostMapping("/__admin/backups/{name}/delete")
     @PreAuthorize("@authz.may('MANAGE_BACKUPS')")
-    public String delete(@PathVariable String name, RedirectAttributes redirect) {
+    public String delete(@PathVariable String name, Authentication authentication, RedirectAttributes redirect) {
         Site site = boundTenancy();
-        backups.delete(site.id(), name);
+        if (backups.delete(site.id(), name)) {
+            siteLog.audit(site.id(), actor(authentication), "backup.deleted", name);
+        }
         redirect.addFlashAttribute("flash", message("op.backups.deleted", "Backup deleted."));
         return "redirect:/__admin/backups";
     }
@@ -204,6 +236,7 @@ public class TenantBackupsController {
         tenantAuthority.require(authentication, site.id());
         try {
             backups.restoreStored(site.id(), name, true); // a site manager never changes how the site is reached
+            siteLog.audit(site.id(), actor(authentication), "site.restored", name);
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
             redirect.addFlashAttribute(AppBackupsController.REVIEW_HOSTS, Boolean.TRUE);
         } catch (UnsupportedBackupFormatException e) {
@@ -227,6 +260,7 @@ public class TenantBackupsController {
         }
         try (InputStream in = file.getInputStream()) {
             backups.restore(site.id(), in, true); // a site manager never changes how the site is reached
+            siteLog.audit(site.id(), actor(authentication), "site.restored", "(upload)");
             redirect.addFlashAttribute("flash", message("op.backups.restored", "Site restored from the backup."));
             redirect.addFlashAttribute(AppBackupsController.REVIEW_HOSTS, Boolean.TRUE);
         } catch (UnsupportedBackupFormatException e) {
@@ -236,6 +270,20 @@ public class TenantBackupsController {
             redirect.addFlashAttribute("error", message("op.backups.restoreFailed", "Restore failed."));
         }
         return "redirect:/__admin/backups";
+    }
+
+    /** Whether a {@code Range} header (or none) asks for the file from its first byte. */
+    static boolean startsAtTheBeginning(String range) {
+        return range == null || range.isBlank() || range.strip().replace(" ", "").startsWith("bytes=0-");
+    }
+
+    /** A HEAD request (a link checker, a preview) asks for the headers only: it builds and records nothing. */
+    static boolean isHead(HttpServletRequest request) {
+        return "HEAD".equalsIgnoreCase(request.getMethod());
+    }
+
+    private static String actor(Authentication authentication) {
+        return authentication == null ? "unknown" : authentication.getName();
     }
 
     private String message(String code, String fallback) {

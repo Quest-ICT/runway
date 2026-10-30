@@ -235,7 +235,12 @@ site refused, such as a `503` while it is in maintenance) and its **audit journa
 (`login.success`, `login.failure`) and sign-outs (`logout`), each with the address it came from (`ip=…`, in full:
 the anonymizing setting below applies to the access log only); password recovery through an emailed link
 (`recovery.requested`, `recovery.completed`); page changes (`page.saved`, `page.deleted`, `page.published`,
-`page.unpublished`); user changes (`user.created`, `user.password-reset`, `user.deleted`); role and permission
+`page.unpublished`); user changes (`user.created`, `user.updated`, `user.suspended`, `user.resumed`,
+`user.password-reset`, `user.deleted`); static files (`static.uploaded`, `static.folder-created`, `static.deleted`);
+backups made on your console (§12): a backup saved on the server (`backup.saved`) or deleted (`backup.deleted`), a
+backup downloaded (`backup.downloaded`: `full` for a fresh full backup, `transfer` for a transfer copy, `full` and the
+name for a saved one) and a restore (`site.restored`, naming the backup, or `(upload)` for an uploaded file) — the
+platform operator's own backup work is in the platform's log, not here; role and permission
 changes on **Permissions** (`permissions.role-assigned`, `permissions.permission-granted`,
 `permissions.role-created` and their counterparts); and settings changes — a plugin's settings
 (`plugin.settings-changed`, naming the plugin), the site settings (`site-config.changed`, naming which parts —
@@ -257,7 +262,8 @@ happens when a line is written, so switching it changes only the lines written a
 how many **days** of logs to keep, 30 by default, up to the
 platform's maximum (90 unless your operator changed it; the field's hint says it). A value above it is refused. If
 the operator lowers the maximum below what you chose, your choice is kept, the logs are kept only up to the new
-maximum, and the panel says so until you save a value within it. Logs are *transient*: they never travel in a backup, so restoring a site never carries old logs.
+maximum, and the panel says so until you save a value within it. Logs are *transient*: they never travel in a backup, and a restore keeps the logs your site has now, so the
+journal still shows everything before the restore (and, for a restore made on your console, the restore itself).
 
 The **Bandwidth** screen (`/__admin/bandwidth`, site-admin only) charts your site's data transfer — a
 30-day daily graph plus 24-hour / 7-day / 30-day totals. Like logs, the underlying stats are transient and
@@ -836,6 +842,20 @@ index-backed plugin rebuilds its index).
 page or master template (described in **§7**); you decide where it appears and — on the **Content
 widgets** screen below — how each placement behaves.
 
+**Plugins that keep data in a database.** Most plugins keep your site's data in your site's folder. Some keep it in
+a database server the platform operator runs (PostgreSQL or MariaDB) instead: things that pile up, such as visitors'
+entries. For you it works the same way: each site has its own part of the database, kept apart from every other site's,
+and your **full backups** carry it (**§12**). Your dashboard has a **Database** card saying whether your site keeps
+any data there, and how the last restore of that data went. If the database cannot be reached, those plugins say
+so on the page (for example *This example needs the database*) and the rest of your site works as usual; the
+operator sees why on their own console.
+
+One such plugin is an example, the **guestbook** (`runway-demo-database`), if your operator installed it:
+place `<div id="guestbook" data-widget="guestbook/main"></div>` on a page; visitors sign it there, and you read and
+delete the entries under **Guestbook** in your console (it needs the *manage* permission of that plugin, which a role
+gets on **Permissions**). Its settings, under **Settings → Runway demo — database**, turn it off for your site and cap how many
+entries are kept (500 by default; the oldest go first).
+
 ### Content widgets — configuring each placement
 
 Open **Resources → Content widgets** (`/__admin/widgets`). The screen lists **every widget a
@@ -1316,12 +1336,20 @@ backup they save stays on the server, where an administrator — or the platform
 download or restore it. Why: handing out the permission to keep the site safe should not also hand out
 a copy of everyone's credentials.
 
+**Data in a database.** When plugins keep data for your site in a database (**§8**), a full backup carries it, and
+a backup taken while the database cannot be reached **fails** rather than leaving that data out: a backup is
+complete or it is not a backup. On restore, that data is loaded beside the live data and switched in only when all
+of it loaded; if loading fails, your site's files are still restored, the database data **stays as it was**, and the
+dashboard's **Database** card shows the failed restore (tell the operator; the detail is on their console).
+
 **Restoring.** Restore **replaces your entire site** with the contents of a backup — every
 page, template, user and setting reverts to the moment the backup was taken. Because it is
 destructive, **only the site's administrators (the site superadmin, or the Administrator tier) may
 restore**; the restore controls are hidden for everyone else. You can restore either from a **saved backup** (pick it from the list) or by
-**uploading a `.zip`** you downloaded earlier. One thing does not revert: the site's **host names and base URL**
-(how visitors reach it) stay as the platform operator has set them now, whatever the backup says.
+**uploading a `.zip`** you downloaded earlier. Two things do not revert: the site's **host names and base URL**
+(how visitors reach it) stay as the platform operator has set them now, whatever the backup says; and its **logs and
+bandwidth history** stay as they are, so the audit journal keeps its record (the backup acts made here are in it,
+§3).
 
 Restore is safe by design: the platform first checks the file is a genuine, complete site
 backup and only then swaps it in, in one step. **A corrupt, empty, or wrong file is rejected
@@ -1361,7 +1389,7 @@ kind of `.zip`, restorable in the same way, with the parts that are yours alone 
 | Plugin settings that are **not** secrets | Plugin secrets (blanked, so you can see what to fill in) |
 | | Hostnames and base URL (replaced with a placeholder) |
 | | Traffic figures |
-| | Plugin-held data such as form submissions |
+| | Plugin-held data such as form submissions, and everything plugins keep for your site in a database (§8) |
 | | Changes waiting for review — unpublished drafts, who submitted them, reviewers' notes |
 
 The recipient restores it exactly like a backup. Their copy comes up with your content and appearance, no

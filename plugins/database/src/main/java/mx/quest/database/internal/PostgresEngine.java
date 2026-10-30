@@ -463,6 +463,11 @@ public final class PostgresEngine implements Engine {
             return ConnectFailure.TLS;
         }
         String state = failure.getSQLState() == null ? "" : failure.getSQLState();
+        // 08004 also when TLS was asked of a server that has it off: pgjdbc says "The server does not support SSL."
+        // (translated with the JVM's locale, but "SSL" stays), which is a TLS problem, not a refused password.
+        if (state.equals("08004") && failure.getMessage() != null && failure.getMessage().contains("SSL")) {
+            return ConnectFailure.TLS;
+        }
         // 08004: the driver itself refuses, e.g. an empty password when the server asks for one.
         if (state.equals("28P01") || state.equals("28000") || state.equals("08004")) {
             return ConnectFailure.AUTHENTICATION;

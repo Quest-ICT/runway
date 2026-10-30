@@ -32,3 +32,15 @@ The provider is one bean, `databaseMariadbProvider`, collected by type. Tests: `
 each TLS policy and that it never carries the account, a real connection when `-Ddb.it.mariadb=host:port` and
 `-Ddb.it.password-file=…` are set, the bean name, and the linkage scan). End to end:
 `../database/scripts/verify-against-host.sh` with `PROVIDER=mariadb`.
+
+## Its settings (since 2.0.0)
+
+The server's settings are this plugin's own app-level settings (`runway.plugin.database-mariadb.*`, the console's **Plugins →
+Database — MariaDB → Settings**): `host`, `port`, `database`, `username`, `password` (a `secret`, bound to the
+others), `tls`, `caCertificate`, and `collation`. The provider hands them to the database plugin raw; the database
+plugin checks every one before use, as before:
+
+- **running** (`runningSettings()`): bound at startup into a `ProviderSettingsProps` bean
+  (`databaseMariadbSettings`), the password read in clear with `PluginSettings.appSecret("password")`;
+- **saved** (`savedSettings()`): read with `PluginSettings.savedApp(key)` (SPI 1.2.0) from the settings file as it is
+  now, for the database plugin's connection test before a restart applies them.

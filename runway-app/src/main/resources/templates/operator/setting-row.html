@@ -3,13 +3,15 @@
 <head><meta charset="utf-8"><title>setting row</title></head>
 <body>
 <!-- One setting's row, inserted by the settings form once per field (selected by the .sr-row class, never an
-     id, because the form repeats it). Only the input variant matching the field's inputKind survives. -->
+     id, because the form repeats it). Only the input variant matching the field's inputKind survives.
+     A secret is "new-password": browsers ignore "off" on a text box followed by a password box and fill in the
+     operator's own console login, which a save would then store as the plugin's credential. -->
 <div class="sr-row mb-3">
     <label class="form-label sr-label" for="sr-input">key</label>
 
     <input class="form-control sr-text" type="text" name="key" value="">
     <textarea class="form-control sr-area" name="key" rows="3"></textarea>
-    <input class="form-control sr-secret" type="password" name="key" autocomplete="off"
+    <input class="form-control sr-secret" type="password" name="key" autocomplete="new-password"
            placeholder="leave blank to keep">
     <select class="form-select sr-select" name="key">
         <option class="sr-opt" value="">value</option>

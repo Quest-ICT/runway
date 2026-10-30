@@ -5,7 +5,7 @@
 > the contribution seams, settings, permissions, and the rules that keep plugins compatible.
 
 > **Doc status.** The plugin contract is **SPI `1.0.0`, frozen** (Runway `1.0.0`): from here it changes only
-> additively within `1.x` (SPI `1.1.0` added `PluginSettings.appSecret`) — the commitment and the full type list are in [SPI-STABILITY.md](SPI-STABILITY.md); the
+> additively within `1.x` (SPI `1.1.0` added `PluginSettings.appSecret`, `1.2.0` `PluginSettings.savedApp`) — the commitment and the full type list are in [SPI-STABILITY.md](SPI-STABILITY.md); the
 > `plugin.yml` keys and their tolerance rules are covered by
 > [CONFIGURATION-AND-DATA-STABILITY.md](CONFIGURATION-AND-DATA-STABILITY.md) §4. A plugin is built against
 > `runway-spi` **only**; the kernel refuses one that links its internal classes (§3, *The 1.0 contract at a
@@ -104,7 +104,7 @@ boots.
 > **Which floor to declare.** The lowest SPI version whose additions you use — the evolution log on
 > `RunwaySpi.VERSION` lists them per version. `>=0.4.0`, `>=0.5.0` and `>=0.6.0` are all **1.x floors** (the service
 > tier those versions introduced is the 1.0 contract), so a plugin built against them loads on every `1.x` kernel;
-> declare `>=1.0.0` only if you use `HeadContext.origin()`, and `>=1.1.0` if you call `PluginSettings.appSecret`. The floor is an **SPI level** — the value of
+> declare `>=1.0.0` only if you use `HeadContext.origin()`, `>=1.1.0` if you call `PluginSettings.appSecret`, and `>=1.2.0` if you call `PluginSettings.savedApp`. The floor is an **SPI level** — the value of
 > `RunwaySpi.VERSION` — not the version of the `runway-spi` artifact you compile against, which is the kernel's
 > release version (kernel `1.0.0` carries SPI `1.0.0`; §3).
 
@@ -216,7 +216,7 @@ Then depend on `mx.quest:runway-spi:<ver>` (`provided`) and `mx.quest:runway-spi
 
 | You need | Use | Never |
 |---|---|---|
-| your per-site settings and secrets (app-level ones: `@ConfigurationProperties("runway.plugin.<id>")`; an app-level secret in clear: `PluginSettings.appSecret`, SPI 1.1.0) | `PluginSettings` (+ `SettingsView`) | `SitePluginConfigService`, `SecretCipher`, `@Value("${runway.plugin…}")` on a per-site key |
+| your per-site settings and secrets (app-level ones: `@ConfigurationProperties("runway.plugin.<id>")`; an app-level secret in clear: `PluginSettings.appSecret`, SPI 1.1.0; an app-level setting as saved, before the restart applies it: `PluginSettings.savedApp`, SPI 1.2.0) | `PluginSettings` (+ `SettingsView`) | `SitePluginConfigService`, `SecretCipher`, `@Value("${runway.plugin…}")` on a per-site key |
 | your per-site files | `PluginSiteFiles`; declare personal data in `siteData.personal` | `SiteFileStore`, `StorageLayout`, a path you build |
 | the site, the request's site, a permission check, a message | `Sites`, `RequestContext`, `AccessCheck` (`@authz`), `Messages` | `SiteResolver`, `AuthzExpressions`, `SiteAwareMessageSource` |
 | a starter page | `SitePages.install` → `InstallResult` | `PageWriteService`, writing templates |
@@ -226,6 +226,7 @@ Then depend on `mx.quest:runway-spi:<ver>` (`provided`) and `mx.quest:runway-spi
 | a start/stop hook | `PluginLifecycle` | `RunwayPlugin`/`PluginContext` (removed at `1.0.0`) |
 | a console screen | `@ConsoleScreen` on a `@Controller` under `/__admin/<id>` or `/__app/<id>` | your own `@ControllerAdvice` calling `OperatorShellModel` |
 | an HTTP route on the site | `EndpointContributor` (`Route`, `Route.anonymousPost` for a public form) | a `@Controller` outside the console prefixes, a servlet `Filter` |
+| tables in PostgreSQL or MariaDB | the `database` plugin's own SPI (`Databases`, `DatabaseConsumer`, migrations shipped in your jar; `requires: [ "database >= 1.0.0" ]`): `plugins/docs/PLUGIN-AUTHORING-GUIDE.md` §7.14, example `plugins/runway-demo-database/` | a JDBC driver or pool of your own, a connection string in your settings |
 | an absolute URL in head markup | `HeadContext.origin()` (1.0.0) | the `Host` header |
 
 **How the kernel enforces it** — each is a **Blocked** plugin with the reason in its row on the **Plugins** screen,
@@ -332,7 +333,7 @@ if you use any `0.6.0` type, `">=0.5.0"` for a `0.5.0` service.
 
 | Service | What it gives you |
 |---|---|
-| `PluginSettings` | `site(siteId)` → a `SettingsView` of **your** per-site settings: the `siteSettings:` defaults overlaid by what the operator saved (`sites/<id>/plugins/<yourId>.yml`), unknown stored keys preserved, secret keys absent. `secret(siteId, key)` → a `type: secret` value in clear (an `ENC(...)` value decrypted; a hand-written plaintext returned as is; empty when unset, undeclared as secret, or undecryptable). `appSecret(key)` (SPI 1.1.0) → the same for a secret declared in your app-level `settings:`, as the running application holds it. |
+| `PluginSettings` | `site(siteId)` → a `SettingsView` of **your** per-site settings: the `siteSettings:` defaults overlaid by what the operator saved (`sites/<id>/plugins/<yourId>.yml`), unknown stored keys preserved, secret keys absent. `secret(siteId, key)` → a `type: secret` value in clear (an `ENC(...)` value decrypted; a hand-written plaintext returned as is; empty when unset, undeclared as secret, or undecryptable). `appSecret(key)` (SPI 1.1.0) → the same for a secret declared in your app-level `settings:`, as the running application holds it. `savedApp(key)` (SPI 1.2.0) → one of your app-level settings as **saved** now (a secret in clear; a blank non-secret as its declared default), read from your settings file, for checking a change before the restart applies it. |
 | `SettingsView` | lenient typed reads: `string(key, fallback)` (blank → fallback), `bool`, `integer` (and a clamped form), `decimal`, `list` (a YAML list or a comma/newline string). A value that does not parse yields the fallback, never an exception. Nested values are frozen; parse structures from `values()` yourself. |
 | `PluginInfo` | your `id`, `version` and install folder. Injectable; also handed to `PluginLifecycle.started`. |
 | `PluginLifecycle` | optional `started(PluginInfo)` after the platform is up (in plugin load order) and `stopping()` at shutdown (reverse order, only if started). Collected by type — no `id()` to keep in sync. |
@@ -928,7 +929,8 @@ holds one. Read a per-site secret with `PluginSettings.secret(siteId, key)` — 
 appears in `site(siteId)`. Read an **app-level** secret (declared `type: secret` under `settings:`) with
 `PluginSettings.appSecret(key)` (SPI 1.1.0, so declare `requiresSpi: ">=1.1.0"`): your `@ConfigurationProperties`
 bind it only in its `ENC(...)` form, which you cannot decrypt. It answers the value the running application started
-with, so a saved change applies after the restart, like every app-level setting. Encryption requires `runway.security.secret-key` to be set — until it is, a secret can't be
+with, so a saved change applies after the restart, like every app-level setting. To check a saved change before
+that restart (a connection test, say), read it with `PluginSettings.savedApp(key)` (SPI 1.2.0). Encryption requires `runway.security.secret-key` to be set — until it is, a secret can't be
 saved and the form says so. A **blank secret on resubmit keeps** the stored value (you never retype
 it), and secrets are never echoed back into the form.
 
@@ -1000,6 +1002,11 @@ plugins implement. The pattern mirrors the core SPI:
 Because the plugin classloader is **shared** and **parent-first** (§10), the owner's SPI type resolves
 to the same `Class` for owner and implementers, so a `List<TheSpi>` injection collects
 implementations across plugins by type.
+
+The shipped example is the **`database`** plugin: it publishes `mx.quest.database.spi`, which the provider plugins
+implement (`DatabaseProvider`) and which plugins that keep data in PostgreSQL or MariaDB use (`Databases`,
+`DatabaseConsumer`). How to use it — scopes, transactions, migrations, backups — is in
+`plugins/docs/PLUGIN-AUTHORING-GUIDE.md` §7.14; how operators set it up is ADMINISTRATION §11.1.
 
 ---
 

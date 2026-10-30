@@ -20,14 +20,21 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.ConnectionSettings.Tls;
+import mx.quest.database.spi.ConnectionSettings;
+import mx.quest.database.spi.ProviderSettings;
+import mx.quest.runway.spi.service.PluginSettings;
+import mx.quest.runway.spi.testkit.FakePluginSettings;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.MapPropertySource;
 
 class MariaDbProviderTest {
 
@@ -114,13 +121,64 @@ class MariaDbProviderTest {
         assertThat(new MariaDbProvider().driverVersion()).startsWith("MariaDB Connector/J");
     }
 
+    /** Turns on @ConfigurationProperties binding, as the kernel's context does. */
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties
+    static class Binding {
+    }
+
     @Test
     void theConfigurationRegistersOneProviderNamedForThePlugin() {
-        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                MariaDbProviderConfig.class)) {
+        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+            ctx.registerBean(PluginSettings.class, FakePluginSettings::new);
+            ctx.register(Binding.class, MariaDbProviderConfig.class);
+            ctx.refresh();
             assertThat(ctx.getBeanNamesForType(mx.quest.database.spi.DatabaseProvider.class))
                     .containsExactly("databaseMariadbProvider");
+            for (String name : ctx.getBeanDefinitionNames()) {
+                if ("mariaDbProviderConfig".equals(ctx.getBeanDefinition(name).getFactoryBeanName())) {
+                    assertThat(name).as("bean names carry the plugin id").startsWith("databaseMariadb");
+                }
+            }
         }
+    }
+
+    @Test
+    void theServerSettingsAreThisPluginsOwnRunningAndSaved() {
+        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+            String prefix = "runway.plugin.database-mariadb.";
+            ctx.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test", Map.of(
+                    prefix + "host", "db.running", prefix + "port", "6000", prefix + "database", "runway",
+                    prefix + "username", "rw", prefix + "password", "ENC(only-the-stored-form)",
+                    prefix + "tls", "require", prefix + "collation", "utf8mb4_uca1400_ai_ci",
+                    "runway.plugin.database.host", "not-this-plugins")));
+            ctx.registerBean(PluginSettings.class, () -> new FakePluginSettings().appSecret("password", "running-pw")
+                    .savedApp("host", "db.saved").savedApp("database", "runway").savedApp("username", "rw2")
+                    .savedApp("password", "saved-pw"));
+            ctx.register(Binding.class, MariaDbProviderConfig.class);
+            ctx.refresh();
+            MariaDbProvider provider = ctx.getBean(MariaDbProvider.class);
+
+            ProviderSettings running = provider.runningSettings().orElseThrow();
+            assertThat(running.host()).isEqualTo("db.running");
+            assertThat(running.port()).isEqualTo("6000");
+            assertThat(running.username()).isEqualTo("rw");
+            assertThat(running.tls()).isEqualTo("require");
+            assertThat(running.password()).as("in clear, from appSecret").isEqualTo("running-pw");
+            assertThat(running.collation()).isEqualTo("utf8mb4_uca1400_ai_ci");
+
+            ProviderSettings saved = provider.savedSettings().orElseThrow();
+            assertThat(saved.host()).isEqualTo("db.saved");
+            assertThat(saved.username()).isEqualTo("rw2");
+            assertThat(saved.password()).isEqualTo("saved-pw");
+            assertThat(saved.port()).as("unsaved: blank, the product's default").isNull();
+        }
+    }
+
+    @Test
+    void withoutSettingsTheProviderSaysNothingAsBeforeTwo() {
+        assertThat(new MariaDbProvider().runningSettings()).isEmpty();
+        assertThat(new MariaDbProvider().savedSettings()).isEmpty();
     }
 
     @Test

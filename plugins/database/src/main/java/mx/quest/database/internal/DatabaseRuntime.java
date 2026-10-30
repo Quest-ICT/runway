@@ -54,7 +54,7 @@ public final class DatabaseRuntime {
     public enum Status {
         /** The settings are missing or unusable; fixed by saving the settings and restarting. */
         NOT_CONFIGURED,
-        /** The chosen provider plugin is not installed (or two are). */
+        /** The chosen provider plugin is not installed, two offer the same product, or it predates 2.0.0. */
         NO_PROVIDER,
         /** Trying to reach the server. */
         CONNECTING,
@@ -79,8 +79,7 @@ public final class DatabaseRuntime {
     static final Duration UNSUPPORTED_RETRY = Duration.ofMinutes(5);
     private static final int LOCK_CONNECTIONS = 4;
 
-    private final Supplier<DatabaseConfig> configSource;
-    private final Supplier<List<DatabaseProvider>> providers;
+    private final Supplier<ProviderChoice.Chosen> source;
     private final Path workDir;
     private final ScheduledExecutorService executor;
     private final Semaphore lockConnections = new Semaphore(LOCK_CONNECTIONS, true);
@@ -104,15 +103,13 @@ public final class DatabaseRuntime {
     private long backoffMillis = 1000;
 
     /**
-     * @param configSource builds the checked settings; throws {@link IllegalArgumentException} with a reason
-     * @param providers    the provider beans installed
-     * @param workDir      the plugin's own folder for the CA file
-     * @param executor     the plugin's executor
+     * @param source   chooses the provider and checks the settings ({@link ProviderChoice#running}); throws
+     *                 {@link ProviderChoice.NoProviderException} or {@link IllegalArgumentException} with a reason
+     * @param workDir  the plugin's own folder for the CA file
+     * @param executor the plugin's executor
      */
-    public DatabaseRuntime(Supplier<DatabaseConfig> configSource, Supplier<List<DatabaseProvider>> providers,
-                           Path workDir, ScheduledExecutorService executor) {
-        this.configSource = Objects.requireNonNull(configSource, "configSource");
-        this.providers = Objects.requireNonNull(providers, "providers");
+    public DatabaseRuntime(Supplier<ProviderChoice.Chosen> source, Path workDir, ScheduledExecutorService executor) {
+        this.source = Objects.requireNonNull(source, "source");
         this.workDir = Objects.requireNonNull(workDir, "workDir");
         this.executor = Objects.requireNonNull(executor, "executor");
     }
@@ -221,27 +218,25 @@ public final class DatabaseRuntime {
         fireAvailable();
     }
 
-    /** Reads the settings and finds the provider; false (with the status set) when that cannot work. */
+    /** Chooses the provider and reads its settings; false (with the status set) when that cannot work. */
     private boolean prepare() {
         DatabaseConfig c;
+        DatabaseProvider provider;
         try {
-            c = configSource.get();
+            ProviderChoice.Chosen chosen = source.get();
+            c = chosen.config();
+            provider = chosen.provider();
+        } catch (ProviderChoice.NoProviderException e) {
+            status = Status.NO_PROVIDER;
+            detail = e.getMessage();
+            log.warn("database: {}", detail);
+            return false;
         } catch (IllegalArgumentException e) {
             status = Status.NOT_CONFIGURED;
             detail = e.getMessage();
             log.info("database: not configured: {}", e.getMessage());
             return false;
         }
-        List<DatabaseProvider> matching = providers.get().stream().filter(p -> c.provider().equals(p.id())).toList();
-        if (matching.size() != 1) {
-            status = Status.NO_PROVIDER;
-            detail = matching.isEmpty()
-                    ? "the provider plugin for '" + c.provider() + "' (database-" + c.provider() + ") is not installed"
-                    : "two provider plugins offer '" + c.provider() + "'; remove one";
-            log.warn("database: {}", detail);
-            return false;
-        }
-        DatabaseProvider provider = matching.get(0);
         Engine e = engineFor(c.provider());
         Path ca;
         try {

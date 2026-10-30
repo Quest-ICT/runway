@@ -71,6 +71,67 @@ class BackupRestoreRecoveryTest {
                 "the scratch work dir is cleared");
     }
 
+    /** The swap completed but the crash came before the logs were carried: they are merged, older lines first. */
+    @Test
+    void aCompletedSwapGetsItsLogsMergedOnStartup() throws IOException {
+        Path siteDir = layout.siteDir("demo");
+        Files.createDirectories(siteDir.resolve("logs"));
+        Files.writeString(siteDir.resolve("site.yml"), "id: demo\nname: RESTORED\n", StandardCharsets.UTF_8);
+        Files.writeString(siteDir.resolve("logs/audit-2026-10-30.log"), "AFTER\n", StandardCharsets.UTF_8);
+        Path old = workOld("demo");
+        Files.createDirectories(old.resolve("logs"));
+        Files.writeString(old.resolve("site.yml"), "id: demo\nname: BEFORE\n", StandardCharsets.UTF_8);
+        Files.writeString(old.resolve("logs/audit-2026-10-30.log"), "BEFORE\n", StandardCharsets.UTF_8);
+        Files.writeString(old.resolve("logs/audit-2026-10-29.log"), "YESTERDAY\n", StandardCharsets.UTF_8);
+
+        recovery.recover();
+
+        assertEquals("id: demo\nname: RESTORED\n", Files.readString(siteDir.resolve("site.yml")), "the restore stands");
+        assertEquals("BEFORE\nAFTER\n", Files.readString(siteDir.resolve("logs/audit-2026-10-30.log")),
+                "a day both have is joined in order");
+        assertEquals("YESTERDAY\n", Files.readString(siteDir.resolve("logs/audit-2026-10-29.log")));
+        assertFalse(Files.exists(layout.sites().resolve(BackupService.WORK_DIR).resolve("demo")));
+    }
+
+    /**
+     * A log write recreated the site folder between the two renames, and the process died: that folder holds only
+     * logs. It must not count as the site (which would delete `old`, the only copy); the site is rolled forward and
+     * the late lines follow its own.
+     */
+    @Test
+    void aSiteFolderHoldingOnlyLateLogsIsNotMistakenForTheSite() throws IOException {
+        Path siteDir = layout.siteDir("demo");
+        Files.createDirectories(siteDir.resolve("logs"));
+        Files.writeString(siteDir.resolve("logs/access-2026-10-30.log"), "LATE\n", StandardCharsets.UTF_8);
+        Path old = workOld("demo");
+        Files.createDirectories(old.resolve("logs"));
+        Files.writeString(old.resolve("site.yml"), "id: demo\n", StandardCharsets.UTF_8);
+        Files.writeString(old.resolve("logs/access-2026-10-30.log"), "EARLIER\n", StandardCharsets.UTF_8);
+
+        recovery.recover();
+
+        assertEquals("id: demo\n", Files.readString(siteDir.resolve("site.yml")), "the original site is back");
+        assertEquals("EARLIER\nLATE\n", Files.readString(siteDir.resolve("logs/access-2026-10-30.log")));
+        assertFalse(Files.exists(layout.sites().resolve(BackupService.WORK_DIR).resolve("demo")));
+    }
+
+    /** A rollback put the site back but could not merge the lines written meanwhile: they follow its own. */
+    @Test
+    void lateLinesLeftByARollbackAreMergedAfterTheSitesOwn() throws IOException {
+        Path siteDir = layout.siteDir("demo");
+        Files.createDirectories(siteDir.resolve("logs"));
+        Files.writeString(siteDir.resolve("site.yml"), "id: demo\n", StandardCharsets.UTF_8);
+        Files.writeString(siteDir.resolve("logs/access-2026-10-30.log"), "OWN\n", StandardCharsets.UTF_8);
+        Path late = layout.sites().resolve(BackupService.WORK_DIR).resolve("demo").resolve(BackupService.LATE_DIR);
+        Files.createDirectories(late.resolve("logs"));
+        Files.writeString(late.resolve("logs/access-2026-10-30.log"), "LATE\n", StandardCharsets.UTF_8);
+
+        recovery.recover();
+
+        assertEquals("OWN\nLATE\n", Files.readString(siteDir.resolve("logs/access-2026-10-30.log")));
+        assertFalse(Files.exists(layout.sites().resolve(BackupService.WORK_DIR).resolve("demo")));
+    }
+
     @Test
     void noWorkDirIsANoOp() {
         recovery.recover(); // must not throw when sites/.restore-work does not exist

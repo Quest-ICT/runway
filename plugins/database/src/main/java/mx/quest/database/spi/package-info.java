@@ -18,8 +18,11 @@
  *
  * <h2>For a provider</h2>
  * Implement {@link mx.quest.database.spi.DatabaseProvider} in a plugin that {@code requires: database} and ships its
- * driver in {@code lib/}. The operator picks the provider by its {@link mx.quest.database.spi.DatabaseProvider#id()}
- * in the database plugin's settings.
+ * driver in {@code lib/}. The provider declares its server's settings (the keys in
+ * {@link mx.quest.database.spi.ProviderSettings}) in its own {@code plugin.yml} and hands them over through
+ * {@link mx.quest.database.spi.DatabaseProvider#runningSettings()} and
+ * {@link mx.quest.database.spi.DatabaseProvider#savedSettings()}. With both providers installed, the operator picks
+ * one by its {@link mx.quest.database.spi.DatabaseProvider#id()} in the database plugin's settings.
  *
  * <h2>Stability</h2>
  * This package evolves additively within a major version of the database plugin: interfaces gain {@code default}

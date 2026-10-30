@@ -1,10 +1,19 @@
 package mx.quest.database.spi;
 
+import java.util.Optional;
 import javax.sql.DataSource;
 
 /**
  * A database product, contributed by a provider plugin that ships the product's JDBC driver in its {@code lib/}.
- * The operator picks one by its {@link #id()} in the database plugin's {@code provider} setting.
+ * When both providers are installed, the operator picks one by its {@link #id()} in the database plugin's
+ * {@code provider} setting; with one installed, that one is used.
+ *
+ * <p><b>The provider holds its server's settings</b> (since database 2.0.0): host, port, database, account,
+ * password and TLS are set on the provider plugin's own settings page, and handed over through
+ * {@link #runningSettings()} and {@link #savedSettings()}. The database plugin keeps only what applies to every
+ * product: the provider choice, the namespace and the limits. Those two methods hand over the password in clear and
+ * are for the database plugin alone; a consumer plugin never calls them. They are not a security boundary: plugins
+ * are trusted code in the same JVM, as the kernel's plugin guide says, and could read the settings file anyway.
  *
  * <p><b>A provider brings the driver, not the SQL.</b> Every statement Runway runs on the provider's connections —
  * schema creation and removal, locks, the ownership checks, migrations, backup and restore — is written in the
@@ -42,4 +51,29 @@ public interface DatabaseProvider {
      * @return a new, unpooled data source
      */
     DataSource dataSource(ConnectionSettings settings);
+
+    /**
+     * The server settings the running application started with: what the database plugin connects with. Read from
+     * the provider plugin's own app-level settings, the password in clear
+     * ({@code PluginSettings.appSecret("password")}).
+     *
+     * @return the settings; empty only from a provider built before database 2.0.0, which the database plugin
+     *         reports as too old
+     * @since database 2.0.0
+     */
+    default Optional<ProviderSettings> runningSettings() {
+        return Optional.empty();
+    }
+
+    /**
+     * The server settings as saved now, which the next restart applies ({@code PluginSettings.savedApp}): what the
+     * connection test on the database plugin's settings page tries, so an operator can check a change before
+     * restarting.
+     *
+     * @return the settings; empty only from a provider built before database 2.0.0
+     * @since database 2.0.0
+     */
+    default Optional<ProviderSettings> savedSettings() {
+        return Optional.empty();
+    }
 }

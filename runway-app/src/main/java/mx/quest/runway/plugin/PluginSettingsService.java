@@ -174,8 +174,20 @@ public class PluginSettingsService {
     // ---- file I/O (nested YAML under runway.plugin.<id>) ------------------------------------------------
 
     /** Flat map of {@code <settingKey> → stored string value} read from the file (empty if absent/unreadable). */
-    @SuppressWarnings("unchecked")
     private Map<String, String> readSubtree(String pluginId) {
+        return saved(layout, pluginId);
+    }
+
+    /**
+     * One plugin's app-level settings as saved in {@code external/plugin-settings/<id>.yml}, flat
+     * {@code <settingKey> → stored string value}: empty when the file is absent. Secrets stay in their stored form.
+     * What {@code PluginSettings.savedApp} reads, so it and the form never disagree on what is saved.
+     *
+     * @throws UncheckedIOException when the file exists but cannot be read
+     * @throws RuntimeException      the YAML parser's own exception when the file is not valid YAML
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> saved(StorageLayout layout, String pluginId) {
         Path file = layout.pluginSettingsFile(pluginId); // traversal-safe
         if (!Files.isRegularFile(file)) {
             return Map.of();

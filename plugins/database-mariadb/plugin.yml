@@ -5,16 +5,46 @@
 #  published next to this plugin's release) and builds a configured
 #  DataSource; every statement Runway runs is written in the database plugin.
 #
-#  Choose it with the database plugin's `provider: mariadb` setting.
+#  The server, the account and TLS are set on THIS plugin's settings page
+#  (since 2.0.0); the database plugin keeps the provider choice and the
+#  limits. With both providers installed, choose this one with the database
+#  plugin's `provider: mariadb` setting.
+#
 #  The install folder name MUST equal this `id`: external/plugins/database-mariadb/.
 # =============================================================================
 id: database-mariadb
 name: Database — MariaDB
-version: 1.0.0
+version: 2.0.0
 
 mainClass: mx.quest.database.mariadb.MariaDbProviderConfig
 
 # The database plugin publishes the DatabaseProvider interface this plugin implements.
-requires: [ "database >= 1.0.0" ]
+requires: [ "database >= 2.0.0" ]
 
-requiresSpi: ">=1.1.0"
+# SPI 1.2.0: PluginSettings.savedApp, which hands the saved settings to the connection test.
+requiresSpi: ">=1.2.0"
+
+settingGroups:
+  - { id: connection, label: database-mariadb.group.connection, help: database-mariadb.group.connection.help }
+
+# Runway-wide settings, applied on RESTART. In a cluster every node needs the same values and the same platform
+# secret key. Test them before restarting: Plugins -> Database -> Settings, "Connection tests".
+settings:
+  - { key: host, type: string, group: connection, label: database-mariadb.set.host, help: database-mariadb.set.host.help }
+  - { key: port, type: int, range: "1..65535", group: connection, label: database-mariadb.set.port,
+      help: database-mariadb.set.port.help }
+  - { key: database, type: string, group: connection, label: database-mariadb.set.database,
+      help: database-mariadb.set.database.help }
+  - { key: username, type: string, group: connection, label: database-mariadb.set.username }
+  # Bound to where it goes: changing any of these without typing the password again removes the stored one.
+  - key: password
+    type: secret
+    group: connection
+    label: database-mariadb.set.password
+    secretBoundTo: [host, port, database, username, tls, caCertificate]
+  - { key: tls, type: enum, range: "verify-full,require,disable", default: verify-full, group: connection,
+      label: database-mariadb.set.tls, help: database-mariadb.set.tls.help }
+  - { key: caCertificate, type: text, group: connection, advanced: true, label: database-mariadb.set.caCertificate,
+      help: database-mariadb.set.caCertificate.help }
+  - { key: collation, type: string, group: connection, advanced: true, label: database-mariadb.set.collation,
+      help: database-mariadb.set.collation.help }

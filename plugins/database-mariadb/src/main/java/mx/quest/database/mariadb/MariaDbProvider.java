@@ -4,9 +4,12 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.DatabaseProvider;
+import mx.quest.database.spi.ProviderSettings;
 import org.mariadb.jdbc.MariaDbDataSource;
 
 /**
@@ -26,6 +29,25 @@ import org.mariadb.jdbc.MariaDbDataSource;
 public final class MariaDbProvider implements DatabaseProvider {
 
     static final int DEFAULT_PORT = 3306;
+
+    private final Supplier<ProviderSettings> running;
+    private final Supplier<ProviderSettings> saved;
+
+    /**
+     * Without settings, as before database 2.0.0: for building data sources only (tests).
+     */
+    public MariaDbProvider() {
+        this(() -> null, () -> null);
+    }
+
+    /**
+     * @param running the server settings the application started with, from this plugin's own settings page
+     * @param saved   the server settings saved on that page now, which the next restart applies
+     */
+    public MariaDbProvider(Supplier<ProviderSettings> running, Supplier<ProviderSettings> saved) {
+        this.running = Objects.requireNonNull(running, "running");
+        this.saved = Objects.requireNonNull(saved, "saved");
+    }
 
     @Override
     public String id() {
@@ -94,5 +116,15 @@ public final class MariaDbProvider implements DatabaseProvider {
             throw new IllegalArgumentException("a connection value cannot contain '&', '?' or '=': " + value);
         }
         return value;
+    }
+
+    @Override
+    public Optional<ProviderSettings> runningSettings() {
+        return Optional.ofNullable(running.get());
+    }
+
+    @Override
+    public Optional<ProviderSettings> savedSettings() {
+        return Optional.ofNullable(saved.get());
     }
 }

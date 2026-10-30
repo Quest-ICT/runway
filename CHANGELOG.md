@@ -2,6 +2,90 @@
 
 All notable changes are recorded here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-10-30
+
+_A minor release: a site's audit journal records its backups (saved, downloaded, deleted, restored), a restore no
+longer erases the site's logs, password settings are never filled in by the browser with your console login, and
+the plugin contract gains one method (SPI `1.2.0`: `PluginSettings.savedApp`) that the database plugins 2.0.0 use for
+their connection tests. Every plugin that runs on 1.1.2 loads unchanged._
+
+### Upgrading — read this first
+
+**From `1.1.2`: a kernel upgrade, no flag.** From `1.1.1`, `1.1.0`, `1.0.1` or `1.0.0`, read the *Upgrading*
+sections of the releases in between first, then install this release directly. Paths are the installer defaults
+(`/opt/runway`, `/opt/runway-data`).
+
+**The database plugins.** `database`, `database-postgresql` and `database-mariadb` 1.0.0 keep running on this
+release unchanged. Their 2.0.0, released with it, needs it: the server's settings move from the `database` plugin to
+the provider plugin, and the connection tests move to the `database` plugin's settings page. Upgrade the kernel
+first, then those three plugins together, and move the settings **before** saving the `database` plugin's settings
+form (Administration §11.1, *Upgrading from database 1.x*; the plugins' own release notes).
+
+**1. Back up.** Take each site's backup (**Backups**) and copy `/opt/runway-data/external/` somewhere **outside**
+`external/plugins/`.
+
+**2. Upgrade the kernel:**
+
+```bash
+chmod +x runway-1.2.0.bin
+sudo ./runway-1.2.0.bin -y
+```
+
+The essential plugin moves with the kernel to `1.2.0` (its two settings pages mark the reCAPTCHA secret as a new
+password), so the installer refreshes it; expect these lines, once (a template you edited is backed up instead, and
+the line names the copy):
+
+```
+refreshing bundled plugin 'protection' from this release (it moves with the kernel; files you edited are backed up)
+plugin 'protection': plugin.yml replaced (the previous one kept as plugin.yml.bak, for a rollback)
+plugin 'protection': runway-plugin-protection.jar replaced (the previous one kept as runway-plugin-protection.jar.bak, for a rollback)
+plugin 'protection': templates/admin-app.html updated (unchanged since it was installed — no backup needed)
+plugin 'protection': templates/site-protection.html updated (unchanged since it was installed — no backup needed)
+keeping the bundled plugins in the release: /opt/runway-1.2.0/seed/ (the repair copy — Administration §12)
+```
+
+**3. Check.**
+- **About Runway** shows `1.2.0`.
+- On **Plugins**, every row is *Loaded* and none *Blocked*; protection shows `1.2.0`.
+- On a site's console, save a backup (**Backups**, *Save a backup on the server*): the site's **Logs** journal
+  shows `backup.saved` with your name and the backup's.
+
+**4. Rollback**, if needed: `sudo bash runway-1.1.2.bin -y` puts 1.1.2 back, its protection files included. Nothing
+this release saves is read differently by 1.1.2. Put the database plugins back to 1.0.0 first if you moved them to
+2.0.0 (with the server's settings back in `database.yml`): 2.0.0 needs SPI `1.2.0` and is refused by 1.1.2.
+
+### Added
+
+- **SPI 1.2.0: `PluginSettings.savedApp(key)`.** A plugin can read one of its own app-level settings as it is saved
+  now, before the restart that applies it (a secret in clear), so it can check a change first. The database plugins
+  2.0.0 use it for their connection test. Existing plugins load unchanged: the method only adds to the contract. See
+  `docs/SPI-STABILITY.md`.
+- **The site's audit journal records backups.** On the site console, saving a backup on the server (`backup.saved`),
+  downloading one (`backup.downloaded`: `full`, `transfer`, or `full` and a saved backup's name),
+  deleting one (`backup.deleted`) and restoring the site (`site.restored`) are now journal lines, with who did it. A
+  refused act writes nothing. On the application console, downloads join the platform's activity log, which already
+  had saves, deletes and restores.
+- **Journal labels for every recorded action.** User changes (`user.updated`, `user.suspended`, `user.resumed`) and
+  static-file changes (`static.uploaded`, `static.folder-created`, `static.deleted`) were recorded but shown only by
+  their key; they now have English and Spanish labels like the others.
+
+### Fixed
+
+- **A restore erased the site's logs.** A restore replaced the whole site folder, and a backup never carries logs
+  or stats, so the access log and the audit journal started again from nothing (the bandwidth history file too,
+  until its next periodic save rewrote it from memory). A restore now keeps both folders; if it is interrupted, or
+  the logs cannot be carried over at once, the next restore of the site or the next start finishes it. Logs or
+  stats inside an archive are ignored: no backup writes them.
+- **A restore could lose the site it replaced.** If a log line was written in the instant between moving the site
+  folder aside and moving the restored copy in, the site folder came back holding only logs: the restore failed, the
+  rollback was skipped, and the next start deleted the previous copy. That folder is now set aside and the move
+  retried, and a folder without a `site.yml` is never taken for the site.
+- **A browser could fill a plugin's password setting with your own console login.** On a plugin's settings page, a
+  text box followed by a password box looks like a login form, and browsers fill it in with the saved console
+  username and password, ignoring `autocomplete="off"`. A save would then store your console password as the
+  plugin's credential. Password settings (plugin and widget settings, the protection plugin's CAPTCHA secret, a
+  master administrator's password reset) are now marked as new passwords, which browsers do not fill in.
+
 ## [1.1.2] — 2026-10-29
 
 _A patch release: the access log now records every public request that gets past the protection edge, including the

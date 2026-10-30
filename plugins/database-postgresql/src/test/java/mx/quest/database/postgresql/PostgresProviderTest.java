@@ -12,14 +12,21 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.ConnectionSettings.Tls;
+import mx.quest.database.spi.ConnectionSettings;
+import mx.quest.database.spi.ProviderSettings;
+import mx.quest.runway.spi.service.PluginSettings;
+import mx.quest.runway.spi.testkit.FakePluginSettings;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.MapPropertySource;
 
 class PostgresProviderTest {
 
@@ -67,13 +74,64 @@ class PostgresProviderTest {
         assertThat(new PostgresProvider().driverVersion()).isEqualTo("pgjdbc 42.7.10");
     }
 
+    /** Turns on @ConfigurationProperties binding, as the kernel's context does. */
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties
+    static class Binding {
+    }
+
     @Test
     void theConfigurationRegistersOneProviderNamedForThePlugin() {
-        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
-                PostgresProviderConfig.class)) {
+        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+            ctx.registerBean(PluginSettings.class, FakePluginSettings::new);
+            ctx.register(Binding.class, PostgresProviderConfig.class);
+            ctx.refresh();
             assertThat(ctx.getBeanNamesForType(mx.quest.database.spi.DatabaseProvider.class))
                     .containsExactly("databasePostgresqlProvider");
+            for (String name : ctx.getBeanDefinitionNames()) {
+                if ("postgresProviderConfig".equals(ctx.getBeanDefinition(name).getFactoryBeanName())) {
+                    assertThat(name).as("bean names carry the plugin id").startsWith("databasePostgresql");
+                }
+            }
         }
+    }
+
+    @Test
+    void theServerSettingsAreThisPluginsOwnRunningAndSaved() {
+        try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+            String prefix = "runway.plugin.database-postgresql.";
+            ctx.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test", Map.of(
+                    prefix + "host", "db.running", prefix + "port", "6000", prefix + "database", "runway",
+                    prefix + "username", "rw", prefix + "password", "ENC(only-the-stored-form)",
+                    prefix + "tls", "require", prefix + "collation", "utf8mb4_uca1400_ai_ci",
+                    "runway.plugin.database.host", "not-this-plugins")));
+            ctx.registerBean(PluginSettings.class, () -> new FakePluginSettings().appSecret("password", "running-pw")
+                    .savedApp("host", "db.saved").savedApp("database", "runway").savedApp("username", "rw2")
+                    .savedApp("password", "saved-pw"));
+            ctx.register(Binding.class, PostgresProviderConfig.class);
+            ctx.refresh();
+            PostgresProvider provider = ctx.getBean(PostgresProvider.class);
+
+            ProviderSettings running = provider.runningSettings().orElseThrow();
+            assertThat(running.host()).isEqualTo("db.running");
+            assertThat(running.port()).isEqualTo("6000");
+            assertThat(running.username()).isEqualTo("rw");
+            assertThat(running.tls()).isEqualTo("require");
+            assertThat(running.password()).as("in clear, from appSecret").isEqualTo("running-pw");
+            assertThat(running.collation()).as("a MariaDB setting, never handed over").isNull();
+
+            ProviderSettings saved = provider.savedSettings().orElseThrow();
+            assertThat(saved.host()).isEqualTo("db.saved");
+            assertThat(saved.username()).isEqualTo("rw2");
+            assertThat(saved.password()).isEqualTo("saved-pw");
+            assertThat(saved.port()).as("unsaved: blank, the product's default").isNull();
+        }
+    }
+
+    @Test
+    void withoutSettingsTheProviderSaysNothingAsBeforeTwo() {
+        assertThat(new PostgresProvider().runningSettings()).isEmpty();
+        assertThat(new PostgresProvider().savedSettings()).isEmpty();
     }
 
     @Test

@@ -1,9 +1,12 @@
 package mx.quest.database.postgresql;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import mx.quest.database.spi.ConnectionSettings;
 import mx.quest.database.spi.DatabaseProvider;
+import mx.quest.database.spi.ProviderSettings;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.util.DriverInfo;
 
@@ -27,6 +30,25 @@ public final class PostgresProvider implements DatabaseProvider {
     static final String NON_VALIDATING = "org.postgresql.ssl.NonValidatingFactory";
     static final String JVM_TRUST = "org.postgresql.ssl.DefaultJavaSSLFactory";
     static final String CA_FILE = "org.postgresql.ssl.LibPQFactory";
+
+    private final Supplier<ProviderSettings> running;
+    private final Supplier<ProviderSettings> saved;
+
+    /**
+     * Without settings, as before database 2.0.0: for building data sources only (tests).
+     */
+    public PostgresProvider() {
+        this(() -> null, () -> null);
+    }
+
+    /**
+     * @param running the server settings the application started with, from this plugin's own settings page
+     * @param saved   the server settings saved on that page now, which the next restart applies
+     */
+    public PostgresProvider(Supplier<ProviderSettings> running, Supplier<ProviderSettings> saved) {
+        this.running = Objects.requireNonNull(running, "running");
+        this.saved = Objects.requireNonNull(saved, "saved");
+    }
 
     @Override
     public String id() {
@@ -75,5 +97,21 @@ public final class PostgresProvider implements DatabaseProvider {
 
     private static int seconds(long value) {
         return (int) Math.max(1, Math.min(Integer.MAX_VALUE, value));
+    }
+
+    @Override
+    public Optional<ProviderSettings> runningSettings() {
+        return Optional.ofNullable(withoutCollation(running.get()));
+    }
+
+    @Override
+    public Optional<ProviderSettings> savedSettings() {
+        return Optional.ofNullable(withoutCollation(saved.get()));
+    }
+
+    /** A collation is a MariaDB setting: never handed over from here, even when written into the file by hand. */
+    private static ProviderSettings withoutCollation(ProviderSettings s) {
+        return s == null ? null : new ProviderSettings(s.host(), s.port(), s.database(), s.username(), s.password(),
+                s.tls(), s.caCertificate(), null);
     }
 }

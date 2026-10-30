@@ -74,10 +74,11 @@ cp -r "$REPO/database/target/database" "$EXT/plugins/database"
 cp -r "$REPO/database-$PROVIDER/target/database-$PROVIDER" "$EXT/plugins/database-$PROVIDER"
 cp -r "$HERE/target/runway-demo-database" "$EXT/plugins/runway-demo-database"
 boot() { ( cd "$SCRATCH" && exec "$JAVA" -jar "$JAR" --server.port="$PORT" --runway.storage.external="$EXT" ) >"$1" 2>&1 & PID=$!; }
-settings() {   # port
+settings() {   # port. Since database 2.0.0 the server is the provider plugin's setting; the namespace stays.
     umask 077
-    printf 'runway:\n  plugin:\n    database:\n      provider: %s\n      namespace: %s\n      host: "%s"\n      port: %s\n      database: "%s"\n      username: "%s"\n      password: "%s"\n      tls: disable\n' \
-        "$PROVIDER" "$NS" "$DB_HOST" "$1" "$DB_NAME" "$DB_USER" "$DB_PASSWORD" > "$EXT/plugin-settings/database.yml"
+    printf 'runway:\n  plugin:\n    database:\n      namespace: %s\n' "$NS" > "$EXT/plugin-settings/database.yml"
+    printf 'runway:\n  plugin:\n    database-%s:\n      host: "%s"\n      port: %s\n      database: "%s"\n      username: "%s"\n      password: "%s"\n      tls: disable\n' \
+        "$PROVIDER" "$DB_HOST" "$1" "$DB_NAME" "$DB_USER" "$DB_PASSWORD" > "$EXT/plugin-settings/database-$PROVIDER.yml"
     umask 022
 }
 

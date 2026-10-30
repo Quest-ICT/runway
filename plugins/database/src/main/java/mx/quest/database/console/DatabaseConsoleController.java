@@ -6,10 +6,10 @@ import java.util.Optional;
 import mx.quest.database.internal.ConnectionTester;
 import mx.quest.database.internal.Consumer;
 import mx.quest.database.internal.DatabaseCore;
-import mx.quest.database.internal.DatabaseProps;
 import mx.quest.database.internal.DatabaseRuntime;
 import mx.quest.database.internal.DatabasesImpl;
 import mx.quest.database.internal.Migrator;
+import mx.quest.database.internal.ProviderChoice;
 import mx.quest.database.internal.Registry;
 import mx.quest.database.spi.Scope;
 import mx.quest.runway.spi.service.ConsoleScreen;
@@ -28,8 +28,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * The database screen in the application console ({@code /__app/database}): health, the two connection tests and
- * the migration recovery actions. Every handler needs {@code CONFIGURE_PLATFORM}, which the master and wildcard
+ * The database screen in the application console ({@code /__app/database}): health and the migration recovery
+ * actions; and the connection tests, whose panel is on the plugin's settings page and whose result goes back there.
+ * Every handler needs {@code CONFIGURE_PLATFORM}, which the master and wildcard
  * administrators hold; a delegable plugin permission does not open it. Every state change is a CSRF-checked POST,
  * and every recovery action is logged with the operator's name.
  */
@@ -44,6 +45,11 @@ public class DatabaseConsoleController {
     static final String TITLE_KEY = "database.console.title";
     static final String FLASH = "databaseFlash";
     static final String FLASH_ERROR = "databaseError";
+    /** The connection tests' result, shown on their panel on the plugin's settings page. */
+    static final String TEST_FLASH = "databaseTest";
+    static final String TEST_FLASH_ERROR = "databaseTestError";
+    /** Where the connection tests are: the panel below the plugin's settings form (templates/admin-app.html). */
+    static final String SETTINGS_PAGE = "/__app/plugins/database/settings#db-tests";
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConsoleController.class);
 
@@ -77,35 +83,16 @@ public class DatabaseConsoleController {
         return result(flash, tester.running());
     }
 
-    @PostMapping("/test-new")
+    /** Tests the settings saved on one provider plugin's page; the result shows on the settings page's panel. */
+    @PostMapping("/test-saved")
     @PreAuthorize(GATE)
-    public String testNew(@RequestParam(name = "provider", defaultValue = "") String provider,
-                          @RequestParam(name = "namespace", defaultValue = "") String namespace,
-                          @RequestParam(name = "host", defaultValue = "") String host,
-                          @RequestParam(name = "port", defaultValue = "") String port,
-                          @RequestParam(name = "database", defaultValue = "") String database,
-                          @RequestParam(name = "username", defaultValue = "") String username,
-                          @RequestParam(name = "password", defaultValue = "") String password,
-                          @RequestParam(name = "tls", defaultValue = "") String tls,
-                          @RequestParam(name = "caCertificate", defaultValue = "") String caCertificate,
-                          RedirectAttributes flash) {
-        DatabaseProps props = new DatabaseProps();
-        props.setProvider(provider);
-        props.setNamespace(namespace.isBlank() ? null : namespace);
-        props.setHost(host);
-        props.setDatabase(database);
-        props.setUsername(username);
-        props.setTls(tls);
-        props.setCaCertificate(caCertificate);
-        if (!port.isBlank()) {
-            try {
-                props.setPort(Integer.parseInt(port.strip()));
-            } catch (NumberFormatException e) {
-                return back(flash, FLASH_ERROR, console("database.test.invalid", "The settings cannot be used: {0}",
-                        console("database.test.port", "the port is not a number")));
-            }
+    public String testSaved(@RequestParam(name = "provider", defaultValue = "") String provider,
+                            RedirectAttributes flash) {
+        if (!tester.testable().contains(provider)) {
+            return result(flash, new ConnectionTester.Result(ConnectionTester.Category.NO_PROVIDER,
+                    ProviderChoice.plugin(provider.isBlank() ? "?" : provider)));
         }
-        return result(flash, tester.newSettings(props, password));
+        return result(flash, tester.saved(provider));
     }
 
     @PostMapping("/recover")
@@ -164,7 +151,9 @@ public class DatabaseConsoleController {
             case NOT_AVAILABLE -> console(key, "The database is not in use: {0}", result.detail());
             default -> console("database.test.other", "The test failed; see the server log.");
         };
-        return back(flash, result.category() == ConnectionTester.Category.OK ? FLASH : FLASH_ERROR, text);
+        flash.addFlashAttribute(result.category() == ConnectionTester.Category.OK ? TEST_FLASH : TEST_FLASH_ERROR,
+                text);
+        return "redirect:" + SETTINGS_PAGE;
     }
 
     private static String operator() {

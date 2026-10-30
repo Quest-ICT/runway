@@ -1950,13 +1950,79 @@ chosen in settings. Nothing uses them unless a plugin that needs a database is i
 
 | Plugin | What it is |
 |---|---|
-| `database` | The generic plugin: the connection pool, the settings, one schema per site, migrations, backups, the **Database** screen. Requires Runway 1.1.0 or later. |
-| `database-postgresql` | The PostgreSQL provider: bundles the pgjdbc driver. PostgreSQL **14 or later**, database encoding `UTF8`. |
-| `database-mariadb` | The MariaDB provider: bundles MariaDB Connector/J (LGPL-2.1; its unmodified sources are published next to the zip). MariaDB **10.11 or later**; MySQL is not supported. |
+| `database` | The generic plugin: the connection pool, the provider choice and the limits, one schema per site, migrations, backups, the **Database** screen and the connection tests. Version 2.0.0 requires Runway 1.2.0 or later (1.0.0 ran on 1.1.0). |
+| `database-postgresql` | The PostgreSQL provider: bundles the pgjdbc driver and holds the server's settings (host, account, password, TLS). PostgreSQL **14 or later**, database encoding `UTF8`. |
+| `database-mariadb` | The MariaDB provider: bundles MariaDB Connector/J (LGPL-2.1; its unmodified sources are published next to the zip) and holds the server's settings, collation included. MariaDB **10.11 or later**; MySQL is not supported. |
 
-Install `database` and the provider for your server (installing both providers is harmless: the setting picks one),
-then restart. A plugin that needs the database declares it, so without `database` it shows as **Blocked** with the
+Install `database` and the provider for your server, then restart. With one provider installed, it is the one used;
+with both, the database plugin's `provider` setting picks one. A plugin that needs the database declares it, so without `database` it shows as **Blocked** with the
 reason, and Runway runs normally.
+
+**Setting it up, step by step.** The whole path for one server; each step is explained further down.
+
+1. **Prepare the server**: an account and a UTF-8 database for Runway (*Preparing the server*, below). On PostgreSQL
+   the account only owns that database; on MariaDB it also needs the grant on the namespace's databases.
+2. **Install the plugins.** From the release (the plugin zips are published with each Runway release, §11), download `runway-plugin-database-<version>.zip`, the provider's
+   zip (`runway-plugin-database-postgresql-…` or `runway-plugin-database-mariadb-…`) and `SHA256SUMS`, check them
+   (`sha256sum -c --ignore-missing SHA256SUMS`), and upload each zip on **Plugins**. Add the plugins that will use
+   the database (for a first try, `runway-demo-database`, the guestbook). Do not restart yet.
+3. **Enter the settings**: the server, the account, the password and TLS on the provider's page (**Plugins →
+   Database — PostgreSQL → Settings**, or **Database — MariaDB**), or in its settings file (*Setting it up without the
+   console*, below). The database plugin's own page (**Plugins → Database → Settings**) needs a change only when both
+   providers are installed, or for the namespace and the limits. Settings take effect on the next restart.
+4. **Test them**: on **Plugins → Database → Settings**, below the form, **Connection tests** → **Test the saved
+   PostgreSQL settings** (or MariaDB) connects once with what is saved and changes nothing. The answer is one of those
+   in *When it does not connect*, below.
+5. **Restart once.** Runway starts without waiting for the database, then connects on its own thread.
+6. **Check**: **Settings → Database** says *Connected* and shows the server's version; the server log has one line
+   `database: connected to … (postgresql), namespace 'rw'` (or `mariadb`). If it says anything else, see *When it
+   does not connect*, below.
+7. **Try it** (with the guestbook): place `<div id="guestbook" data-widget="guestbook/main"></div>` on a page of a
+   site, sign the guestbook as a visitor, and the site's schema appears on the server (`rw_s_<site>_<n>`); the entries
+   are managed under **Guestbook** in that site's console (the site superadmin has it; anyone else needs the
+   guestbook's *manage* permission, granted on **Permissions**).
+
+**Setting it up without the console.** The server's settings live in the provider's file,
+`external/plugin-settings/database-postgresql.yml` (or `database-mariadb.yml`), nested under
+`runway.plugin.<provider plugin id>` like every plugin's (§11). `host`, `database` and `username` are required; the
+other keys keep their defaults when absent:
+
+```yaml
+# external/plugin-settings/database-postgresql.yml   (owner: the service account; mode 600 — it holds the password)
+runway:
+  plugin:
+    database-postgresql:       # database-mariadb for MariaDB
+      host: "127.0.0.1"
+      port: 5432               # blank or absent: 5432 / 3306
+      database: "runway"
+      username: "runway"
+      password: "…"
+      tls: disable             # same host only; otherwise verify-full (the default) or require
+```
+
+The database plugin's own file, `external/plugin-settings/database.yml` (under `runway.plugin.database`), is needed
+only to choose the provider when both are installed (`provider: postgresql` or `mariadb`; the default `auto` uses the
+one installed), or to change the namespace or a limit.
+
+The password may be written **in clear**: it is used as written and stays in clear in the file. Runway does not
+encrypt a hand-written value, and nothing outside the console can produce the encrypted `ENC(...)` form; it is made
+only when the password is typed on the settings form, with the platform secret key (§8). So either keep the file
+readable by the service account only (`chown runway: …; chmod 600 …`), or type the password once on the form, which
+replaces it with `ENC(...)`. Saving the form with the password field left blank keeps whatever is stored, clear or
+encrypted, as long as the settings it is bound to do not change (below).
+
+**Upgrading from database 1.x.** Until 2.0.0 the server's settings were in the database plugin's own file. After the
+upgrade, a `database.yml` that still holds them gives the status *Not configured: the server settings moved to the
+database-postgresql plugin in database 2.0.0: move host, …* and Runway does not connect with them. Move every server
+key (`host`, `port`, `database`, `username`, `password`, `tls`, `caCertificate`, and on MariaDB `collation`) into the
+provider's file, under `runway.plugin.database-postgresql` (or `database-mariadb`), as above; keep `provider`,
+`namespace` and the limits in `database.yml`. An encrypted password (`ENC(...)`) can be moved as it is: it is
+encrypted with the platform secret key, not with anything tied to the file. **Move the keys before you save the
+Database plugin's settings form**: a save writes only the settings the form has, so it removes the old server keys
+from `database.yml`, encrypted password included (if that happens, type the settings on the provider's page). Or retype the settings on the provider's
+page and delete the old keys. Install the 2.0.0 versions of all three plugins together; a 1.x provider with
+database 2.0.0 gives *No provider: the database-postgresql plugin is older than 2.0.0*. Then test (step 4 above)
+and restart.
 
 **What Runway creates.** Every name starts with the **namespace** (setting `namespace`, default `rw`):
 
@@ -1981,6 +2047,13 @@ CREATE DATABASE runway OWNER runway ENCODING 'UTF8' TEMPLATE template0;
 would refuse it; on a UTF-8 cluster it changes nothing. If PostgreSQL then answers that the encoding does not match
 the locale, the cluster's locale is not UTF-8 either: add `LOCALE 'C.UTF-8'` (PostgreSQL 14 and later).
 
+Owning the database is all the account needs: Runway creates its schemas inside it. The server must accept the
+account over TCP with a password: on PostgreSQL that is a `pg_hba.conf` line for the database, the account and the
+address Runway connects from, for example `host runway runway 127.0.0.1/32 scram-sha-256` for a server on the same
+host (reload PostgreSQL after editing it), and, for a server on another host, `listen_addresses` covering an
+interface Runway can reach. Give the host as `127.0.0.1` rather than `localhost` to avoid depending on which of
+`127.0.0.1` and `::1` the name resolves to.
+
 ```sql
 -- MariaDB (as root). The pattern is the namespace, then an escaped underscore: `rw\_%` for the default `rw`.
 CREATE USER 'runway'@'10.0.0.%' IDENTIFIED BY '…';
@@ -1992,21 +2065,35 @@ GRANT ALL PRIVILEGES ON `rw\_%`.* TO 'runway'@'10.0.0.%';
 A MariaDB account without the pattern grant connects but cannot create the namespace's databases: the **Database**
 screen stays at *Connecting* with an "Access denied" error until the grant exists.
 
-**Settings** (**Plugins → database → Settings**, Runway-wide, applied on **restart**):
+**Settings** (Runway-wide, applied on **restart**). The server's, on the provider's page (**Plugins → Database —
+PostgreSQL → Settings**, or **Database — MariaDB**):
 
 | Setting | Meaning |
 |---|---|
-| `provider` | `postgresql` or `mariadb`. |
 | `host`, `port` | One server: a host name or an IP address (no lists, no options). A blank port means 5432 / 3306. |
 | `database` | The database to connect to (see above). |
-| `username`, `password` | The account. The password is stored encrypted. It is **bound** to provider, host, port, database, username, TLS and the CA certificate: change any of them without typing the password again and the stored password is removed, so it can never be sent to a server someone else chose. |
+| `username`, `password` | The account. The password is stored encrypted. It is **bound** to host, port, database, username, TLS and the CA certificate: change any of them without typing the password again and the stored password is removed, so it can never be sent to a server someone else chose. |
 | `tls` | `verify-full` (default: encrypted, the certificate and the host name checked against the Java trust store or `caCertificate`), `require` (encrypted, the server **not** checked), `disable`. Use `disable` only for a database on the same host or a private network you trust. |
 | `caCertificate` | Advanced. The PEM certificate of the CA that signed the server's certificate, when the Java trust store does not know it. |
+| `collation` | Advanced, MariaDB's page only: for plugins' tables. Blank means `utf8mb4_uca1400_ai_ci`. Runway's own identifier columns are always binary. |
+
+The rest, on the database plugin's page (**Plugins → Database → Settings**):
+
+| Setting | Meaning |
+|---|---|
+| `provider` | `auto` (default: the one provider plugin installed), `postgresql` or `mariadb`. Needed only when both providers are installed. |
 | `namespace` | Advanced. Default `rw`; lower-case letters and digits, up to 12. Changing it later starts from empty schemas: the old ones stay on the server. |
 | `poolMax` | Connections plugins may hold at once (default 10). One site may use at most half, so a busy site cannot starve the others. |
 | `statementTimeoutSeconds` | A plugin's statement that runs longer is stopped (default 10). Migrations, backups and restores have their own 30-minute limit. |
 | `backupBudgetMiB` | The compressed size a site's database data may reach in its backup (default 128). |
-| `collation` | Advanced, MariaDB only: for plugins' tables. Blank means `utf8mb4_uca1400_ai_ci`. Runway's own identifier columns are always binary. |
+
+**Connection tests**, below the database plugin's settings form (same permission as the form, and the same as the
+Database screen: `CONFIGURE_PLATFORM`): *Running now* shows the status; **Test the running connection** borrows from
+the live pool; **Test the saved PostgreSQL settings** (one button per installed provider) opens one throwaway
+connection with the settings saved on that provider's page — which the next restart would apply — and changes
+nothing. The tests take no typed values: a form with a username and a password box is one a browser fills in with
+your own saved console login, which a test would then send to whatever server the form named. Answers are fixed
+categories (below); the driver's own message goes only to the server log, never with a password.
 
 **Runway never fails to start because of the database.** Nothing connects while Runway starts; the plugin connects
 right after, on its own thread, retrying with back-off. Until it succeeds, plugins that need it say so (for example
@@ -2018,11 +2105,7 @@ administrators hold) shows:
 - the status: *Connected*, *Connecting* (with the last error), *Not configured* (with the setting at fault), *No
   provider*, or *Server not supported*; the provider, server version, driver, pool use and the number of sites with
   data;
-- **Test running connection** (the live pool) and **Test these settings** (typed values, one throwaway connection,
-  nothing saved). Answers are fixed categories — unreachable, TLS failure, authentication failed, database missing or
-  no access, unsupported server — and the driver's own message goes only to the server log, never with a password.
-  A blank password in the test reuses the saved one only for exactly the same provider, server, database, account and
-  TLS settings;
+- a link to the settings page and its **Connection tests** (above);
 - **Plugin tables needing attention**, with recovery actions (below);
 - the plugins using the database, the nodes seen in the last five minutes, the largest site backup against the
   budget (a warning from 75%), and the last failed restore.
@@ -2043,7 +2126,28 @@ sites carry on — and the screen lists the case:
 
 Every recovery action is written to the server log with the operator's name.
 
-**Clusters.** Every node needs the same `external/plugin-settings/database.yml` and the same platform secret key
+**When it does not connect.** The **Database** screen's status, and the server log's `database:` lines, say why;
+**Test the saved … settings** checks what is saved before you restart. While the status is *Connecting*,
+Runway retries on its own, waiting twice as long each time up to a minute (every 5 minutes for *Server not
+supported*); a fixed server is picked up without a restart. A changed setting needs a restart.
+
+| Status / test answer | Usual cause | What to do |
+|---|---|---|
+| *Not configured: …* (log: `database: not configured: …`; test: *The settings cannot be used: …*) | A setting is missing or invalid; the message names the plugin and the setting (for example *database-postgresql settings: no host is set*), or says *no server is set* on the provider's page, or *both provider plugins are installed* (choose one in `provider`), or *the server settings moved* (*Upgrading from database 1.x*, above). | Set it and restart. |
+| *No provider: …* | No provider plugin is installed, `provider` names a product whose plugin is not, two plugins offer the same product, or the provider is older than 2.0.0 (*the database-postgresql plugin is older than 2.0.0*). | Install `database-postgresql` or `database-mariadb` (2.0.0 or later), or change `provider`; restart. |
+| *Connecting:* … / *The server could not be reached.* | Wrong host or port, the server is down, it listens on another interface, or a firewall is in between. The connection attempt gives up after 5 seconds. | From the Runway host, check the address and port (`pg_isready -h … -p …`, `nc -vz … 3306`); `listen_addresses` / `bind-address` on the server. |
+| *The server refused the username or password.* | Wrong password; on PostgreSQL, no `pg_hba.conf` line matches the database, account and Runway's address; on MariaDB, no account matches the address Runway connects from. | Fix the password (retype it; §11 on bound secrets), the `pg_hba.conf` line (then reload), or the account's host part. |
+| *The TLS handshake failed* | `verify-full` against a server whose certificate the Java trust store does not know (a private CA, or a self-signed certificate), or whose name does not match `host`; or TLS asked for from a server that has none (on PostgreSQL the status shows *The server does not support SSL*; database 1.0.0 reported this one as a refused password). | Paste the CA into `caCertificate`, use the name on the certificate as `host`, or, for a server on the same host or a trusted private network only, `tls: disable`. |
+| *The database does not exist on the server, or the account has no access to it.* | The `database` setting names a database that is not there, or (MariaDB) the account has no rights on it. On PostgreSQL an account without the `CONNECT` right answers *The test failed; see the server log*. | Create it as shown above, or fix the name. |
+| *Connecting:* … *Access denied* (MariaDB) | The account connects but lacks the grant on the namespace's databases. | Add the namespace pattern grant shown above. |
+| *Server not supported: …* | PostgreSQL older than 14, MariaDB older than 10.11, MySQL, or a PostgreSQL database whose encoding is not UTF-8 (*the database's encoding is … UTF8 is needed*). | Upgrade the server or use another one; recreate the database as UTF-8 as shown above. |
+
+The test answers are fixed categories. The status and *Last error* on the screen, and the log's `database:` line,
+carry the driver's own message (never a password): the exception, its SQL state and the text, which is where the
+detail is.
+
+**Clusters.** Every node needs the same `external/plugin-settings/database.yml` and provider file
+(`database-postgresql.yml` or `database-mariadb.yml`) and the same platform secret key
 (`runway.security.secret-key`), because the password is stored encrypted with it. The database is shared, so a site
 deleted on one node has its schema dropped once, by that node. To change the server or the provider, stop **every**
 node first.
@@ -2508,6 +2612,14 @@ holder and explains why; the routes answer `403` regardless. A backup the holder
 there for an administrator — or the platform operator, on `/__app/backups` — to download or restore. See the
 *Site Manager & Designer Guide* §12 for the end-user workflow.
 
+**Who did it is recorded.** Each backup act on the site console that took effect — saving, downloading (full,
+transfer, or a saved backup), deleting and restoring — is a line in that site's own audit journal (`backup.saved`,
+`backup.downloaded`, `backup.deleted`, `site.restored`; Site Manager & Designer Guide §3). The same acts on
+`/__app/backups` are in the platform's activity log, under the same names, and not in the site's journal. **A
+restore keeps the site's logs and traffic history** (on either console): it replaces the content only, so the
+journal still holds what happened before it; logs or stats inside an archive are ignored, as no backup writes them.
+A site created from a backup starts its own logs.
+
 **Pending editorial work travels with the site.** On a site whose manager has turned on review
 (*Site Manager & Designer Guide* §10), changes waiting for approval are kept beside their pages under
 `sites/<id>/templates/.pending/<slug>/`. They are site content, never served, listed or indexed: a backup
@@ -2543,7 +2655,7 @@ with:
 
 - `users.yml` and `permissions.yml` **omitted** — accounts, hashes and grants;
 - traffic history (`stats/bandwidth.csv`) and logs — absent, as from **every** backup: they are transient
-  per-site data that no backup carries;
+  per-site data that no backup carries (and a restore keeps the target site's own);
 - every per-site plugin value that is **declared** secret, stored `ENC(...)`, or **named** like a credential
   (`secret`, `password`, `passwd`, `token`, `credential`, `apiKey`, `privateKey`) — **blanked** at any depth,
   including inside nested maps and lists, and kept as an empty key so the recipient sees what to fill in;

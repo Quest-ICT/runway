@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logic of the connection tests panel. It renders on the KERNEL-owned plugin settings page, which puts nothing of
+  this plugin in the model except the test result (flash attributes databaseTest / databaseTestError, set by the
+  console controller's redirect), so everything else comes from the plugin's beans: the running status from
+  databaseRuntime, the installed providers from databaseConnectionTester. The _csrf token comes from the page.
+  Provider links are built into a local variable: a URL processor may not call a bean.
+-->
+<thlogic>
+    <attr sel="#db-tests-title" th:text="#{database.panel.title}"/>
+    <attr sel="#db-tests-intro" th:text="#{database.panel.intro}"/>
+
+    <attr sel="#db-test-ok" th:if="${databaseTest != null}"/>
+    <attr sel="#db-test-ok-text" th:text="${databaseTest}"/>
+    <attr sel="#db-test-error" th:if="${databaseTestError != null}"/>
+    <attr sel="#db-test-error-text" th:text="${databaseTestError}"/>
+
+    <attr sel="#db-now-label" th:text="#{database.panel.now}"/>
+    <!-- th:if is evaluated before th:with, so the condition calls the bean itself. -->
+    <attr sel="#db-now-status" th:with="h=${@databaseRuntime.health()}"
+          th:text="#{'database.status.' + ${h.status().name()}(${h.detail()})}"/>
+    <attr sel="#db-now-detail" th:if="${@databaseRuntime.health().server() != null}"
+          th:text="${@databaseRuntime.health().server()}"/>
+
+    <attr sel=".db-csrf"
+          th:attr="name=${_csrf != null ? _csrf.parameterName : '_csrf'},value=${_csrf != null ? _csrf.token : ''}"/>
+    <attr sel="#db-test-running" th:text="#{database.panel.testRunning}"/>
+
+    <attr sel="#db-none" th:if="${@databaseConnectionTester.testable().isEmpty()}"
+          th:text="#{database.panel.none}"/>
+    <attr sel=".db-provider" th:each="p : ${@databaseConnectionTester.testable()}"
+          th:with="product=${#messages.msg('database.product.' + p)},
+                   editUrl=${'/__app/plugins/database-' + p + '/settings'}"/>
+    <attr sel=".db-provider//.db-provider-in" th:value="${p}"/>
+    <attr sel=".db-provider//.db-test-saved" th:text="#{database.panel.testSaved(${product})}"/>
+    <attr sel=".db-provider//.db-provider-link" th:href="${editUrl}"
+          th:text="#{database.panel.edit(${product})}"/>
+</thlogic>

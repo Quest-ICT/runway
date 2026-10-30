@@ -422,6 +422,41 @@ class PluginContributionPolicyTest {
     }
 
     @Test
+    void theFactoryHandsAPluginItsOwnSavedAppSettingsFromItsOwnFileOnly() throws Exception {
+        assumeTrue(PluginFixture.compilerAvailable());
+        String schema = "settings:\n  - { key: apiKey, type: secret, label: l }\n"
+                + "  - { key: host, type: string, label: l }\n";
+        PluginDescriptor d1 = PluginDescriptor.read(new ByteArrayInputStream(("id: p1\nversion: 1.0.0\nmainClass: x.Y\n"
+                + schema).getBytes(StandardCharsets.UTF_8)));
+        PluginDescriptor d2 = PluginDescriptor.read(new ByteArrayInputStream(("id: p2\nversion: 1.0.0\nmainClass: x.Y\n"
+                + schema).getBytes(StandardCharsets.UTF_8)));
+        PluginOwnership owners = PluginOwnership.of(new PluginRuntime(
+                List.of(new LoadedPlugin(d1, root.resolve("p1")), new LoadedPlugin(d2, root.resolve("p2"))), loader,
+                Map.of(), false));
+        mx.quest.runway.storage.StorageProperties props = new mx.quest.runway.storage.StorageProperties();
+        props.setExternal(root.resolve("external-saved"));
+        mx.quest.runway.storage.StorageLayout layout = mx.quest.runway.storage.StorageLayout.from(props);
+        java.nio.file.Path p1File = layout.pluginSettingsFile("p1");
+        java.nio.file.Files.createDirectories(p1File.getParent());
+        java.nio.file.Files.writeString(p1File, "runway:\n  plugin:\n    p1:\n      host: saved.example\n"
+                + "      apiKey: p1-saved\n");
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment()
+                .withProperty("runway.plugin.p1.host", "running.example");
+        PluginScopedServices scoped = new PluginScopedServices(owners,
+                new SitePluginConfigService(layout, null, event -> { }), null, layout, 1024, env);
+
+        PluginSettings p1 = scoped.pluginSettings(pointIn(head("p1", "k", false).getClass(), "key"));
+        PluginSettings p2 = scoped.pluginSettings(pointIn(head("p2", "k", false).getClass(), "key"));
+        assertEquals(Optional.of("saved.example"), p1.savedApp("host"), "the file as saved, not the environment");
+        assertEquals(Optional.of("p1-saved"), p1.savedApp("apiKey"), "its own saved secret (plaintext as written)");
+        assertEquals(Optional.empty(), p2.savedApp("host"), "p2 has no file of its own: p1's is never read for it");
+        assertEquals(Optional.empty(), p2.savedApp("apiKey"));
+
+        java.nio.file.Files.writeString(p1File, "runway:\n  plugin:\n    p1:\n      host: [unclosed\n");
+        assertEquals(Optional.empty(), p1.savedApp("host"), "an unparsable file answers empty, never throws");
+    }
+
+    @Test
     void anInjectionPointInAPluginsOwnJarBindsToThatPlugin() throws Exception {
         assumeTrue(PluginFixture.compilerAvailable());
         PluginScopedServices scoped = scoped();
